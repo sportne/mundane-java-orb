@@ -30,7 +30,10 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
   matrices. Feature handoffs must narrow these to task-specific clauses.
 - External ORB peer scripts are placeholders.
 - JaCoCo thresholds should tighten after empty-module validation.
-- ArchUnit rules and interop peer container manifests still need expansion.
+- G2 ArchUnit boundary enforcement has been expanded in
+  `docs/agent/g2-architecture-boundary-handoff.md`; empty-rule scaffold
+  tolerance remains until later validation gates.
+- Interop peer container manifests still need expansion.
 - The current G1 traceability task handoff is
   `docs/agent/g1-specification-traceability-handoff.md`.
 

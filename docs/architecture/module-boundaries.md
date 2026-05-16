@@ -16,7 +16,15 @@
 
 The rules are enforced by:
 
-- ArchUnit tests in `modules/corba-architecture-tests`;
+- ArchUnit tests in `modules/corba-architecture-tests`, including staged
+  checks for OMG package ownership, IDL isolation from transport/protocol
+  packages, protocol-to-runtime separation, CDR/GIOP/IIOP dependency limits,
+  reflection restrictions, Java serialization restrictions, and runtime
+  bytecode-generation restrictions;
 - static analysis;
 - coding-agent rules;
 - module dependency reviews.
+
+During the scaffold phase, architecture tests allow empty package matches so
+rules can be merged before the corresponding implementation packages exist.
+Removing that scaffold tolerance is a later G5/G6 validation item.
