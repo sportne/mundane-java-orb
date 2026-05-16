@@ -9,7 +9,7 @@ plugins {
 }
 
 // group and version form the first two parts of Maven coordinates: group:name:version.
-group = 'io.corbaecosystem'
+group = 'io.github.mundanej'
 
 // The version normally comes from gradle.properties, but this fallback keeps local experiments usable.
 version = providers.gradleProperty('corba.version').getOrElse('0.1.0-SNAPSHOT')
@@ -82,21 +82,21 @@ tasks.register('printPublishedArtifacts') {
     group = 'help'
     doLast {
         println '''
-:modules:corba-bom                 -> io.corbaecosystem:corba-bom
-:modules:corba-common              -> io.corbaecosystem:corba-common
-:modules:corba-omg-api             -> io.corbaecosystem:corba-omg-api
-:modules:corba-modern-api          -> io.corbaecosystem:corba-modern-api
-:modules:corba-repository-id       -> io.corbaecosystem:corba-repository-id
-:modules:corba-idl-*               -> io.corbaecosystem:corba-idl-*
-:modules:corba-codegen             -> io.corbaecosystem:corba-codegen
-:modules:corba-idlj-cli            -> io.corbaecosystem:corba-idlj-cli
-:modules:corba-cdr                 -> io.corbaecosystem:corba-cdr
-:modules:corba-ior                 -> io.corbaecosystem:corba-ior
-:modules:corba-giop                -> io.corbaecosystem:corba-giop
-:modules:corba-iiop                -> io.corbaecosystem:corba-iiop
-:modules:corba-orb-core            -> io.corbaecosystem:corba-orb-core
-:modules:corba-poa                 -> io.corbaecosystem:corba-poa
-:modules:corba-* services/testkits -> io.corbaecosystem:corba-*
+:modules:corba-bom                 -> io.github.mundanej:corba-bom
+:modules:corba-common              -> io.github.mundanej:corba-common
+:modules:corba-omg-api             -> io.github.mundanej:corba-omg-api
+:modules:corba-modern-api          -> io.github.mundanej:corba-modern-api
+:modules:corba-repository-id       -> io.github.mundanej:corba-repository-id
+:modules:corba-idl-*               -> io.github.mundanej:corba-idl-*
+:modules:corba-codegen             -> io.github.mundanej:corba-codegen
+:modules:corba-idlj-cli            -> io.github.mundanej:corba-idlj-cli
+:modules:corba-cdr                 -> io.github.mundanej:corba-cdr
+:modules:corba-ior                 -> io.github.mundanej:corba-ior
+:modules:corba-giop                -> io.github.mundanej:corba-giop
+:modules:corba-iiop                -> io.github.mundanej:corba-iiop
+:modules:corba-orb-core            -> io.github.mundanej:corba-orb-core
+:modules:corba-poa                 -> io.github.mundanej:corba-poa
+:modules:corba-* services/testkits -> io.github.mundanej:corba-*
 '''.stripIndent()
     }
 }

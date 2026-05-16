@@ -6,7 +6,7 @@ Generated on: 2026-05-16
 
 - Created repository scaffold with 185 files.
 - Verified required design-control files exist via file-system inspection.
-- Created zip archive at `/mnt/data/corba-ecosystem-initial.zip`.
+- Created zip archive at `/mnt/data/mundane-java-orb-initial.zip`.
 
 ## Current local validation
 

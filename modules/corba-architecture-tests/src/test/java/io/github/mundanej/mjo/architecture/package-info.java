@@ -1,2 +1,2 @@
 /** Architecture enforcement tests for the repository scaffold. */
-package io.corbaecosystem.architecture;
+package io.github.mundanej.mjo.architecture;

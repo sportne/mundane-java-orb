@@ -1,6 +1,6 @@
 # Notice
 
-This is an initial repository scaffold for a design-first Java CORBA ecosystem.
+This is an initial repository scaffold for the design-first mundane Java ORB.
 
 No third-party implementation source code has been copied into this repository.
 Reference implementations such as JacORB, Eclipse GlassFish CORBA ORB, JBoss

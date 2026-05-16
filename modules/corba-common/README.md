@@ -4,7 +4,8 @@ Shared diagnostics, immutable value objects, and common utilities.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+G6 foundation implementation has started with shared diagnostics, source
+locations, and bounded-limit value objects.
 
 ## Documentation requirements
 

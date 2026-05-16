@@ -1,4 +1,4 @@
-package io.corbaecosystem.common;
+package io.github.mundanej.mjo.common;
 
 /**
  * Project-scaffold metadata.
@@ -9,7 +9,7 @@ package io.corbaecosystem.common;
 public final class ProjectInfo {
 
   /** Project display name. */
-  public static final String PROJECT_NAME = "corba-ecosystem";
+  public static final String PROJECT_NAME = "mundane Java ORB";
 
   private ProjectInfo() {
     throw new AssertionError("No instances");

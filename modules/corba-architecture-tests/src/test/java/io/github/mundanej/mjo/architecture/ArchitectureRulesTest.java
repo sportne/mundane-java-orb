@@ -1,4 +1,4 @@
-package io.corbaecosystem.architecture;
+package io.github.mundanej.mjo.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -208,7 +208,7 @@ final class ArchitectureRulesTest {
   }
 
   private static JavaClasses projectClasses() {
-    return new ClassFileImporter().importPackages("io.corbaecosystem");
+    return new ClassFileImporter().importPackages("io.github.mundanej.mjo");
   }
 
   private static Path findRepositoryRoot() {

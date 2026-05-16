@@ -31,8 +31,13 @@ an exact acceptance command.
 - G0 through G5 have been reviewed and approved by the maintainer.
 - G6 starts with the roadmap task set captured in
   `docs/agent/g6-project-roadmap-handoff.md` and `docs/roadmap/`.
-- Roadmap task files are drafts. A task must be narrowed into a task-specific
-  G6 handoff before implementation begins.
+- G6-010 gate state/control and G6-030 common diagnostics/limits are captured in
+  `docs/agent/g6-010-gate-state-and-control-handoff.md` and
+  `docs/agent/g6-030-common-diagnostics-limits-handoff.md`.
+- `docs/roadmap/tasks/g6-040-repository-id-foundation.md` is the next
+  ready-for-handoff candidate.
+- Remaining roadmap task files are drafts. A task must be narrowed into a
+  task-specific G6 handoff before implementation begins.
 - G5 validation readiness closure is captured in
   `docs/agent/g5-validation-gate-readiness-handoff.md` and
   `docs/verification/g5-validation-gate-readiness.md`.

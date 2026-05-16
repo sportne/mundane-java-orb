@@ -6,6 +6,7 @@ Architecture documents:
 - `module-boundaries.md`
 - `artifact-model.md`
 - `build-architecture.md`
+- `common-foundations.md`
 - `idl-compiler-architecture.md`
 - `runtime-architecture.md`
 - `cdr-giop-iiop.md`

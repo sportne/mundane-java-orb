@@ -1,6 +1,6 @@
 # corba-bom
 
-Java platform BOM for aligning all CORBA ecosystem artifacts.
+Java platform BOM for aligning all mundane Java ORB artifacts.
 
 ## Current status
 

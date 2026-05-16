@@ -1,4 +1,4 @@
-package io.corbaecosystem.common;
+package io.github.mundanej.mjo.common;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -11,6 +11,6 @@ final class ProjectInfoTest {
 
   @Test
   void projectNameIdentifiesTheScaffold() {
-    assertEquals("corba-ecosystem", ProjectInfo.PROJECT_NAME);
+    assertEquals("mundane Java ORB", ProjectInfo.PROJECT_NAME);
   }
 }

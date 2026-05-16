@@ -2,10 +2,10 @@
 
 ## Mission
 
-Build a complete, modular, specification-traced Java CORBA ecosystem that can
-support legacy CORBA compatibility, modern generated-code APIs, GraalVM Native
-Image execution, and interoperability with selected Java and C++ ORB
-implementations.
+Build mundane Java ORB as a complete, modular, specification-traced Java ORB
+that can support legacy CORBA compatibility, modern generated-code APIs,
+GraalVM Native Image execution, and interoperability with selected Java and C++
+ORB implementations.
 
 ## Strategic goals
 

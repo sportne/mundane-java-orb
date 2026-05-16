@@ -2,7 +2,7 @@ plugins {
     id 'corba.platform-conventions'
 }
 
-description = 'Java platform BOM for aligning all CORBA ecosystem artifacts.'
+description = 'Java platform BOM for aligning all mundane Java ORB artifacts.'
 
 dependencies {
     constraints {

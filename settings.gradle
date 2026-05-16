@@ -44,7 +44,7 @@ dependencyResolutionManagement {
 }
 
 // This is the name Gradle shows for the root project.
-rootProject.name = 'corba-ecosystem'
+rootProject.name = 'mundane-java-orb'
 
 // Publishable and test-support modules live under modules/.
 include ':modules:corba-bom'

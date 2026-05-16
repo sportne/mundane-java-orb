@@ -8,7 +8,7 @@ ADR IDs: ADR-0001, ADR-0004, ADR-0008, ADR-0010
 Specification references: Architecture-enforcement task; no direct OMG clause.
 Target module: modules/corba-architecture-tests
 Allowed files:
-- modules/corba-architecture-tests/src/test/java/io/corbaecosystem/architecture/ArchitectureRulesTest.java
+- modules/corba-architecture-tests/src/test/java/io/github/mundanej/mjo/architecture/ArchitectureRulesTest.java
 - docs/architecture/module-boundaries.md
 - docs/agent/agent-handoff.md
 - docs/agent/g2-architecture-boundary-handoff.md

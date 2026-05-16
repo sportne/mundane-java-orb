@@ -20,13 +20,13 @@ execution until it is copied or narrowed into a task-specific handoff.
 ### G6.0 Control
 
 - `tasks/g6-000-roadmap-task-set.md`
-- `tasks/g6-010-gate-state-and-control.md`
+- `tasks/g6-010-gate-state-and-control.md` - complete
 - `tasks/g6-020-coverage-architecture-tightening.md`
 
 ### G6.1 Foundations
 
-- `tasks/g6-030-common-diagnostics-limits.md`
-- `tasks/g6-040-repository-id-foundation.md`
+- `tasks/g6-030-common-diagnostics-limits.md` - complete
+- `tasks/g6-040-repository-id-foundation.md` - ready-for-handoff
 - `tasks/g6-050-testkit-golden-fixtures.md`
 
 ### G6.2 IDL Compiler Slice
@@ -89,4 +89,3 @@ execution until it is copied or narrowed into a task-specific handoff.
 - `tasks/g6-d10-rmi-iiop-java-to-idl.md`
 - `tasks/g6-d20-optional-corba-services.md`
 - `tasks/g6-d30-legal-public-release.md`
-
