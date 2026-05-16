@@ -1,0 +1,6 @@
+plugins {
+    id 'corba.application-conventions'
+    id 'corba.native-image-conventions'
+}
+
+description = 'idlj-like command-line compiler distribution and CLI entry point.'

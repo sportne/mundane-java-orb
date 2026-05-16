@@ -1,0 +1,6 @@
+plugins {
+    id 'corba.application-conventions'
+    id 'corba.native-image-conventions'
+}
+
+description = 'Standalone Naming Service implementation and distribution.'

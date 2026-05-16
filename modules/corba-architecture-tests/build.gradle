@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.architecture-conventions'
+}
+
+description = 'ArchUnit and repository-wide architecture checks.'

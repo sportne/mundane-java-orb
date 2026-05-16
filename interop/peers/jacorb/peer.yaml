@@ -1,0 +1,13 @@
+name: jacorb
+status: placeholder
+roles:
+  - client
+  - server
+usedFor:
+  - basic-idl
+  - object-reference
+  - naming
+  - giop
+  - iiop
+licenseReviewRequired: true
+sourceCopyingAllowed: false

@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'CORBA Security / CSIv2 implementation module, initially design-only.'

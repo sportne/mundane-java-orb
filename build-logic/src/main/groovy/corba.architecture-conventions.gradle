@@ -1,0 +1,6 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+// Architecture tests are implemented in modules/corba-architecture-tests.
+// This plugin exists so future modules can opt into repository-wide architecture checks.

@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'GIOP message model, parser, writer, service contexts, and fragmentation.'

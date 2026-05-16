@@ -1,0 +1,8 @@
+// Placeholder IDL corpus file. Implementation begins only after G6.
+module interop {
+  module basic {
+    struct Placeholder {
+      string value;
+    };
+  };
+};

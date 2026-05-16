@@ -1,0 +1,6 @@
+plugins {
+    id 'corba.application-conventions'
+    id 'corba.native-image-conventions'
+}
+
+description = 'Small generated-code examples and smoke-test applications.'

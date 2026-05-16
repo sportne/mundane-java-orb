@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'RMI-IIOP and Java-to-IDL support, staged behind dedicated ADR.'

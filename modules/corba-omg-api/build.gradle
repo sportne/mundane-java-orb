@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'Legacy org.omg.* and Cos* compatibility API artifact. The only artifact allowed to define org.omg.* packages.'

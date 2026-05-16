@@ -1,0 +1,65 @@
+plugins {
+    id 'java-platform'
+    id 'maven-publish'
+}
+
+description = 'Java platform BOM for aligning all CORBA ecosystem artifacts.'
+
+javaPlatform {
+    allowDependencies()
+}
+
+dependencies {
+    constraints {
+            api project(':modules:corba-common')
+            api project(':modules:corba-omg-api')
+            api project(':modules:corba-modern-api')
+            api project(':modules:corba-repository-id')
+            api project(':modules:corba-idl-ast')
+            api project(':modules:corba-idl-parser')
+            api project(':modules:corba-idl-semantics')
+            api project(':modules:corba-idl-java-mapping')
+            api project(':modules:corba-codegen')
+            api project(':modules:corba-idlj-cli')
+            api project(':modules:corba-cdr')
+            api project(':modules:corba-typecode')
+            api project(':modules:corba-any')
+            api project(':modules:corba-ior')
+            api project(':modules:corba-giop')
+            api project(':modules:corba-iiop')
+            api project(':modules:corba-orb-core')
+            api project(':modules:corba-poa')
+            api project(':modules:corba-interceptors')
+            api project(':modules:corba-dynamic')
+            api project(':modules:corba-interface-repository')
+            api project(':modules:corba-naming-api')
+            api project(':modules:corba-naming-server')
+            api project(':modules:corba-services-core')
+            api project(':modules:corba-trading-service')
+            api project(':modules:corba-event-service')
+            api project(':modules:corba-notification-service')
+            api project(':modules:corba-transaction-service')
+            api project(':modules:corba-security-service')
+            api project(':modules:corba-time-service')
+            api project(':modules:corba-rmi-iiop')
+            api project(':modules:corba-native-image')
+            api project(':modules:corba-testkit')
+            api project(':modules:corba-interop-testkit')
+            api project(':modules:corba-architecture-tests')
+            api project(':modules:corba-examples')
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.javaPlatform
+        }
+    }
+    repositories {
+        maven {
+            name = 'localStaging'
+            url = rootProject.layout.buildDirectory.dir('staging-repository')
+        }
+    }
+}

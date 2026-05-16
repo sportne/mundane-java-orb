@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'Transaction Service / OTS implementation module, initially design-only.'

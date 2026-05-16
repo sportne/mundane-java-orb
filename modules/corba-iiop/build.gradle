@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'IIOP TCP/TLS transport, connection management, request correlation, and timeouts.'

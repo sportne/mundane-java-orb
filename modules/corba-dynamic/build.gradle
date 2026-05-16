@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'DII, DSI, DynamicAny, and dynamic metadata integration.'

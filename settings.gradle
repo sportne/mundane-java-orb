@@ -1,0 +1,65 @@
+pluginManagement {
+    repositories {
+        def offlineRepo = gradle.startParameter.projectProperties.get('corbaOfflineRepo')
+        if (offlineRepo != null && !offlineRepo.isBlank()) {
+            maven { url = uri(offlineRepo) }
+        } else {
+            gradlePluginPortal()
+            mavenCentral()
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        def offlineRepo = gradle.startParameter.projectProperties.get('corbaOfflineRepo')
+        
+        if (offlineRepo != null && !offlineRepo.isBlank()) {
+            maven { url = uri(offlineRepo) }
+        } else {
+            mavenCentral()
+        }
+    }
+}
+
+rootProject.name = 'corba-ecosystem'
+includeBuild('build-logic')
+
+include ':modules:corba-bom'
+include ':modules:corba-common'
+include ':modules:corba-omg-api'
+include ':modules:corba-modern-api'
+include ':modules:corba-repository-id'
+include ':modules:corba-idl-ast'
+include ':modules:corba-idl-parser'
+include ':modules:corba-idl-semantics'
+include ':modules:corba-idl-java-mapping'
+include ':modules:corba-codegen'
+include ':modules:corba-idlj-cli'
+include ':modules:corba-cdr'
+include ':modules:corba-typecode'
+include ':modules:corba-any'
+include ':modules:corba-ior'
+include ':modules:corba-giop'
+include ':modules:corba-iiop'
+include ':modules:corba-orb-core'
+include ':modules:corba-poa'
+include ':modules:corba-interceptors'
+include ':modules:corba-dynamic'
+include ':modules:corba-interface-repository'
+include ':modules:corba-naming-api'
+include ':modules:corba-naming-server'
+include ':modules:corba-services-core'
+include ':modules:corba-trading-service'
+include ':modules:corba-event-service'
+include ':modules:corba-notification-service'
+include ':modules:corba-transaction-service'
+include ':modules:corba-security-service'
+include ':modules:corba-time-service'
+include ':modules:corba-rmi-iiop'
+include ':modules:corba-native-image'
+include ':modules:corba-testkit'
+include ':modules:corba-interop-testkit'
+include ':modules:corba-architecture-tests'
+include ':modules:corba-examples'

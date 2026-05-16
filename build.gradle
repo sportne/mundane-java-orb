@@ -1,0 +1,83 @@
+plugins {
+    id 'base'
+}
+
+allprojects {
+    group = 'io.corbaecosystem'
+    version = '0.1.0-SNAPSHOT'
+
+    tasks.withType(AbstractArchiveTask).configureEach {
+        preserveFileTimestamps = false
+        reproducibleFileOrder = true
+    }
+}
+
+tasks.register('validateDesignControlPack') {
+    description = 'Validates that required G0/G1 design-control files exist.'
+    group = 'verification'
+
+    def requiredFiles = [
+        'AGENT_RULES.md',
+        'docs/charter.md',
+        'docs/standards-baseline.md',
+        'docs/compatibility-profiles.md',
+        'docs/specification-traceability.md',
+        'docs/requirements/requirement-template.md',
+        'docs/verification/verification-strategy.md',
+        'docs/conformance/conformance-index.md',
+        'docs/adr/ADR-0001-design-first-process.md'
+    ]
+
+    def requiredDesignControlFiles = requiredFiles.collect {
+        layout.projectDirectory.file(it)
+    }
+
+    inputs.files(requiredDesignControlFiles)
+
+    doLast {
+         requiredDesignControlFiles.each { requiredFile ->
+            if (!requiredFile.asFile.exists()) {
+                throw new GradleException(
+                    "Required design-control file missing: ${requiredFile.asFile}"
+                )
+            }
+        }
+    }
+}
+
+tasks.register('checkAll') {
+    description = 'Runs check tasks across all subprojects.'
+    group = 'verification'
+
+    dependsOn provider {
+        subprojects
+            .findAll { it.tasks.findByName('check') != null }
+            .collect { it.tasks.named('check') }
+    }
+}
+
+tasks.register('qualityGate') {
+    description = 'Runs the default local quality gate.'
+    group = 'verification'
+    dependsOn 'validateDesignControlPack', 'checkAll'
+
+    dependsOn provider {
+        subprojects
+            .findAll { it.tasks.findByName('spotlessCheck') != null }
+            .collect { it.tasks.named('spotlessCheck') }
+    }
+
+    dependsOn provider {
+        subprojects
+            .findAll { it.tasks.findByName('jacocoTestCoverageVerification') != null }
+            .collect { it.tasks.named('jacocoTestCoverageVerification') }
+    }
+}
+
+tasks.register('prepareOfflineRepository') {
+    description = 'Placeholder task for resolving dependencies into a local Maven-layout repository.'
+    group = 'build setup'
+    doLast {
+        println 'Use tools/prepare-offline-repository.sh after the wrapper is bootstrapped.'
+    }
+}

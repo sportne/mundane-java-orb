@@ -1,0 +1,5 @@
+plugins {
+    id 'corba.java-library-conventions'
+}
+
+description = 'IDL lexer, preprocessor, parser, include resolver, and diagnostics.'

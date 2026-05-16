@@ -1,0 +1,8 @@
+# Forbidden in core modules unless an ADR grants a narrow exception.
+java.lang.reflect.**
+java.lang.reflect.Proxy
+java.io.ObjectInputStream
+java.io.ObjectOutputStream
+java.util.ServiceLoader
+sun.**
+jdk.internal.**

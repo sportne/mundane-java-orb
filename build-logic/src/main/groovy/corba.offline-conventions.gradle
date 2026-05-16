@@ -1,0 +1,10 @@
+tasks.register('printOfflineBuildInstructions') {
+    group = 'build setup'
+    description = 'Prints offline build instructions.'
+    doLast {
+        println 'Offline build:'
+        println '  1. Prepare a local Maven repository with tools/prepare-offline-repository.sh.'
+        println '  2. Bootstrap the Gradle wrapper in the connected environment.'
+        println '  3. Run: ./gradlew --offline -PcorbaOfflineRepo=/path/to/local-maven-repo clean check'
+    }
+}

@@ -1,0 +1,8 @@
+plugins {
+    id 'application'
+    id 'corba.java-library-conventions'
+}
+
+application {
+    // Real main classes are assigned in implementation-stage tasks.
+}
