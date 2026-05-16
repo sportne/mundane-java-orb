@@ -1,13 +1,73 @@
 name: jboss-openjdk-orb
-status: placeholder
+displayName: JBoss OpenJDK ORB
+status: g3-manifest-defined
+gate: G3
+asOfDate: "2026-05-16"
+peerType: jvm
+requirementIds:
+  - REQ-INTEROP-001
+  - REQ-INTEROP-002
+  - REQ-INTEROP-003
+  - REQ-INTEROP-004
+  - REQ-INTEROP-007
+  - REQ-INTEROP-009
 roles:
   - client
   - server
-usedFor:
+compatibilityProfiles:
+  - LEGACY_JAVA_CORBA
+scenarioGroups:
   - basic-idl
   - object-reference
   - naming
   - giop
   - iiop
-licenseReviewRequired: true
-sourceCopyingAllowed: false
+candidateOrigin:
+  kind: maven
+  coordinate: "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"
+  version: "10.1.1.Final"
+  repository: Maven Central
+  project: JBoss OpenJDK ORB
+  sourceUrl: "https://repo.maven.apache.org/maven2/org/jboss/openjdk-orb/openjdk-orb/"
+license:
+  observed: GPL-2.0-with-Classpath-exception
+  reviewRequired: true
+  approvalStatus: pending-human-review
+  notes: "Maven metadata and OpenJDK licensing identify GPLv2 with the Classpath Exception; human review remains required."
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+container:
+  imageName: corba-interop-peer-jboss-openjdk-orb:10.1.1.Final
+  buildStatus: g4-required
+  baseImagePolicy: pin-by-digest-in-g4
+  artifactInputs:
+    - "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"
+  artifactCache: external-only
+  vendoredPeerArtifacts: false
+  ports:
+    iiop: 2809
+    naming: 2809
+launch:
+  clientCommand: g4-script-required
+  serverCommand: g4-script-required
+  namingCommand: g4-script-required
+  readinessCheck: g4-script-required
+reports:
+  logs: "build/interop/jboss-openjdk-orb/logs"
+  iors: "build/interop/jboss-openjdk-orb/iors"
+  structuredReports: "build/interop/jboss-openjdk-orb/reports"
+g4FollowUp:
+  - add-container-build-file
+  - add-peer-launch-scripts
+  - add-health-readiness-checks
+  - add-clean-room-report-template

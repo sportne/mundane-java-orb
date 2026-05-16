@@ -1,13 +1,73 @@
 name: glassfish-orb
-status: placeholder
+displayName: Eclipse GlassFish CORBA ORB
+status: g3-manifest-defined
+gate: G3
+asOfDate: "2026-05-16"
+peerType: jvm
+requirementIds:
+  - REQ-INTEROP-001
+  - REQ-INTEROP-002
+  - REQ-INTEROP-003
+  - REQ-INTEROP-004
+  - REQ-INTEROP-006
+  - REQ-INTEROP-009
 roles:
   - client
   - server
-usedFor:
+compatibilityProfiles:
+  - LEGACY_JAVA_CORBA
+scenarioGroups:
   - basic-idl
   - object-reference
   - naming
   - giop
   - iiop
-licenseReviewRequired: true
-sourceCopyingAllowed: false
+candidateOrigin:
+  kind: maven
+  coordinate: "org.glassfish.corba:glassfish-corba:5.0.0"
+  version: "5.0.0"
+  repository: Maven Central
+  project: Eclipse ORB
+  sourceUrl: "https://central.sonatype.com/artifact/org.glassfish.corba/glassfish-corba"
+license:
+  observed: EDL-1.0/EPL-family
+  reviewRequired: true
+  approvalStatus: pending-human-review
+  notes: "Maven Central metadata lists EDL 1.0; project notices include EPL/EDL-family terms."
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+container:
+  imageName: corba-interop-peer-glassfish-orb:5.0.0
+  buildStatus: g4-required
+  baseImagePolicy: pin-by-digest-in-g4
+  artifactInputs:
+    - "org.glassfish.corba:glassfish-corba:5.0.0"
+  artifactCache: external-only
+  vendoredPeerArtifacts: false
+  ports:
+    iiop: 2809
+    naming: 2809
+launch:
+  clientCommand: g4-script-required
+  serverCommand: g4-script-required
+  namingCommand: g4-script-required
+  readinessCheck: g4-script-required
+reports:
+  logs: "build/interop/glassfish-orb/logs"
+  iors: "build/interop/glassfish-orb/iors"
+  structuredReports: "build/interop/glassfish-orb/reports"
+g4FollowUp:
+  - add-container-build-file
+  - add-peer-launch-scripts
+  - add-health-readiness-checks
+  - add-clean-room-report-template

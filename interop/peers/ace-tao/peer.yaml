@@ -1,13 +1,73 @@
 name: ace-tao
-status: placeholder
+displayName: ACE/TAO
+status: g3-manifest-defined
+gate: G3
+asOfDate: "2026-05-16"
+peerType: native
+requirementIds:
+  - REQ-INTEROP-001
+  - REQ-INTEROP-002
+  - REQ-INTEROP-003
+  - REQ-INTEROP-004
+  - REQ-INTEROP-008
+  - REQ-INTEROP-009
 roles:
   - client
   - server
-usedFor:
+compatibilityProfiles:
+  - TAO_CPP_INTEROP
+scenarioGroups:
   - basic-idl
   - object-reference
   - naming
   - giop
   - iiop
-licenseReviewRequired: true
-sourceCopyingAllowed: false
+candidateOrigin:
+  kind: source-archive
+  coordinate: "ACE+TAO-8.0.6"
+  version: "8.0.6"
+  repository: DOCGroup/ACE_TAO GitHub releases
+  project: ACE/TAO
+  sourceUrl: "https://github.com/DOCGroup/ACE_TAO/releases/tag/ACE%2BTAO-8_0_6"
+license:
+  observed: DOCGroup-ACE-TAO-license-review-required
+  reviewRequired: true
+  approvalStatus: pending-human-review
+  notes: "ACE/TAO source archive license must be reviewed before any redistribution or container publication."
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+container:
+  imageName: corba-interop-peer-ace-tao:8.0.6
+  buildStatus: g4-required
+  baseImagePolicy: pin-by-digest-in-g4
+  artifactInputs:
+    - "ACE+TAO-8.0.6 source archive"
+  artifactCache: external-only
+  vendoredPeerArtifacts: false
+  ports:
+    iiop: 2809
+    naming: 2809
+launch:
+  clientCommand: g4-script-required
+  serverCommand: g4-script-required
+  namingCommand: g4-script-required
+  readinessCheck: g4-script-required
+reports:
+  logs: "build/interop/ace-tao/logs"
+  iors: "build/interop/ace-tao/iors"
+  structuredReports: "build/interop/ace-tao/reports"
+g4FollowUp:
+  - add-container-build-file
+  - add-peer-launch-scripts
+  - add-health-readiness-checks
+  - add-clean-room-report-template

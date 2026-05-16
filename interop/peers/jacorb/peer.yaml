@@ -1,13 +1,73 @@
 name: jacorb
-status: placeholder
+displayName: JacORB
+status: g3-manifest-defined
+gate: G3
+asOfDate: "2026-05-16"
+peerType: jvm
+requirementIds:
+  - REQ-INTEROP-001
+  - REQ-INTEROP-002
+  - REQ-INTEROP-003
+  - REQ-INTEROP-004
+  - REQ-INTEROP-005
+  - REQ-INTEROP-009
 roles:
   - client
   - server
-usedFor:
+compatibilityProfiles:
+  - LEGACY_JAVA_CORBA
+scenarioGroups:
   - basic-idl
   - object-reference
   - naming
   - giop
   - iiop
-licenseReviewRequired: true
-sourceCopyingAllowed: false
+candidateOrigin:
+  kind: maven
+  coordinate: "org.jacorb:jacorb:3.9"
+  version: "3.9"
+  repository: Maven Central
+  project: JacORB
+  sourceUrl: "https://repo.maven.apache.org/maven2/org/jacorb/jacorb/"
+license:
+  observed: LGPL
+  reviewRequired: true
+  approvalStatus: pending-human-review
+  notes: "JacORB project license note identifies JacORB as GNU Library/Lesser General Public License."
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+container:
+  imageName: corba-interop-peer-jacorb:3.9
+  buildStatus: g4-required
+  baseImagePolicy: pin-by-digest-in-g4
+  artifactInputs:
+    - "org.jacorb:jacorb:3.9"
+  artifactCache: external-only
+  vendoredPeerArtifacts: false
+  ports:
+    iiop: 2809
+    naming: 2809
+launch:
+  clientCommand: g4-script-required
+  serverCommand: g4-script-required
+  namingCommand: g4-script-required
+  readinessCheck: g4-script-required
+reports:
+  logs: "build/interop/jacorb/logs"
+  iors: "build/interop/jacorb/iors"
+  structuredReports: "build/interop/jacorb/reports"
+g4FollowUp:
+  - add-container-build-file
+  - add-peer-launch-scripts
+  - add-health-readiness-checks
+  - add-clean-room-report-template

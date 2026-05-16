@@ -28,12 +28,14 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
 - Exact specification clause IDs have G1 section-level references in
   `docs/specification-traceability.md`, requirement tables, and conformance
   matrices. Feature handoffs must narrow these to task-specific clauses.
+- G3 interop peer manifests have been expanded in
+  `docs/agent/g3-interop-peer-manifest-handoff.md`; G4 must add executable
+  peer container build files and launch scripts.
 - External ORB peer scripts are placeholders.
 - JaCoCo thresholds should tighten after empty-module validation.
 - G2 ArchUnit boundary enforcement has been expanded in
   `docs/agent/g2-architecture-boundary-handoff.md`; empty-rule scaffold
   tolerance remains until later validation gates.
-- Interop peer container manifests still need expansion.
 - The current G1 traceability task handoff is
   `docs/agent/g1-specification-traceability-handoff.md`.
 
