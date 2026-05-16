@@ -1,6 +1,9 @@
 # Agent Handoff
 
-This repository is in a gated scaffold phase. Implementation work requires an approved task with requirement IDs, specification references, target module, allowed and forbidden files, expected tests, documentation updates, and an exact acceptance command.
+This repository is entering G6 from a gated scaffold phase. Implementation work
+requires an approved task with requirement IDs, specification references, target
+module, allowed and forbidden files, expected tests, documentation updates, and
+an exact acceptance command.
 
 ## Current scaffold state
 
@@ -25,10 +28,14 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
 
 ## Current open setup work
 
+- G0 through G5 have been reviewed and approved by the maintainer.
+- G6 starts with the roadmap task set captured in
+  `docs/agent/g6-project-roadmap-handoff.md` and `docs/roadmap/`.
+- Roadmap task files are drafts. A task must be narrowed into a task-specific
+  G6 handoff before implementation begins.
 - G5 validation readiness closure is captured in
   `docs/agent/g5-validation-gate-readiness-handoff.md` and
-  `docs/verification/g5-validation-gate-readiness.md`; maintainer approval is
-  still required before G6 implementation work.
+  `docs/verification/g5-validation-gate-readiness.md`.
 - Exact specification clause IDs have G1 section-level references in
   `docs/specification-traceability.md`, requirement tables, and conformance
   matrices. Feature handoffs must narrow these to task-specific clauses.
@@ -46,5 +53,5 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
 
 ## Implementation unlock
 
-Implementation remains forbidden until gates G0 through G5 are approved and a
-task-specific G6 handoff exists.
+Implementation remains forbidden until a roadmap task is narrowed into an
+approved task-specific G6 handoff.
