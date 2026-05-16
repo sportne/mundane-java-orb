@@ -9,10 +9,10 @@
 | JBoss OpenJDK ORB | `interop/peers/jboss-openjdk-orb/peer.yaml` | yes | no | `org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final` | Legacy Java/OpenJDK ORB behavior. |
 | ACE/TAO | `interop/peers/ace-tao/peer.yaml` | no | yes | `ACE+TAO-8.0.6` | C++ native ORB. |
 
-The G3 peer manifests are not executable. They define the expected container
-contract for G4: pinned base images, external artifact/cache inputs only, no
-vendored peer source or binaries, test port `2809`, and logs, IORs, and
-structured reports as outputs.
+The G4 peer scaffolds are dry-run executable. They define the expected container
+contract for later real peer execution: pinned base images, external
+artifact/cache inputs only, no vendored peer source or binaries, test port
+`2809`, and logs, IORs, and structured reports as outputs.
 
 ## Required directions
 

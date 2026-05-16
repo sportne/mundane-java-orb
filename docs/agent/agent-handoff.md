@@ -29,9 +29,10 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
   `docs/specification-traceability.md`, requirement tables, and conformance
   matrices. Feature handoffs must narrow these to task-specific clauses.
 - G3 interop peer manifests have been expanded in
-  `docs/agent/g3-interop-peer-manifest-handoff.md`; G4 must add executable
-  peer container build files and launch scripts.
-- External ORB peer scripts are placeholders.
+  `docs/agent/g3-interop-peer-manifest-handoff.md`.
+- G4 interop peer launch scaffolding has been added in
+  `docs/agent/g4-interop-peer-launch-handoff.md`; later work must add real peer
+  artifact resolution, process launch, and clean-room report capture.
 - JaCoCo thresholds should tighten after empty-module validation.
 - G2 ArchUnit boundary enforcement has been expanded in
   `docs/agent/g2-architecture-boundary-handoff.md`; empty-rule scaffold

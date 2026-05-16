@@ -1,0 +1,12 @@
+ARG INTEROP_BASE_IMAGE
+FROM ${INTEROP_BASE_IMAGE}
+
+ARG INTEROP_PEER
+LABEL io.corbaecosystem.interop.peer="${INTEROP_PEER}"
+LABEL io.corbaecosystem.interop.stage="g4-script-scaffold"
+
+WORKDIR /interop
+COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/interop-peer-entrypoint"]
+CMD ["help"]

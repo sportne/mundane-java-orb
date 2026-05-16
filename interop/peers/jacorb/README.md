@@ -4,11 +4,11 @@ Role: Java ORB interoperability and behavioral reference.
 
 ## Status
 
-G3 manifest is defined in `peer.yaml`.
+G4 launch scaffold is defined in `peer.yaml` and the local wrapper scripts.
 
 Candidate peer: `org.jacorb:jacorb:3.9` from Maven Central / the JacORB
 project.
 
-The manifest is non-executable. G4 must add container build files and launch
-scripts that consume external artifacts without vendoring peer source or
-binaries into this repository.
+Dry-run commands are available through `build-image.sh`, `launch.sh`, and
+`health.sh`. Real peer execution remains blocked until artifact and license
+gates are resolved.

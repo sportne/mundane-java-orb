@@ -1,0 +1,296 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+PEERS_DIR="${ROOT_DIR}/interop/peers"
+DEFAULT_RUNTIME="${CONTAINER_RUNTIME:-}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  interop-peer help
+  interop-peer validate-manifests
+  interop-peer build-image [--dry-run] <peer>
+  interop-peer launch [--dry-run] <peer> <client|server|naming>
+  interop-peer health [--dry-run] <peer>
+  interop-peer report [--dry-run] <peer>
+
+G4 only scaffolds peer infrastructure. Dry-run commands do not download peer
+artifacts, build images, start ORBs, or run interop assertions.
+EOF
+}
+
+fail() {
+  echo "interop-peer: $*" >&2
+  exit 1
+}
+
+manifest_path() {
+  local peer="$1"
+  local path="${PEERS_DIR}/${peer}/peer.yaml"
+  if [[ ! -f "${path}" ]]; then
+    fail "unknown peer '${peer}'"
+  fi
+  printf '%s\n' "${path}"
+}
+
+manifest_value() {
+  local manifest="$1"
+  local dotted_path="$2"
+  python3 - "$manifest" "$dotted_path" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    data = yaml.safe_load(handle)
+
+value = data
+for segment in sys.argv[2].split("."):
+    value = value[segment]
+print(value)
+PY
+}
+
+validate_manifests() {
+  python3 - "${PEERS_DIR}" <<'PY'
+import glob
+import os
+import sys
+import yaml
+
+required_top_level = {
+    "name",
+    "displayName",
+    "status",
+    "gate",
+    "peerType",
+    "requirementIds",
+    "roles",
+    "candidateOrigin",
+    "license",
+    "cleanRoom",
+    "container",
+    "launch",
+    "reports",
+}
+
+required_container = {
+    "imageName",
+    "buildStatus",
+    "baseImagePolicy",
+    "artifactInputs",
+    "artifactCache",
+    "vendoredPeerArtifacts",
+    "ports",
+    "buildFile",
+    "buildScript",
+}
+
+required_launch = {
+    "clientCommand",
+    "serverCommand",
+    "namingCommand",
+    "readinessCheck",
+}
+
+failed = False
+for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
+    with open(path, encoding="utf-8") as handle:
+        manifest = yaml.safe_load(handle)
+
+    missing = sorted(required_top_level - set(manifest))
+    missing_container = sorted(required_container - set(manifest.get("container", {})))
+    missing_launch = sorted(required_launch - set(manifest.get("launch", {})))
+    if missing or missing_container or missing_launch:
+        failed = True
+        print(f"{path}: invalid manifest", file=sys.stderr)
+        if missing:
+            print(f"  missing top-level fields: {', '.join(missing)}", file=sys.stderr)
+        if missing_container:
+            print(f"  missing container fields: {', '.join(missing_container)}", file=sys.stderr)
+        if missing_launch:
+            print(f"  missing launch fields: {', '.join(missing_launch)}", file=sys.stderr)
+        continue
+
+    if manifest["container"]["vendoredPeerArtifacts"] is not False:
+        failed = True
+        print(f"{path}: vendoredPeerArtifacts must be false", file=sys.stderr)
+        continue
+
+    print(path)
+
+if failed:
+    sys.exit(1)
+PY
+}
+
+resolve_runtime() {
+  if [[ -n "${DEFAULT_RUNTIME}" ]]; then
+    printf '%s\n' "${DEFAULT_RUNTIME}"
+    return
+  fi
+  if command -v docker >/dev/null 2>&1; then
+    printf 'docker\n'
+    return
+  fi
+  if command -v podman >/dev/null 2>&1; then
+    printf 'podman\n'
+    return
+  fi
+  fail "CONTAINER_RUNTIME is unset and neither docker nor podman was found"
+}
+
+require_digest_pinned_base_image() {
+  local peer_type="$1"
+  local env_name="INTEROP_JAVA_BASE_IMAGE"
+  if [[ "${peer_type}" == "native" ]]; then
+    env_name="INTEROP_NATIVE_BASE_IMAGE"
+  fi
+  local value="${!env_name:-}"
+  if [[ -z "${value}" || "${value}" != *@sha256:* ]]; then
+    fail "${env_name} must be set to a digest-pinned image before a real build"
+  fi
+  printf '%s\n' "${value}"
+}
+
+require_external_artifact_cache() {
+  local cache="${INTEROP_ARTIFACT_CACHE:-}"
+  if [[ -z "${cache}" ]]; then
+    fail "INTEROP_ARTIFACT_CACHE must be set before a real peer image build"
+  fi
+  if [[ ! -d "${cache}" ]]; then
+    fail "INTEROP_ARTIFACT_CACHE does not exist: ${cache}"
+  fi
+}
+
+parse_dry_run() {
+  local dry_run="false"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    dry_run="true"
+    shift
+  fi
+  printf '%s\n' "${dry_run}"
+}
+
+build_image() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local peer="${1:-}"
+  [[ -n "${peer}" ]] || fail "build-image requires a peer"
+
+  local manifest image build_file peer_type base_image
+  manifest="$(manifest_path "${peer}")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  build_file="$(manifest_value "${manifest}" "container.buildFile")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would build ${image} using ${build_file}"
+    return
+  fi
+
+  local runtime
+  runtime="$(resolve_runtime)"
+  base_image="$(require_digest_pinned_base_image "${peer_type}")"
+  require_external_artifact_cache
+  "${runtime}" build \
+    --build-arg "INTEROP_BASE_IMAGE=${base_image}" \
+    --build-arg "INTEROP_PEER=${peer}" \
+    --file "${ROOT_DIR}/${build_file}" \
+    --tag "${image}" \
+    "${ROOT_DIR}"
+}
+
+launch_peer() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local peer="${1:-}"
+  local role="${2:-}"
+  [[ -n "${peer}" ]] || fail "launch requires a peer"
+  case "${role}" in
+    client|server|naming) ;;
+    *) fail "launch role must be client, server, or naming" ;;
+  esac
+
+  local manifest image command_path logs_dir iors_dir reports_dir
+  manifest="$(manifest_path "${peer}")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  command_path="$(manifest_value "${manifest}" "launch.${role}Command")"
+  logs_dir="$(manifest_value "${manifest}" "reports.logs")"
+  iors_dir="$(manifest_value "${manifest}" "reports.iors")"
+  reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
+
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would launch ${role} for ${peer} from ${image}"
+    echo "dry-run: command ${command_path}"
+    echo "dry-run: outputs ${logs_dir}, ${iors_dir}, ${reports_dir}"
+    return
+  fi
+
+  fail "real peer launch is reserved for a later task with approved peer artifacts"
+}
+
+health_peer() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local peer="${1:-}"
+  [[ -n "${peer}" ]] || fail "health requires a peer"
+
+  local manifest readiness
+  manifest="$(manifest_path "${peer}")"
+  readiness="$(manifest_value "${manifest}" "launch.readinessCheck")"
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would run readiness check ${readiness} for ${peer}"
+    return
+  fi
+
+  fail "real peer health checks are reserved for a later task with running peer containers"
+}
+
+report_peer() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local peer="${1:-}"
+  [[ -n "${peer}" ]] || fail "report requires a peer"
+
+  local manifest reports_dir
+  manifest="$(manifest_path "${peer}")"
+  reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would create structured report under ${reports_dir}"
+    return
+  fi
+
+  fail "real peer report generation is reserved for a later task with captured interop output"
+}
+
+main() {
+  local command="${1:-help}"
+  if [[ $# -gt 0 ]]; then
+    shift
+  fi
+
+  case "${command}" in
+    help|-h|--help) usage ;;
+    validate-manifests) validate_manifests ;;
+    build-image) build_image "$@" ;;
+    launch) launch_peer "$@" ;;
+    health) health_peer "$@" ;;
+    report) report_peer "$@" ;;
+    *) fail "unknown command '${command}'" ;;
+  esac
+}
+
+main "$@"

@@ -1,7 +1,7 @@
 name: jacorb
 displayName: JacORB
-status: g3-manifest-defined
-gate: G3
+status: g4-script-scaffolded
+gate: G4
 asOfDate: "2026-05-16"
 peerType: jvm
 requirementIds:
@@ -48,7 +48,9 @@ cleanRoom:
     - agent-source-imitation
 container:
   imageName: corba-interop-peer-jacorb:3.9
-  buildStatus: g4-required
+  buildStatus: script-scaffolded
+  buildFile: interop/container/Containerfile.jvm.template
+  buildScript: interop/peers/jacorb/build-image.sh
   baseImagePolicy: pin-by-digest-in-g4
   artifactInputs:
     - "org.jacorb:jacorb:3.9"
@@ -58,16 +60,15 @@ container:
     iiop: 2809
     naming: 2809
 launch:
-  clientCommand: g4-script-required
-  serverCommand: g4-script-required
-  namingCommand: g4-script-required
-  readinessCheck: g4-script-required
+  clientCommand: "interop/peers/jacorb/launch.sh client"
+  serverCommand: "interop/peers/jacorb/launch.sh server"
+  namingCommand: "interop/peers/jacorb/launch.sh naming"
+  readinessCheck: interop/peers/jacorb/health.sh
 reports:
   logs: "build/interop/jacorb/logs"
   iors: "build/interop/jacorb/iors"
   structuredReports: "build/interop/jacorb/reports"
 g4FollowUp:
-  - add-container-build-file
-  - add-peer-launch-scripts
-  - add-health-readiness-checks
+  - add-real-peer-artifact-resolution
+  - add-real-peer-process-launch
   - add-clean-room-report-template
