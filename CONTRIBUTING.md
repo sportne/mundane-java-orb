@@ -32,3 +32,14 @@ Every PR must state:
 Implementation PRs are forbidden until G0 through G5 have been approved.
 Runtime, protocol, IDL, ORB, POA, service, or compiler behavior must not be added
 without approved requirement IDs and a task handoff document.
+
+## Local checks
+
+Before opening a pull request, run:
+
+```bash
+./gradlew validateDesignControlPack
+./gradlew qualityGate
+```
+
+Use `./gradlew projects` to orient yourself in the multi-project build. Shared build conventions are in `build-logic/`; module build files should stay small and apply those conventions instead of duplicating tool configuration.

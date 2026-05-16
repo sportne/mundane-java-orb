@@ -1,0 +1,36 @@
+// These files are the minimum design-control documentation required before implementation proceeds.
+def requiredFilePaths = [
+    'AGENT.md',
+    'docs/charter.md',
+    'docs/standards-baseline.md',
+    'docs/compatibility-profiles.md',
+    'docs/specification-traceability.md',
+    'docs/requirements/requirement-template.md',
+    'docs/verification/verification-strategy.md',
+    'docs/conformance/conformance-index.md',
+    'docs/build/README.md',
+    'docs/build/offline-build.md',
+    'docs/agent/agent-handoff.md',
+    'docs/agent/implementation-task-template.md',
+    'docs/adr/ADR-0001-design-first-process.md',
+]
+
+// Convert each path string into a Gradle file object rooted at the current project directory.
+def requiredFiles = requiredFilePaths.collect { layout.projectDirectory.file(it) }
+
+// This task fails fast when required governance and design files are missing.
+tasks.register('validateDesignControlPack') {
+    group = 'verification'
+    description = 'Validates that required G0/G1 design-control files exist.'
+
+    // Declaring inputs lets Gradle know what files affect this task for caching and up-to-date checks.
+    inputs.files(requiredFiles)
+
+    doLast {
+        // At execution time, collect any missing files and report them together.
+        def missing = requiredFiles.findAll { !it.asFile.exists() }
+        if (!missing.empty) {
+            throw new GradleException('Required design-control files missing: ' + missing.collect { it.asFile }.join(', '))
+        }
+    }
+}

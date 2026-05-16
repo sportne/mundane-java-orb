@@ -1,5 +1,7 @@
 .gradle/
 build/
+!docs/build/
+!docs/build/**
 out/
 .idea/
 *.iml
@@ -19,7 +21,10 @@ out/
 *.ear
 *.zip
 !gradle/wrapper/gradle-wrapper.jar
+.repo/
 interop/reports/
 interop/work/
 native-image-work/
 local-maven-repo/
+hs_err_pid*
+replay_pid*

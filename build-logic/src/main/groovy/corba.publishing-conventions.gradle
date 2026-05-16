@@ -1,5 +1,37 @@
+// Use this plugin for Java modules that should produce Maven artifacts.
 plugins {
+    // Gives the module group/version, reproducible archives, and dependency locking.
+    id 'corba.identity-conventions'
+    // Adds Maven publication tasks such as publishToMavenLocal.
     id 'maven-publish'
 }
 
-// Detailed signing, release repository, SBOM, and provenance settings are staged for G4 completion.
+publishing {
+    publications {
+        // mavenJava is the normal publication name for a Java library.
+        mavenJava(MavenPublication) {
+            // Publish the compiled jar, sources jar, Javadoc jar, and dependency metadata.
+            from components.java
+            pom {
+                // These values show up in generated Maven POM files.
+                name = project.name
+                description = project.description ?: project.name
+                url = 'https://github.com/sportne/mundane-java-orb'
+                licenses {
+                    license {
+                        // Apache 2.0 is the declared project license.
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // Local staging lets contributors inspect publication output without uploading anywhere.
+            name = 'localStaging'
+            url = rootProject.layout.buildDirectory.dir('staging-repository')
+        }
+    }
+}

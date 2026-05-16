@@ -1,0 +1,61 @@
+// This convention plugin configures JaCoCo, the Java code coverage tool.
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
+plugins {
+    // Adds jacocoTestReport and jacocoTestCoverageVerification tasks.
+    id 'jacoco'
+}
+
+// Read versions from gradle/libs.versions.toml instead of repeating them in this file.
+def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
+
+// Main class files are the compiled production classes. Empty scaffold modules do not have any yet.
+def mainClasses = sourceSets.main.output.classesDirs
+
+jacoco {
+    // Pin the JaCoCo version so local machines and CI use the same tool.
+    toolVersion = libs.findVersion('jacoco').get().requiredVersion
+}
+
+// After tests run, ask Gradle to create the coverage report too.
+tasks.withType(Test).configureEach {
+    finalizedBy tasks.named('jacocoTestReport')
+}
+
+// Configure the HTML/XML coverage report task.
+tasks.named('jacocoTestReport') {
+    // Coverage reports need test execution data, so tests must run first.
+    dependsOn tasks.named('test')
+    // Scaffold modules with no compiled main classes skip coverage instead of failing uselessly.
+    onlyIf { mainClasses.files.any { it.exists() && it.listFiles() } }
+    reports {
+        // XML is useful for CI tools.
+        xml.required = true
+        // HTML is useful for humans reading the report locally.
+        html.required = true
+        // CSV is not needed for this project.
+        csv.required = false
+    }
+}
+
+// Configure coverage verification. The threshold is intentionally staged at zero for scaffold modules.
+tasks.named('jacocoTestCoverageVerification') {
+    // Skip empty modules until they contain compiled production classes.
+    onlyIf { mainClasses.files.any { it.exists() && it.listFiles() } }
+    violationRules {
+        rule {
+            enabled = true
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = BigDecimal.valueOf(0.00)
+            }
+        }
+    }
+}
+
+// Make the normal Gradle check task include coverage verification.
+tasks.named('check') {
+    dependsOn tasks.named('jacocoTestCoverageVerification')
+}

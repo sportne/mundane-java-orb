@@ -1,5 +1,10 @@
+// This module uses the standard library bundle: Java 21 defaults, quality checks, coverage, and publishing.
 plugins {
     id 'corba.java-library-conventions'
+    id 'corba.quality-conventions'
+    id 'corba.coverage-conventions'
+    id 'corba.publishing-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Notification Service implementation module, initially design-only.'

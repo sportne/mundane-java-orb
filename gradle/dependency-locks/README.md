@@ -8,4 +8,4 @@ Generate locks after the wrapper is bootstrapped:
 
 Commit generated lock files before implementation begins.
 
-Dependency verification template: `../verification-metadata.template.xml`. Generate the real metadata file in a connected environment.
+Dependency verification metadata: `../verification-metadata.xml`. Refresh it with `./gradlew --write-verification-metadata sha256 help qualityGate` when build dependencies change.

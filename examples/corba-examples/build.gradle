@@ -1,0 +1,14 @@
+// Example projects are buildable sample applications, not published library artifacts.
+plugins {
+    // Application packaging for runnable examples.
+    id 'corba.application-conventions'
+    // Formatting, Checkstyle, and SpotBugs checks.
+    id 'corba.quality-conventions'
+    // JaCoCo coverage reports and verification.
+    id 'corba.coverage-conventions'
+    // GraalVM Native Image compatibility checks for examples.
+    id 'corba.native-image-conventions'
+}
+
+// Human-readable example purpose shown in Gradle reports.
+description = 'Small generated-code examples and smoke-test applications.'

@@ -1,13 +1,17 @@
 name: ci
 
 on:
-  pull_request:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
-  jvm:
-    name: JVM ${{ matrix.distribution }} ${{ matrix.java }}
+  build:
+    name: Java ${{ matrix.distribution }} ${{ matrix.java }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -27,34 +31,6 @@ jobs:
         with:
           distribution: ${{ matrix.distribution }}
           java-version: ${{ matrix.java }}
-          cache: gradle
-      - name: Bootstrap wrapper if needed
-        run: |
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            gradle wrapper --gradle-version=9.5.1 --distribution-type=bin
-          fi
-      - name: Verify
-        run: ./gradlew clean qualityGate
-
-  native-smoke:
-    name: Native Image smoke ${{ matrix.java }}
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        java: [ '21', '25' ]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: graalvm/setup-graalvm@v1
-        with:
-          java-version: ${{ matrix.java }}
-          distribution: graalvm
-          native-image-job-reports: true
-          cache: gradle
-      - name: Bootstrap wrapper if needed
-        run: |
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            gradle wrapper --gradle-version=9.5.1 --distribution-type=bin
-          fi
-      - name: Native smoke placeholder
-        run: ./gradlew clean test
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Quality gate
+        run: ./gradlew qualityGate

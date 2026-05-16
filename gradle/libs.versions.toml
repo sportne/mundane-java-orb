@@ -1,8 +1,10 @@
 [versions]
+javaBaseline = "21"
 junit = "6.0.3"
 archunit = "1.4.2"
 jacoco = "0.8.14"
 spotlessPlugin = "8.5.1"
+spotbugs = "4.9.8"
 spotbugsPlugin = "6.5.4"
 checkstyle = "13.4.2"
 errorpronePlugin = "5.1.0"

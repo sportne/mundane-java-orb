@@ -1,31 +1,52 @@
+// This file tells Gradle which projects exist and where plugins/dependencies come from.
 pluginManagement {
+    // Prefer corba.offlineRepo, but still accept the old corbaOfflineRepo name during migration.
+    def offlineRepo = providers.gradleProperty('corba.offlineRepo')
+        .orElse(providers.gradleProperty('corbaOfflineRepo'))
+        .orNull
+
+    // build-logic is an included build that contains our custom convention plugins.
+    includeBuild 'build-logic'
+
+    // These repositories are used only for resolving Gradle plugins.
     repositories {
-        def offlineRepo = gradle.startParameter.projectProperties.get('corbaOfflineRepo')
         if (offlineRepo != null && !offlineRepo.isBlank()) {
+            // Offline mode: read plugins from the local repository path supplied by the user or CI.
             maven { url = uri(offlineRepo) }
         } else {
+            // Online mode: use the standard plugin repository plus Maven Central for plugin markers.
             gradlePluginPortal()
             mavenCentral()
         }
     }
 }
 
+// This block controls normal project dependencies such as JUnit, SpotBugs, and inter-module libraries.
 dependencyResolutionManagement {
+    // Prefer corba.offlineRepo, but still accept the old corbaOfflineRepo name during migration.
+    def offlineRepo = providers.gradleProperty('corba.offlineRepo')
+        .orElse(providers.gradleProperty('corbaOfflineRepo'))
+        .orNull
+
+    // Keep repository declarations centralized here so subprojects cannot quietly add new repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
+    // These repositories are used for resolving normal libraries.
     repositories {
-        def offlineRepo = gradle.startParameter.projectProperties.get('corbaOfflineRepo')
-        
         if (offlineRepo != null && !offlineRepo.isBlank()) {
+            // Offline mode: all dependencies must already be in this local repository.
             maven { url = uri(offlineRepo) }
         } else {
+            // Online mode: Maven Central is the only allowed dependency repository.
             mavenCentral()
         }
     }
 }
 
+// This is the name Gradle shows for the root project.
 rootProject.name = 'corba-ecosystem'
-includeBuild('build-logic')
 
+// Publishable and test-support modules live under modules/.
 include ':modules:corba-bom'
 include ':modules:corba-common'
 include ':modules:corba-omg-api'
@@ -62,4 +83,6 @@ include ':modules:corba-native-image'
 include ':modules:corba-testkit'
 include ':modules:corba-interop-testkit'
 include ':modules:corba-architecture-tests'
-include ':modules:corba-examples'
+
+// Examples live under examples/ because they are not published as library artifacts.
+include ':examples:corba-examples'

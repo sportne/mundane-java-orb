@@ -5,6 +5,18 @@ ecosystem with legacy compatibility, modern generated-code APIs, GraalVM Native
 Image support, multi-ORB interoperability testing, and strong coding-agent
 guardrails.
 
+## Development model
+
+This project is largely coding-agent driven. Human maintainers set the direction,
+review the design-control documents, and approve implementation gates; coding
+agents are expected to do much of the scaffold, documentation, build, and
+eventually implementation work under the rules in `AGENT.md`.
+
+That workflow is intentional, so the repository is structured to be explicit
+about requirements, architecture, verification, build behavior, and task
+handoffs. Contributor-facing documentation is part of the product, not an
+afterthought.
+
 ## Current repository phase
 
 This repository is intentionally in **Gate G0/G1/G4 scaffold state**:
@@ -12,7 +24,7 @@ This repository is intentionally in **Gate G0/G1/G4 scaffold state**:
 - governance documents exist;
 - requirement and ADR templates exist;
 - specification traceability structure exists;
-- Gradle 9 Groovy DSL build infrastructure is scaffolded;
+- Gradle 9.5.1 Groovy DSL build infrastructure is scaffolded;
 - JUnit Platform/Jupiter, ArchUnit, JaCoCo, Checkstyle, SpotBugs, Error Prone,
   Spotless, publishing, offline-build, and Native Image hooks are scaffolded;
 - no CORBA runtime implementation has started.
@@ -53,26 +65,28 @@ No implementation task may begin without:
 6. required documentation updates;
 7. an exact acceptance command.
 
-See `AGENT_RULES.md` and `docs/agent-guidance/implementation-task-template.md`.
+See `AGENT.md` and `docs/agent/implementation-task-template.md`.
 
 ## Build status of this scaffold
 
 This repository includes Gradle build files and wrapper metadata targeting Gradle
-9.5.1, but the wrapper JAR is not included in this generated scaffold. In a normal
-development environment, run:
+9.5.1. In a normal development environment, run:
 
 ```bash
-./tools/bootstrap-gradle-wrapper.sh
-./gradlew clean check
+./gradlew projects
+./gradlew validateDesignControlPack
+./gradlew qualityGate
+./gradlew printPublishedArtifacts
 ```
 
-For offline environments, see `docs/build/offline-build.md` and
-`tools/prepare-offline-repository.sh`.
+For build setup details, see `docs/build/README.md`. For offline environments,
+see `docs/build/offline-build.md` and `tools/prepare-offline-repository.sh`.
+
+Build conventions live in `build-logic/` as composable Gradle convention plugins. Published and internal test modules live under `modules/`; non-published examples live under `examples/`.
 
 ## Critical next human review items
 
 1. Approve or replace the placeholder license.
 2. Validate the version catalog against the organization's dependency policy.
-3. Generate and commit the official Gradle wrapper JAR.
-4. Fill exact specification clause IDs in the conformance matrices.
-5. Approve the first implementation-unlocking milestone only after gates pass.
+3. Fill exact specification clause IDs in the conformance matrices.
+4. Approve the first implementation-unlocking milestone only after gates pass.

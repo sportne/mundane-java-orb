@@ -1,4 +1,6 @@
+// Use this plugin for projects that run repository-wide architecture checks.
 plugins {
+    // Architecture tests are Java tests, so they use the same Java library defaults.
     id 'corba.java-library-conventions'
 }
 

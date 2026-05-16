@@ -1,21 +1,48 @@
+// This settings file belongs to the build-logic included build, not the product code.
+// build-logic compiles the custom convention plugins used by the main build.
 pluginManagement {
+    // Prefer corba.offlineRepo, but still accept the old corbaOfflineRepo name during migration.
+    def offlineRepo = providers.gradleProperty('corba.offlineRepo')
+        .orElse(providers.gradleProperty('corbaOfflineRepo'))
+        .orNull
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
+        if (offlineRepo != null && !offlineRepo.isBlank()) {
+            // Offline mode for plugin dependencies.
+            maven { url = uri(offlineRepo) }
+        } else {
+            // Online mode for plugin dependencies.
+            gradlePluginPortal()
+            mavenCentral()
+        }
     }
 }
 
+// Dependencies used while compiling build-logic are also centralized here.
 dependencyResolutionManagement {
+    // Use the same offline repository property as the main build.
+    def offlineRepo = providers.gradleProperty('corba.offlineRepo')
+        .orElse(providers.gradleProperty('corbaOfflineRepo'))
+        .orNull
+
+    // Prevent build-logic projects from adding their own repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        gradlePluginPortal()
-        mavenCentral()
+        if (offlineRepo != null && !offlineRepo.isBlank()) {
+            // Offline mode for libraries needed by convention plugins.
+            maven { url = uri(offlineRepo) }
+        } else {
+            // Online mode for libraries needed by convention plugins.
+            gradlePluginPortal()
+            mavenCentral()
+        }
     }
     versionCatalogs {
         libs {
+            // Reuse the main version catalog so plugin versions are declared in one place.
             from(files('../gradle/libs.versions.toml'))
         }
     }
 }
 
+// Name shown by Gradle when build-logic is configured.
 rootProject.name = 'corba-build-logic'

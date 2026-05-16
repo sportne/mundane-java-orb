@@ -1,146 +1,82 @@
-import com.github.spotbugs.snom.Confidence
-import com.github.spotbugs.snom.Effort
-import com.github.spotbugs.snom.SpotBugsTask
+// This convention plugin contains the standard Java setup for every Java library module.
+import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
+    // Basic group/version, archive reproducibility, and dependency locking.
+    id 'corba.identity-conventions'
+    // Adds Java library source sets, compile/test tasks, api/implementation configurations, and jars.
     id 'java-library'
-    id 'maven-publish'
-    id 'jacoco'
-    id 'checkstyle'
-    id 'com.diffplug.spotless'
-    id 'com.github.spotbugs'
+    // Adds Error Prone static analysis during Java compilation.
     id 'net.ltgt.errorprone'
 }
 
+// Read shared dependency and tool versions from gradle/libs.versions.toml.
+def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
+
+// Prefer -Pcorba.javaRelease=..., but still accept -PcorbaJavaRelease=... during migration.
+def javaRelease = providers.gradleProperty('corba.javaRelease')
+    .orElse(providers.gradleProperty('corbaJavaRelease'))
+    .map { Integer.parseInt(it) }
+    .getOrElse(Integer.parseInt(libs.findVersion('javaBaseline').get().requiredVersion))
+
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        // Ask Gradle to compile with a matching JDK, even if the user's shell points at a different JDK.
+        languageVersion = JavaLanguageVersion.of(javaRelease)
     }
+    // Publish a sources jar so users can read source in IDEs.
     withSourcesJar()
+    // Publish a Javadoc jar because Maven Central-style repositories expect one.
     withJavadocJar()
 }
 
-
 dependencies {
-    testImplementation platform('org.junit:junit-bom:6.0.3')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    testImplementation 'com.tngtech.archunit:archunit-junit5:1.4.2'
-    errorprone 'com.google.errorprone:error_prone_core:2.49.0'
+    // Use the JUnit BOM so all JUnit artifacts stay on compatible versions.
+    testImplementation platform(libs.findLibrary('junit-bom').get())
+    // JUnit Jupiter is the JUnit 5 API and engine used for tests.
+    testImplementation libs.findLibrary('junit-jupiter').get()
+    // The launcher lets Gradle run JUnit Platform tests reliably.
+    testRuntimeOnly libs.findLibrary('junit-platform-launcher').get()
+    // ArchUnit supports architecture tests that check package and dependency rules.
+    testImplementation libs.findLibrary('archunit-junit5').get()
+    // Error Prone is wired into JavaCompile by the plugin above.
+    errorprone libs.findLibrary('errorprone-core').get()
 }
 
+// Apply the same Java compiler settings to every JavaCompile task.
 tasks.withType(JavaCompile).configureEach {
+    // Always read and write Java source as UTF-8.
     options.encoding = 'UTF-8'
-    options.release = 21
+    // Compile against the selected Java release API, not whatever the local JDK happens to expose.
+    options.release = javaRelease
+    // Turn on normal compiler warnings and fail if any warning appears.
     options.compilerArgs.addAll(['-Xlint:all', '-Werror'])
+    // Generated sources can be noisy, so Error Prone warnings there are disabled.
+    options.errorprone.disableWarningsInGeneratedCode.set(true)
+    // This path pattern marks Gradle-generated source directories.
+    options.errorprone.excludedPaths.set('.*/build/generated/.*')
 }
 
+// Apply the same test settings to every Test task.
 tasks.withType(Test).configureEach {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        // These tags are opt-in because they are slower or need special environments.
+        excludeTags 'integration', 'interop', 'native-image', 'slow', 'fuzz'
+    }
+    // Keep test text encoding consistent across operating systems.
+    systemProperty 'file.encoding', 'UTF-8'
     testLogging {
+        // Show failed and skipped tests in console output.
         events 'failed', 'skipped'
+        // Print full exception details so failures can be diagnosed from CI logs.
         exceptionFormat = TestExceptionFormat.FULL
     }
 }
 
-jacoco {
-    toolVersion = '0.8.14'
-}
-
-tasks.named('test') {
-    useJUnitPlatform {
-        excludeTags 'integration', 'interop', 'native-image', 'slow', 'fuzz'
-    }
-}
-
-tasks.named('jacocoTestReport') {
-    dependsOn tasks.named('test')
-    reports {
-        xml.required = true
-        html.required = true
-        csv.required = false
-    }
-}
-
-tasks.named('jacocoTestCoverageVerification') {
-    violationRules {
-        rule {
-            enabled = true
-            element = 'BUNDLE'
-            limit {
-                counter = 'LINE'
-                value = 'COVEREDRATIO'
-                minimum = 0.00 // Raised after real implementation begins; see docs/verification/coverage-policy.md.
-            }
-        }
-    }
-}
-
-tasks.named('check') {
-    dependsOn tasks.named('jacocoTestReport')
-    dependsOn tasks.named('jacocoTestCoverageVerification')
-}
-
-checkstyle {
-    toolVersion = '13.4.2'
-    configDirectory = rootProject.file('config/checkstyle')
-}
-
-spotbugs {
-    effort = Effort.valueOf('MAX')
-    reportLevel = Confidence.valueOf('MEDIUM')
-    excludeFilter = rootProject.file('config/spotbugs/exclude.xml')
-}
-
-tasks.withType(com.github.spotbugs.snom.SpotBugsTask).configureEach {
-    reports {
-        xml.required = true
-        html.required = true
-    }
-}
-
-spotless {
-    java {
-        target 'src/**/*.java'
-        googleJavaFormat()
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-    format 'misc', {
-        target '**/*.md', '**/*.yaml', '**/*.yml', '**/*.toml', '**/*.xml'
-        targetExclude(
-            '**/build/**',
-            '**/.gradle/**',
-            '**/.git/**',
-            '**/out/**'
-        )
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-}
-
 javadoc {
+    // Read source comments as UTF-8.
     options.encoding = 'UTF-8'
+    // Keep most doclint checks, but do not fail early scaffold modules for missing Javadocs.
     options.addStringOption('Xdoclint:all,-missing', '-quiet')
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            pom {
-                name = project.name
-                description = project.description ?: project.name
-                url = 'https://example.invalid/corba-ecosystem'
-            }
-        }
-    }
-    repositories {
-        maven {
-            name = 'localStaging'
-            url = rootProject.layout.buildDirectory.dir('staging-repository')
-        }
-    }
 }

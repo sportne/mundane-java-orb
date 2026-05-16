@@ -1,0 +1,30 @@
+// Use this plugin for BOM projects. A BOM publishes dependency alignment, not Java classes.
+plugins {
+    // Gives the BOM the same group/version and reproducible archive settings as other modules.
+    id 'corba.identity-conventions'
+    // Adds Gradle's javaPlatform component, which is how Gradle models a Maven BOM.
+    id 'java-platform'
+    // Adds publishing support.
+    id 'maven-publish'
+}
+
+javaPlatform {
+    // Allows the BOM to contain dependency constraints for our other projects.
+    allowDependencies()
+}
+
+publishing {
+    publications {
+        // Publish the javaPlatform component as a Maven BOM publication.
+        mavenBom(MavenPublication) {
+            from components.javaPlatform
+        }
+    }
+    repositories {
+        maven {
+            // Local staging is a build output folder used for inspection before real publishing exists.
+            name = 'localStaging'
+            url = rootProject.layout.buildDirectory.dir('staging-repository')
+        }
+    }
+}

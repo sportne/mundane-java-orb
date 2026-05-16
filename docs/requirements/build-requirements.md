@@ -3,7 +3,7 @@
 | ID | Requirement | Status |
 |---|---|---|
 | REQ-BUILD-001 | Use Gradle Groovy DSL. | draft |
-| REQ-BUILD-002 | Pin the Gradle wrapper to an exact Gradle 9.x release. | draft |
+| REQ-BUILD-002 | Pin the Gradle wrapper to Gradle 9.5.1 until an ADR approves an upgrade. | draft |
 | REQ-BUILD-003 | Compile production code with Java release 21. | draft |
 | REQ-BUILD-004 | Validate JVM execution on OpenJDK 21, OpenJDK 25, GraalVM JDK 21, and GraalVM JDK 25. | draft |
 | REQ-BUILD-005 | Validate Native Image execution on GraalVM JDK 21 and GraalVM JDK 25. | draft |

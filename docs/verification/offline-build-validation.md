@@ -1,5 +1,7 @@
 # Offline Build Validation
 
+Contributor-facing commands live in `docs/build/offline-build.md`.
+
 ## Goal
 
 Validate that the project can be built without network access when supplied with
@@ -9,7 +11,7 @@ distribution.
 ## Required command
 
 ```bash
-./gradlew --offline -PcorbaOfflineRepo=/path/to/local-maven-repo clean check
+./gradlew --offline -Pcorba.offlineRepo=/path/to/local-maven-repo clean qualityGate
 ```
 
 ## Release validation

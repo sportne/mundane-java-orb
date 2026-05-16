@@ -13,7 +13,7 @@ normativeReferences:
 compatibilityProfiles:
   - CORBA_3_4_FULL
 targetModules:
-  - modules/corba-example
+  - modules/<target-module>
 verification:
   - unit
   - golden-wire

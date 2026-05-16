@@ -1,5 +1,9 @@
+// This test-only module runs architecture checks plus the normal quality and coverage tools.
 plugins {
     id 'corba.architecture-conventions'
+    id 'corba.quality-conventions'
+    id 'corba.coverage-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports.
 description = 'ArchUnit and repository-wide architecture checks.'

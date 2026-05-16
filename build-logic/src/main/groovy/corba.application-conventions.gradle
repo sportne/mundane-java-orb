@@ -1,8 +1,12 @@
+// Use this plugin for modules that produce a runnable command-line application.
 plugins {
+    // Adds application tasks such as run, startScripts, and installDist.
     id 'application'
+    // A runnable app is still Java code, so it also gets the standard Java library setup.
     id 'corba.java-library-conventions'
 }
 
 application {
     // Real main classes are assigned in implementation-stage tasks.
+    // Until then, application modules can still share the same build shape as future real apps.
 }

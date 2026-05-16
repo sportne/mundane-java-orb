@@ -4,8 +4,8 @@ set -euo pipefail
 OFFLINE_REPO="${1:-local-maven-repo}"
 
 if [ ! -x ./gradlew ]; then
-  echo "Gradle wrapper is not available. Run ./tools/bootstrap-gradle-wrapper.sh first." >&2
+  echo "Gradle wrapper is not executable. Run from the repository root." >&2
   exit 1
 fi
 
-./gradlew --offline -PcorbaOfflineRepo="${OFFLINE_REPO}" clean check
+./gradlew --offline -Pcorba.offlineRepo="${OFFLINE_REPO}" clean qualityGate

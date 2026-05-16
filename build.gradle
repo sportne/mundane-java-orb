@@ -1,83 +1,109 @@
+// The root build file defines tasks that apply to the whole repository.
 plugins {
+    // The base plugin gives the root project standard lifecycle tasks like clean and check.
     id 'base'
+    // This plugin adds validateDesignControlPack.
+    id 'corba.docs-validation-conventions'
+    // This plugin adds printOfflineBuildInstructions for contributors working without internet access.
+    id 'corba.offline-conventions'
 }
 
-allprojects {
-    group = 'io.corbaecosystem'
-    version = '0.1.0-SNAPSHOT'
+// group and version form the first two parts of Maven coordinates: group:name:version.
+group = 'io.corbaecosystem'
 
-    tasks.withType(AbstractArchiveTask).configureEach {
-        preserveFileTimestamps = false
-        reproducibleFileOrder = true
-    }
-}
+// The version normally comes from gradle.properties, but this fallback keeps local experiments usable.
+version = providers.gradleProperty('corba.version').getOrElse('0.1.0-SNAPSHOT')
 
-tasks.register('validateDesignControlPack') {
-    description = 'Validates that required G0/G1 design-control files exist.'
-    group = 'verification'
+// These projects should be included when someone asks for one whole-repository check.
+// Keeping the list explicit makes the public root tasks easy to audit.
+def checkedProjects = [
+    ':modules:corba-bom',
+    ':modules:corba-common',
+    ':modules:corba-omg-api',
+    ':modules:corba-modern-api',
+    ':modules:corba-repository-id',
+    ':modules:corba-idl-ast',
+    ':modules:corba-idl-parser',
+    ':modules:corba-idl-semantics',
+    ':modules:corba-idl-java-mapping',
+    ':modules:corba-codegen',
+    ':modules:corba-idlj-cli',
+    ':modules:corba-cdr',
+    ':modules:corba-typecode',
+    ':modules:corba-any',
+    ':modules:corba-ior',
+    ':modules:corba-giop',
+    ':modules:corba-iiop',
+    ':modules:corba-orb-core',
+    ':modules:corba-poa',
+    ':modules:corba-interceptors',
+    ':modules:corba-dynamic',
+    ':modules:corba-interface-repository',
+    ':modules:corba-naming-api',
+    ':modules:corba-naming-server',
+    ':modules:corba-services-core',
+    ':modules:corba-trading-service',
+    ':modules:corba-event-service',
+    ':modules:corba-notification-service',
+    ':modules:corba-transaction-service',
+    ':modules:corba-security-service',
+    ':modules:corba-time-service',
+    ':modules:corba-rmi-iiop',
+    ':modules:corba-native-image',
+    ':modules:corba-testkit',
+    ':modules:corba-interop-testkit',
+    ':modules:corba-architecture-tests',
+    ':examples:corba-examples',
+]
 
-    def requiredFiles = [
-        'AGENT_RULES.md',
-        'docs/charter.md',
-        'docs/standards-baseline.md',
-        'docs/compatibility-profiles.md',
-        'docs/specification-traceability.md',
-        'docs/requirements/requirement-template.md',
-        'docs/verification/verification-strategy.md',
-        'docs/conformance/conformance-index.md',
-        'docs/adr/ADR-0001-design-first-process.md'
-    ]
+// The BOM has no Java source code, so quality tools such as Spotless and JaCoCo do not run there.
+def qualityProjects = checkedProjects.findAll { it != ':modules:corba-bom' }
 
-    def requiredDesignControlFiles = requiredFiles.collect {
-        layout.projectDirectory.file(it)
-    }
-
-    inputs.files(requiredDesignControlFiles)
-
-    doLast {
-         requiredDesignControlFiles.each { requiredFile ->
-            if (!requiredFile.asFile.exists()) {
-                throw new GradleException(
-                    "Required design-control file missing: ${requiredFile.asFile}"
-                )
-            }
-        }
-    }
-}
-
+// checkAll is a contributor-friendly shortcut for running each included project's check task.
 tasks.register('checkAll') {
-    description = 'Runs check tasks across all subprojects.'
+    description = 'Runs check tasks across all included CORBA projects.'
     group = 'verification'
-
-    dependsOn provider {
-        subprojects
-            .findAll { it.tasks.findByName('check') != null }
-            .collect { it.tasks.named('check') }
-    }
+    dependsOn checkedProjects.collect { "${it}:check" }
 }
 
+// qualityGate is the main local and CI gate: docs must exist, checks must pass, formatting must pass,
+// and coverage verification must run for projects that have compiled classes.
 tasks.register('qualityGate') {
     description = 'Runs the default local quality gate.'
     group = 'verification'
     dependsOn 'validateDesignControlPack', 'checkAll'
+    dependsOn qualityProjects.collect { "${it}:spotlessCheck" }
+    dependsOn qualityProjects.collect { "${it}:jacocoTestCoverageVerification" }
+}
 
-    dependsOn provider {
-        subprojects
-            .findAll { it.tasks.findByName('spotlessCheck') != null }
-            .collect { it.tasks.named('spotlessCheck') }
-    }
-
-    dependsOn provider {
-        subprojects
-            .findAll { it.tasks.findByName('jacocoTestCoverageVerification') != null }
-            .collect { it.tasks.named('jacocoTestCoverageVerification') }
+// This help task prints the artifacts that publishToMavenLocal or a real publish will create.
+tasks.register('printPublishedArtifacts') {
+    description = 'Prints planned artifact coordinates.'
+    group = 'help'
+    doLast {
+        println '''
+:modules:corba-bom                 -> io.corbaecosystem:corba-bom
+:modules:corba-common              -> io.corbaecosystem:corba-common
+:modules:corba-omg-api             -> io.corbaecosystem:corba-omg-api
+:modules:corba-modern-api          -> io.corbaecosystem:corba-modern-api
+:modules:corba-repository-id       -> io.corbaecosystem:corba-repository-id
+:modules:corba-idl-*               -> io.corbaecosystem:corba-idl-*
+:modules:corba-codegen             -> io.corbaecosystem:corba-codegen
+:modules:corba-idlj-cli            -> io.corbaecosystem:corba-idlj-cli
+:modules:corba-cdr                 -> io.corbaecosystem:corba-cdr
+:modules:corba-ior                 -> io.corbaecosystem:corba-ior
+:modules:corba-giop                -> io.corbaecosystem:corba-giop
+:modules:corba-iiop                -> io.corbaecosystem:corba-iiop
+:modules:corba-orb-core            -> io.corbaecosystem:corba-orb-core
+:modules:corba-poa                 -> io.corbaecosystem:corba-poa
+:modules:corba-* services/testkits -> io.corbaecosystem:corba-*
+'''.stripIndent()
     }
 }
 
+// Keep the old task name available while docs and scripts move to printOfflineBuildInstructions.
 tasks.register('prepareOfflineRepository') {
-    description = 'Placeholder task for resolving dependencies into a local Maven-layout repository.'
+    description = 'Compatibility alias that prints offline repository preparation instructions.'
     group = 'build setup'
-    doLast {
-        println 'Use tools/prepare-offline-repository.sh after the wrapper is bootstrapped.'
-    }
+    dependsOn tasks.named('printOfflineBuildInstructions')
 }

@@ -1,0 +1,22 @@
+// This plugin gives every module the same basic identity and reproducible archive behavior.
+plugins {
+    // Provides common lifecycle tasks and archive task types without assuming Java source exists.
+    id 'base'
+}
+
+// Subprojects inherit the Maven group and version from the root project.
+group = rootProject.group
+version = rootProject.version
+
+// Make ZIP/JAR/TAR outputs reproducible: same inputs should produce byte-for-byte stable archives.
+tasks.withType(AbstractArchiveTask).configureEach {
+    // Do not put local file timestamps into archives.
+    preserveFileTimestamps = false
+    // Write archive entries in a stable order.
+    reproducibleFileOrder = true
+}
+
+// Lock dependency versions so dependency upgrades are intentional and reviewable.
+dependencyLocking {
+    lockAllConfigurations()
+}

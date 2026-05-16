@@ -1,0 +1,22 @@
+version: 2
+multi-ecosystem-groups:
+  dependency-refresh:
+    schedule:
+      interval: cron
+      cronjob: "0 9 15 * *"
+      timezone: America/New_York
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    patterns:
+      - "*"
+    multi-ecosystem-group: dependency-refresh
+    cooldown:
+      default-days: 90
+  - package-ecosystem: github-actions
+    directory: /
+    patterns:
+      - "*"
+    multi-ecosystem-group: dependency-refresh
+    cooldown:
+      default-days: 90

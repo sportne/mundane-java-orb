@@ -1,6 +1,11 @@
+// This application module builds a future CLI, runs quality/coverage checks, publishes it, and checks native-image compatibility.
 plugins {
     id 'corba.application-conventions'
+    id 'corba.quality-conventions'
+    id 'corba.coverage-conventions'
+    id 'corba.publishing-conventions'
     id 'corba.native-image-conventions'
 }
 
+// Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'idlj-like command-line compiler distribution and CLI entry point.'

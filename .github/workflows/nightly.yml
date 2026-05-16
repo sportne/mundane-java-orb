@@ -5,8 +5,11 @@ on:
     - cron: '17 5 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  nightly-placeholder:
+  nightly:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,11 +17,6 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
-      - name: Bootstrap wrapper if needed
-        run: |
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
-            gradle wrapper --gradle-version=9.5.1 --distribution-type=bin
-          fi
-      - name: Nightly scaffold verification
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Nightly quality gate
         run: ./gradlew clean qualityGate

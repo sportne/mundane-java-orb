@@ -1,0 +1,78 @@
+// This convention plugin configures formatting and static-analysis tools for Java modules.
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
+import com.github.spotbugs.snom.SpotBugsTask
+import org.gradle.api.artifacts.VersionCatalogsExtension
+
+plugins {
+    // Checkstyle checks source formatting and style rules from config/checkstyle.
+    id 'checkstyle'
+    // Spotless formats source and build files.
+    id 'com.diffplug.spotless'
+    // SpotBugs scans compiled bytecode for likely bugs.
+    id 'com.github.spotbugs'
+}
+
+// Use tool versions from the shared version catalog.
+def libs = extensions.getByType(VersionCatalogsExtension).named('libs')
+
+checkstyle {
+    // Pin Checkstyle so results are the same locally and in CI.
+    toolVersion = libs.findVersion('checkstyle').get().requiredVersion
+    // Shared Checkstyle rules live at the repository root.
+    configDirectory = rootProject.file('config/checkstyle')
+    // Any Checkstyle warning should fail the task.
+    maxWarnings = 0
+}
+
+spotless {
+    java {
+        // Format all Java files under normal source directories.
+        target 'src/**/*.java'
+        // Use Google's Java formatter.
+        googleJavaFormat()
+        // Remove imports that are no longer used.
+        removeUnusedImports()
+        // Avoid invisible whitespace changes.
+        trimTrailingWhitespace()
+        // Keep files POSIX-friendly and Git-friendly.
+        endWithNewline()
+        // Normalize annotation formatting.
+        formatAnnotations()
+    }
+    groovyGradle {
+        // Format all Gradle Groovy DSL files.
+        target '**/*.gradle'
+        // Use Greclipse for Groovy formatting.
+        greclipse()
+        // Keep indentation as four spaces, not tabs.
+        leadingTabsToSpaces(4)
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+    format 'misc', {
+        // Apply basic whitespace rules to docs and structured text files.
+        target 'README.md', 'src/**/*.md', 'src/**/*.yaml', 'src/**/*.yml', 'src/**/*.toml', 'src/**/*.xml'
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
+spotbugs {
+    // Pin SpotBugs so results are stable.
+    toolVersion = libs.findVersion('spotbugs').get().requiredVersion
+    // MAX asks SpotBugs to spend more effort finding issues.
+    effort.set(Effort.valueOf('MAX'))
+    // MEDIUM balances signal and noise for this repository.
+    reportLevel.set(Confidence.valueOf('MEDIUM'))
+    // Shared false-positive exclusions live at the repository root.
+    excludeFilter = rootProject.file('config/spotbugs/exclude.xml')
+}
+
+// Generate both machine-readable XML and human-readable HTML SpotBugs reports.
+tasks.withType(SpotBugsTask).configureEach {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}

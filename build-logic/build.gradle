@@ -1,8 +1,12 @@
+// build-logic is a small Gradle build whose output is our set of convention plugins.
 plugins {
+    // groovy-gradle-plugin lets files in src/main/groovy/*.gradle become plugins by file name.
     id 'groovy-gradle-plugin'
 }
 
 dependencies {
+    // These are plugin marker dependencies. They let our convention plugins apply third-party plugins.
+    // Versions come from gradle/libs.versions.toml through the shared version catalog.
     implementation "com.diffplug.spotless:com.diffplug.spotless.gradle.plugin:${libs.versions.spotlessPlugin.get()}"
     implementation "com.github.spotbugs:com.github.spotbugs.gradle.plugin:${libs.versions.spotbugsPlugin.get()}"
     implementation "net.ltgt.errorprone:net.ltgt.errorprone.gradle.plugin:${libs.versions.errorpronePlugin.get()}"

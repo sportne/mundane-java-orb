@@ -1,4 +1,4 @@
-# ADR: Gradle 9 Groovy DSL
+# ADR: Gradle 9.5.1 Groovy DSL
 
 Status: accepted
 
@@ -9,7 +9,7 @@ decisions before coding begins.
 
 ## Decision
 
-Use Gradle 9.x pinned wrapper and Groovy DSL.
+Use the pinned Gradle 9.5.1 wrapper and Groovy DSL.
 
 ## Consequences
 
