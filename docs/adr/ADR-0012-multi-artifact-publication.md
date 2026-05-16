@@ -19,8 +19,11 @@ Publish independently usable artifacts plus a BOM.
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-BUILD-010
+- REQ-NFR-006
+- REQ-NFR-008
 
 ## Specification references
 
-TBD where applicable.
+Packaging decision supporting the CORBA compatibility and modern API split; no
+direct OMG specification clause.

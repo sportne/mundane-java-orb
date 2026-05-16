@@ -19,8 +19,9 @@ Implementation is forbidden until governance, requirements, architecture, verifi
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-DOC-006
+- REQ-NFR-007
 
 ## Specification references
 
-TBD where applicable.
+Operational governance decision; no direct OMG specification clause.

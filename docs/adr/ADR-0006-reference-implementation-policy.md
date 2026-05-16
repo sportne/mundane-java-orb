@@ -19,8 +19,10 @@ Reference ORBs are interop peers and clean-room behavioral references, not sourc
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-INTEROP-005 through REQ-INTEROP-009
 
 ## Specification references
 
-TBD where applicable.
+- CORBA-IOP-ARCH
+- CORBA-IOP-GIOP
+- CORBA-IOP-IIOP

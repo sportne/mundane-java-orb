@@ -2,10 +2,10 @@
 
 | Spec area | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| ORB object model | TBD | REQ-ORB-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IDL relationship | TBD | REQ-IDL-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| CDR | TBD | REQ-CDR-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| GIOP | TBD | REQ-GIOP-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IIOP | TBD | REQ-IIOP-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IOR | TBD | REQ-IOR-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| POA | TBD | REQ-POA-001 | not-started | TBD | Fill exact clause during G2/G3. |
+| ORB object model | CORBA-IF-OBJECT; CORBA-IF-ORB | REQ-ORB-001 | not-started | unassigned | G3 assigns tests. |
+| IDL relationship | IDL-42-GRAMMAR; CORBA-IF-OVERVIEW | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| CDR | CORBA-IOP-CDR | REQ-CDR-001 | not-started | unassigned | G3 assigns tests. |
+| GIOP | CORBA-IOP-GIOP | REQ-GIOP-001 | not-started | unassigned | G3 assigns tests. |
+| IIOP | CORBA-IOP-IIOP | REQ-IIOP-001 | not-started | unassigned | G3 assigns tests. |
+| IOR | CORBA-IOP-IOR; CORBA-IOP-OBJECT-URL | REQ-IOR-001 | not-started | unassigned | G3 assigns tests. |
+| POA | CORBA-IF-POA | REQ-POA-001 | not-started | unassigned | G3 assigns tests. |

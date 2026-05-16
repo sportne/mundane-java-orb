@@ -19,8 +19,9 @@ Use ArchUnit as a build-enforced architectural boundary tool.
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-BUILD-007
+- REQ-NFR-003
 
 ## Specification references
 
-TBD where applicable.
+Architecture-enforcement decision; no direct OMG specification clause.

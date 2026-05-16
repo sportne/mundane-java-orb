@@ -26,5 +26,7 @@ interop/reports/
 interop/work/
 native-image-work/
 local-maven-repo/
+reference/specs/*
+!reference/specs/README.md
 hs_err_pid*
 replay_pid*

@@ -19,8 +19,8 @@ Use the pinned Gradle 9.5.1 wrapper and Groovy DSL.
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-BUILD-001 through REQ-BUILD-004
 
 ## Specification references
 
-TBD where applicable.
+Build-tooling decision; no direct OMG specification clause.

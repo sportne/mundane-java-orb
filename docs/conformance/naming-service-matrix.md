@@ -2,11 +2,11 @@
 
 | Naming behavior | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| initial naming context | TBD | REQ-NAM-001 | not-started | TBD |  |
-| bind | TBD | REQ-NAM-001 | not-started | TBD |  |
-| rebind | TBD | REQ-NAM-001 | not-started | TBD |  |
-| resolve | TBD | REQ-NAM-001 | not-started | TBD |  |
-| unbind | TBD | REQ-NAM-001 | not-started | TBD |  |
-| list | TBD | REQ-NAM-001 | not-started | TBD |  |
-| destroy | TBD | REQ-NAM-001 | not-started | TBD |  |
-| corbaname | TBD | REQ-IOR-002 | not-started | TBD |  |
+| initial naming context | NAM-13-SERVICE; NAM-13-COSNAMING | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| bind | NAM-13-CONTEXT, bind | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| rebind | NAM-13-CONTEXT, rebind | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| resolve | NAM-13-CONTEXT, resolving names | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| unbind | NAM-13-CONTEXT, unbinding names | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| list | NAM-13-CONTEXT, listing a naming context; NAM-13-ITERATOR | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| destroy | NAM-13-ITERATOR, destroy; NAM-13-CONTEXT, deleting contexts | REQ-NAM-001 | not-started | unassigned | G3 assigns tests. |
+| corbaname | NAM-13-URLS; CORBA-IOP-OBJECT-URL | REQ-IOR-002 | not-started | unassigned | G3 assigns tests. |

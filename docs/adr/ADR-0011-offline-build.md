@@ -19,8 +19,10 @@ Support offline builds with a supplied local Maven repository, dependency lockin
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-OFFLINE-001 through REQ-OFFLINE-006
+- REQ-BUILD-002
+- REQ-NFR-005
 
 ## Specification references
 
-TBD where applicable.
+Build-reproducibility decision; no direct OMG specification clause.

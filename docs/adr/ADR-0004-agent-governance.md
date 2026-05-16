@@ -19,8 +19,9 @@ Agents must work from narrow, requirement-traced tasks with allowed files and ac
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-DOC-006
+- REQ-NFR-007
 
 ## Specification references
 
-TBD where applicable.
+Operational governance decision; no direct OMG specification clause.

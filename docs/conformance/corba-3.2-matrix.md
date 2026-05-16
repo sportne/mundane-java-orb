@@ -2,10 +2,10 @@
 
 | Spec area | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| ORB object model | TBD | REQ-ORB-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IDL relationship | TBD | REQ-IDL-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| CDR | TBD | REQ-CDR-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| GIOP | TBD | REQ-GIOP-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IIOP | TBD | REQ-IIOP-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| IOR | TBD | REQ-IOR-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| POA | TBD | REQ-POA-001 | not-started | TBD | Fill exact clause during G2/G3. |
+| ORB object model | CORBA 3.2 Interfaces section 5, The Object Model; section 8, ORB Interface | REQ-ORB-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| IDL relationship | IDL-42-GRAMMAR; CORBA 3.2 Interfaces section 6.2.5, OMG Interface Definition Language | REQ-IDL-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| CDR | CORBA 3.2 Interoperability section 9.3, CDR Transfer Syntax | REQ-CDR-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| GIOP | CORBA 3.2 Interoperability sections 9.2 through 9.6 | REQ-GIOP-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| IIOP | CORBA 3.2 Interoperability section 9.7, Internet Inter-ORB Protocol | REQ-IIOP-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| IOR | CORBA 3.2 Interoperability section 7.6, Object References | REQ-IOR-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |
+| POA | CORBA 3.2 Interfaces section 15, The Portable Object Adapter | REQ-POA-001 | not-started | unassigned | Compatibility profile; G3 assigns tests. |

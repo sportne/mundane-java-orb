@@ -19,8 +19,14 @@ Use one implementation with explicit compatibility profiles rather than separate
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-NFR-006
+- REQ-INTEROP-001 through REQ-INTEROP-009
+- REQ-RMI-001
 
 ## Specification references
 
-TBD where applicable.
+- CORBA-IOP-ARCH
+- CORBA-IOP-GIOP
+- CORBA-IOP-IIOP
+- I2JAV-13
+- JAV2I-14-RMI-IDL

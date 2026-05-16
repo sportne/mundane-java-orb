@@ -19,8 +19,8 @@ Use JUnit Platform/Jupiter instead of JUnit 4.
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-BUILD-006
 
 ## Specification references
 
-TBD where applicable.
+Build-verification decision; no direct OMG specification clause.

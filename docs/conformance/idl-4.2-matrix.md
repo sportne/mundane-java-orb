@@ -2,14 +2,14 @@
 
 | IDL construct | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| lexical conventions | TBD | REQ-IDL-001 | not-started | TBD | Fill exact clause during G2/G3. |
-| modules | TBD | REQ-IDL-001 | not-started | TBD |  |
-| interfaces | TBD | REQ-IDL-001 | not-started | TBD |  |
-| operations | TBD | REQ-IDL-001 | not-started | TBD |  |
-| attributes | TBD | REQ-IDL-001 | not-started | TBD |  |
-| exceptions | TBD | REQ-IDL-001 | not-started | TBD |  |
-| structs | TBD | REQ-IDL-001 | not-started | TBD |  |
-| unions | TBD | REQ-IDL-001 | not-started | TBD |  |
-| enums | TBD | REQ-IDL-001 | not-started | TBD |  |
-| sequences and arrays | TBD | REQ-IDL-001 | not-started | TBD |  |
-| valuetypes | TBD | REQ-IDL-001 | not-started | TBD |  |
+| lexical conventions | IDL-42-LEXICAL | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| modules | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| interfaces | IDL-42-GRAMMAR, Building Block Interfaces - Basic and Full | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| operations | IDL-42-GRAMMAR, Building Block Interfaces - Basic and Full | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| attributes | IDL-42-GRAMMAR, Building Block Interfaces - Basic and Full | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| exceptions | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| structs | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| unions | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| enums | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| sequences and arrays | IDL-42-GRAMMAR, Building Block Core Data Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |
+| valuetypes | IDL-42-GRAMMAR, Building Block Value Types and CORBA-Specific Value Types | REQ-IDL-001 | not-started | unassigned | G3 assigns tests. |

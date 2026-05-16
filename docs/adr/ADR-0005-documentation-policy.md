@@ -19,8 +19,9 @@ Public APIs, protocol behavior, generated code, and design decisions require doc
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-DOC-001 through REQ-DOC-006
 
 ## Specification references
 
-TBD where applicable.
+Operational documentation policy; feature documentation must cite the relevant
+canonical reference from `docs/specification-traceability.md`.

@@ -8,7 +8,7 @@ summary: One paragraph summary.
 priority: must | should | may
 normativeReferences:
   - spec: CORBA-3.4-Interoperability
-    section: TBD
+    section: "<section>"
     url: https://www.omg.org/spec/CORBA/3.4/Interoperability/PDF
 compatibilityProfiles:
   - CORBA_3_4_FULL
@@ -22,11 +22,11 @@ verification:
 interopPeers:
   - jacorb
   - glassfish-orb
-securityImplications: TBD
-nativeImageImplications: TBD
+securityImplications: "<impact or none>"
+nativeImageImplications: "<impact or none>"
 documentationRequired:
   - architecture doc
   - conformance matrix
   - package-info.java
-acceptanceNotes: TBD
+acceptanceNotes: "<objective acceptance notes>"
 ```

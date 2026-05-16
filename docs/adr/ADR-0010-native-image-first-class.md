@@ -19,8 +19,12 @@ Validate JVM and Native Image behavior across OpenJDK and GraalVM Java 21/25 mat
 
 ## Requirements affected
 
-TBD during G1 completion.
+- REQ-NATIVE-001 through REQ-NATIVE-005
+- REQ-BUILD-004 and REQ-BUILD-005
+- REQ-NFR-001 through REQ-NFR-003
 
 ## Specification references
 
-TBD where applicable.
+Operational runtime-compatibility decision. Feature-specific Native Image tasks
+must cite the relevant CORBA, IDL, language-mapping, or Naming reference from
+`docs/specification-traceability.md`.
