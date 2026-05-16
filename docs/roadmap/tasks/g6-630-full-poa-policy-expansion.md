@@ -1,6 +1,7 @@
 # G6-630 Full POA Policy Expansion
 
 Task ID: G6-630-FULL-POA-POLICY-EXPANSION
+Status: draft
 Gate: G6 server runtime expansion
 Requirement IDs: REQ-POA-001, REQ-POA-002, REQ-ORB-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005

@@ -1,6 +1,7 @@
 # G6-040 Repository ID Foundation
 
 Task ID: G6-040-REPOSITORY-ID-FOUNDATION
+Status: ready-for-implementation
 Gate: G6 foundation implementation
 Requirement IDs: REQ-IOR-001, REQ-IDL-002, REQ-NFR-007, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0012

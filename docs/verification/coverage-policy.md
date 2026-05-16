@@ -14,10 +14,15 @@ spec tests, golden-wire tests, fuzz tests, and interop tests.
 | ORB core / POA | 88% | 82% |
 | Security-sensitive parsing paths | 95% | 90% |
 
-## Scaffold policy
+## G6 tightening policy
 
-The scaffold currently sets a permissive JaCoCo threshold so empty modules can be
-validated. Raising the threshold to the table above is a G5-to-G6 acceptance item.
+Empty modules continue to skip coverage verification until they contain compiled
+production classes. Once a module has production classes, `qualityGate` enforces
+the baseline individual-source policy: at least 80% line coverage and 70% branch
+coverage at the bundle level.
+
+Higher domain thresholds from the table above are introduced by the feature
+tasks that add CDR/GIOP/IIOP/IOR, IDL, ORB, POA, or security-sensitive behavior.
 
 ## Exclusions
 

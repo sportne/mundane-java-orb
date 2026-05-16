@@ -1,6 +1,7 @@
 # G6-160 Minimal IDL-to-Java Generation
 
 Task ID: G6-160-IDL-JAVA-MINIMAL-GENERATION
+Status: draft
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDLJ-002, REQ-IDLJ-003, REQ-IDLJ-004, REQ-DOC-005
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010

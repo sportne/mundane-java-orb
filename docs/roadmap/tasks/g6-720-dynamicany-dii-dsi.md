@@ -1,6 +1,7 @@
 # G6-720 DynamicAny, DII, and DSI
 
 Task ID: G6-720-DYNAMICANY-DII-DSI
+Status: draft
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-ORB-001, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010

@@ -1,6 +1,7 @@
 # G6-520 IIOP TCP
 
 Task ID: G6-520-IIOP-TCP
+Status: draft
 Gate: G6 wire invocation vertical slice
 Requirement IDs: REQ-IIOP-001, REQ-GIOP-001, REQ-SEC-001, REQ-NFR-004, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010

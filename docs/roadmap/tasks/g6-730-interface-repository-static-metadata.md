@@ -1,6 +1,7 @@
 # G6-730 Interface Repository Static Metadata
 
 Task ID: G6-730-INTERFACE-REPOSITORY-STATIC-METADATA
+Status: draft
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-IDLJ-004, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010

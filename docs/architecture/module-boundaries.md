@@ -25,6 +25,8 @@ The rules are enforced by:
 - coding-agent rules;
 - module dependency reviews.
 
-During the scaffold phase, architecture tests allow empty package matches so
-rules can be merged before the corresponding implementation packages exist.
-Removing that scaffold tolerance is a later G5/G6 validation item.
+During the G6 foundation phase, architecture tests still allow empty package
+matches for future modules so rules can exist before the corresponding packages
+are implemented. Implemented foundation packages are no longer purely scaffolded:
+`io.github.mundanej.mjo.common` must be visible to architecture checks and must
+not depend on feature modules.

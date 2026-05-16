@@ -1,6 +1,7 @@
 # G6-420 Exception Mapping
 
 Task ID: G6-420-EXCEPTION-MAPPING
+Status: draft
 Gate: G6 local invocation vertical slice
 Requirement IDs: REQ-ORB-001, REQ-IDLJ-002, REQ-CDR-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005

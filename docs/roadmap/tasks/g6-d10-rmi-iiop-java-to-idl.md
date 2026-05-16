@@ -1,6 +1,7 @@
 # G6-D10 RMI-IIOP and Java-to-IDL
 
 Task ID: G6-D10-RMI-IIOP-JAVA-TO-IDL
+Status: human-gate-blocked
 Gate: Deferred compatibility gate
 Requirement IDs: REQ-RMI-001
 ADR IDs: ADR-0002, ADR-0003

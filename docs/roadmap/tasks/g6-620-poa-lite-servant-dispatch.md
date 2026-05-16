@@ -1,6 +1,7 @@
 # G6-620 POA-Lite Servant Dispatch
 
 Task ID: G6-620-POA-LITE-SERVANT-DISPATCH
+Status: draft
 Gate: G6 server runtime vertical slice
 Requirement IDs: REQ-POA-001, REQ-ORB-001, REQ-IDLJ-004, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010

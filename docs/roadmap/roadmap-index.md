@@ -1,19 +1,27 @@
 # G6 Roadmap Index
 
-This roadmap is a draft implementation task set. It favors functional,
-testable vertical slices while preserving the dependency order needed for a
-large CORBA implementation.
+This roadmap is the G6 implementation task set. It favors functional, testable
+vertical slices while preserving the dependency order needed for a large CORBA
+implementation.
 
 Each task file under `docs/roadmap/tasks/` uses the fields from
-`docs/agent/implementation-task-template.md`. A task is not approved for
-execution until it is copied or narrowed into a task-specific handoff.
+`docs/roadmap/implementation-task-template.md`. After G0-G5 approval, these task
+files are the source of truth for G6 execution state. A task may be implemented
+when its `Status:` is `ready-for-implementation` and its scope is specific
+enough to execute directly.
+
+`validateDesignControlPack` enforces the task template shape, accepted status
+values, task-type markers, and the rule that exactly one task is active as
+`ready-for-implementation` or `in-progress`.
 
 ## Status vocabulary
 
-- `draft`: Roadmap task exists but is not approved for execution.
-- `ready-for-handoff`: Task is the next candidate and needs exact final scope.
-- `blocked`: Task depends on a separate design, human, license, or artifact gate.
+- `draft`: Task exists but is not approved for execution.
+- `ready-for-implementation`: Task is approved as the next executable slice.
+- `in-progress`: Task is actively being executed.
 - `complete`: Task has been implemented and accepted.
+- `blocked`: Task depends on another implementation, design, artifact, or validation task.
+- `human-gate-blocked`: Task depends on maintainer, legal, license, or release approval.
 
 ## Ordered task set
 
@@ -21,12 +29,12 @@ execution until it is copied or narrowed into a task-specific handoff.
 
 - `tasks/g6-000-roadmap-task-set.md`
 - `tasks/g6-010-gate-state-and-control.md` - complete
-- `tasks/g6-020-coverage-architecture-tightening.md`
+- `tasks/g6-020-coverage-architecture-tightening.md` - complete
 
 ### G6.1 Foundations
 
 - `tasks/g6-030-common-diagnostics-limits.md` - complete
-- `tasks/g6-040-repository-id-foundation.md` - ready-for-handoff
+- `tasks/g6-040-repository-id-foundation.md` - ready-for-implementation
 - `tasks/g6-050-testkit-golden-fixtures.md`
 
 ### G6.2 IDL Compiler Slice

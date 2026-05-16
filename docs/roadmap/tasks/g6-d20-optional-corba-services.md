@@ -1,6 +1,7 @@
 # G6-D20 Optional CORBA Services
 
 Task ID: G6-D20-OPTIONAL-CORBA-SERVICES
+Status: human-gate-blocked
 Gate: Deferred service gate
 Requirement IDs: REQ-SVC-001
 ADR IDs: ADR-0002, ADR-0004, ADR-0005

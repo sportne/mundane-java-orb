@@ -23,7 +23,8 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 
 ## Public Gradle interface
 
-- `validateDesignControlPack` verifies required design-control files.
+- `validateDesignControlPack` verifies required design-control files and the
+  roadmap task template/status model.
 - `checkAll` runs checks for every included project.
 - `qualityGate` is the local and CI quality gate.
 - `printPublishedArtifacts` prints planned Maven coordinates.

@@ -1,6 +1,7 @@
 # G6-530 IIOP TLS and mTLS
 
 Task ID: G6-530-IIOP-TLS-MTLS
+Status: draft
 Gate: G6 wire invocation vertical slice
 Requirement IDs: REQ-IIOP-002, REQ-SEC-005, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010

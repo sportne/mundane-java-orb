@@ -1,6 +1,7 @@
 # G6-710 TypeCode and Any
 
 Task ID: G6-710-TYPECODE-ANY
+Status: draft
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-CDR-001, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010

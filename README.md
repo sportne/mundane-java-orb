@@ -1,9 +1,9 @@
-# CORBA Ecosystem for Modern Java
+# mundane Java ORB
 
-This repository is a design-first starting point for a complete Java CORBA
-ecosystem with legacy compatibility, modern generated-code APIs, GraalVM Native
-Image support, multi-ORB interoperability testing, and strong coding-agent
-guardrails.
+This repository is a design-first starting point for mundane Java ORB, a
+complete Java ORB with legacy CORBA compatibility, modern generated-code APIs,
+GraalVM Native Image support, multi-ORB interoperability testing, and strong
+coding-agent guardrails.
 
 ## Development model
 
@@ -13,13 +13,13 @@ agents are expected to do much of the scaffold, documentation, build, and
 eventually implementation work under the rules in `AGENT.md`.
 
 That workflow is intentional, so the repository is structured to be explicit
-about requirements, architecture, verification, build behavior, and task
-handoffs. Contributor-facing documentation is part of the product, not an
+about requirements, architecture, verification, build behavior, and roadmap
+tasks. Contributor-facing documentation is part of the product, not an
 afterthought.
 
 ## Current repository phase
 
-This repository is intentionally in **Gate G0/G1/G4 scaffold state**:
+This repository is in **Gate G6 foundation implementation state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -27,7 +27,9 @@ This repository is intentionally in **Gate G0/G1/G4 scaffold state**:
 - Gradle 9.5.1 Groovy DSL build infrastructure is scaffolded;
 - JUnit Platform/Jupiter, ArchUnit, JaCoCo, Checkstyle, SpotBugs, Error Prone,
   Spotless, publishing, offline-build, and Native Image hooks are scaffolded;
-- no CORBA runtime implementation has started.
+- shared diagnostics and bounded-limit foundation types have started;
+- CORBA runtime, protocol, IDL compiler, ORB, POA, service, and generated-code
+  behavior remain limited to approved roadmap tasks.
 
 ## Primary goals
 
@@ -65,7 +67,7 @@ No implementation task may begin without:
 6. required documentation updates;
 7. an exact acceptance command.
 
-See `AGENT.md` and `docs/agent/implementation-task-template.md`.
+See `AGENT.md` and `docs/roadmap/implementation-task-template.md`.
 
 ## Build status of this scaffold
 
@@ -84,9 +86,11 @@ see `docs/build/offline-build.md` and `tools/prepare-offline-repository.sh`.
 
 Build conventions live in `build-logic/` as composable Gradle convention plugins. Published and internal test modules live under `modules/`; non-published examples live under `examples/`.
 
-## Critical next human review items
+## Current next step
 
-1. Approve or replace the placeholder license.
-2. Validate the version catalog against the organization's dependency policy.
-3. Fill exact specification clause IDs in the conformance matrices.
-4. Approve the first implementation-unlocking milestone only after gates pass.
+The next executable roadmap task is
+`docs/roadmap/tasks/g6-040-repository-id-foundation.md`.
+
+Remaining human gates, including final license approval and dependency-policy
+approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
+record the relevant decisions.

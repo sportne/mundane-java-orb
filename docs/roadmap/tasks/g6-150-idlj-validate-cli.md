@@ -1,6 +1,7 @@
 # G6-150 idlj Validate CLI
 
 Task ID: G6-150-IDLJ-VALIDATE-CLI
+Status: draft
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDLJ-001, REQ-IDL-001, REQ-IDL-002, REQ-IDL-003, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0009

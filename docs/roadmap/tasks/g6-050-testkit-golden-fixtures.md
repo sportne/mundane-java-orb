@@ -1,6 +1,7 @@
 # G6-050 Testkit Golden Fixtures
 
 Task ID: G6-050-TESTKIT-GOLDEN-FIXTURES
+Status: draft
 Gate: G6 foundation verification
 Requirement IDs: REQ-NFR-007, REQ-DOC-006, REQ-SEC-003
 ADR IDs: ADR-0004, ADR-0005, ADR-0007

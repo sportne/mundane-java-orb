@@ -2,6 +2,7 @@
 
 ```text
 Task ID:
+Status:
 Gate:
 Requirement IDs:
 ADR IDs:
@@ -20,6 +21,10 @@ Rollback notes:
 ## Rules
 
 - Allowed files must be specific.
+- Status must be one of `draft`, `ready-for-implementation`, `in-progress`,
+  `complete`, `blocked`, or `human-gate-blocked`.
+- Exactly one roadmap task may be `ready-for-implementation` or `in-progress`
+  at a time.
 - Forbidden files must list product implementation areas when the task is infrastructure/design-only.
 - Commands must be runnable locally.
 - Acceptance criteria must be objective.

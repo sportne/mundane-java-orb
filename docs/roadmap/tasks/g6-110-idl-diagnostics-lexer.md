@@ -1,6 +1,7 @@
 # G6-110 IDL Diagnostics and Lexer
 
 Task ID: G6-110-IDL-DIAGNOSTICS-LEXER
+Status: draft
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDL-001, REQ-IDL-003, REQ-SEC-003, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0007

@@ -1,6 +1,7 @@
 # G6-220 Generated Codecs and Descriptors
 
 Task ID: G6-220-GENERATED-CODECS-DESCRIPTORS
+Status: draft
 Gate: G6 generated-code vertical slice
 Requirement IDs: REQ-IDLJ-004, REQ-NATIVE-002, REQ-NFR-001, REQ-DOC-005
 ADR IDs: ADR-0005, ADR-0010

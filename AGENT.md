@@ -12,12 +12,12 @@ Read these files before editing:
 4. `docs/architecture/module-boundaries.md`
 5. `docs/requirements/requirements-index.md`
 6. `docs/adr/ADR-0001-design-first-process.md`
-7. `docs/agent/agent-handoff.md`
+7. `docs/roadmap/roadmap-index.md`
 8. `docs/build/README.md`
 
 ## Absolute rules
 
-1. Do not implement CORBA runtime, protocol, IDL, ORB, POA, service, or compiler behavior before the G6 implementation gate.
+1. Do not implement CORBA runtime, protocol, IDL, ORB, POA, service, or compiler behavior outside a roadmap task whose status permits implementation.
 2. Every implementation task must cite requirement IDs, specification references, target module, allowed files, forbidden files, tests, documentation updates, and an acceptance command.
 3. Runtime modules must remain Native Image friendly by default.
 4. Do not weaken Checkstyle, Spotless, SpotBugs, Error Prone, ArchUnit, JaCoCo, dependency verification, dependency locking, offline build, or Native Image policies without an ADR.
@@ -49,7 +49,7 @@ When editing `settings.gradle`, `build.gradle`, `gradle.properties`, `build-logi
 
 Documentation is part of the project contract. When editing docs, build files, module layout, workflows, tools, or agent policy:
 
-- Keep `README.md`, `CONTRIBUTING.md`, `docs/build/README.md`, `docs/architecture/build-architecture.md`, module READMEs, and task handoff docs consistent with the actual repository layout.
+- Keep `README.md`, `CONTRIBUTING.md`, `docs/build/README.md`, `docs/architecture/build-architecture.md`, module READMEs, and roadmap task docs consistent with the actual repository layout.
 - Verify task names, Gradle properties, module names, paths, and workflow names against the files that define them before documenting them.
 - Update indexes when moving or replacing documentation.
 - Prefer one canonical document for each topic; remove obsolete compatibility documents while the project is pre-1.0 unless a task explicitly requires a transition file.
@@ -65,7 +65,7 @@ This project has not reached version 1.0, so agents do not need to preserve back
 
 ## Required task shape
 
-Use `docs/agent/implementation-task-template.md` for implementation tasks.
+Use `docs/roadmap/implementation-task-template.md` for implementation tasks.
 
 ## Required pull-request checklist
 

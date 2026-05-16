@@ -1,6 +1,7 @@
 # G6-310 CDR Primitives
 
 Task ID: G6-310-CDR-PRIMITIVES
+Status: draft
 Gate: G6 CDR and IOR vertical slice
 Requirement IDs: REQ-CDR-001, REQ-SEC-001, REQ-SEC-004, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010

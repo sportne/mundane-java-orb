@@ -1,6 +1,7 @@
 # G6-210 Generated Hello Golden Source
 
 Task ID: G6-210-GENERATED-HELLO-GOLDEN-SOURCE
+Status: draft
 Gate: G6 generated-code vertical slice
 Requirement IDs: REQ-IDLJ-001, REQ-IDLJ-002, REQ-IDLJ-003, REQ-DOC-005, REQ-NFR-007
 ADR IDs: ADR-0003, ADR-0005, ADR-0010

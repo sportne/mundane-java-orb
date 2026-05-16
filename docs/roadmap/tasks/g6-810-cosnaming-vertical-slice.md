@@ -1,6 +1,7 @@
 # G6-810 CosNaming Vertical Slice
 
 Task ID: G6-810-COSNAMING-VERTICAL-SLICE
+Status: draft
 Gate: G6 naming and interop vertical slice
 Requirement IDs: REQ-NAM-001, REQ-IOR-002, REQ-ORB-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010

@@ -6,7 +6,7 @@ explicit compatibility/operational requirement.
 ## Canonical specification references
 
 Use these short reference keys in requirement tables, conformance matrices, and
-implementation handoffs. Clause references are intentionally section-level during
+implementation tasks. Clause references are intentionally section-level during
 G1; implementation tasks must narrow them further when a feature is designed.
 
 | Key | Specification reference |

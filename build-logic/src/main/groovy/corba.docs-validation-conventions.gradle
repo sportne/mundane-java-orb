@@ -1,4 +1,4 @@
-// These files are the minimum design-control documentation required before implementation proceeds.
+// These files are the minimum design-control and roadmap documents required before implementation proceeds.
 def requiredFilePaths = [
     'AGENT.md',
     'docs/charter.md',
@@ -10,10 +10,40 @@ def requiredFilePaths = [
     'docs/conformance/conformance-index.md',
     'docs/build/README.md',
     'docs/build/offline-build.md',
-    'docs/agent/agent-handoff.md',
-    'docs/agent/implementation-task-template.md',
+    'docs/roadmap/roadmap-index.md',
+    'docs/roadmap/implementation-task-template.md',
     'docs/adr/ADR-0001-design-first-process.md',
 ]
+
+def requiredTaskFields = [
+    'Task ID:',
+    'Status:',
+    'Gate:',
+    'Requirement IDs:',
+    'ADR IDs:',
+    'Specification references:',
+    'Target module:',
+    'Allowed files:',
+    'Forbidden files:',
+    'Expected behavior:',
+    'Tests to add/update:',
+    'Documentation to update:',
+    'Commands to run:',
+    'Acceptance criteria:',
+    'Rollback notes:',
+]
+
+def allowedTaskStatuses = [
+    'draft',
+    'ready-for-implementation',
+    'in-progress',
+    'complete',
+    'blocked',
+    'human-gate-blocked',
+] as Set
+
+def taskTypePattern = ~/Task type: (design-only|implementation|verification-only|human-gate-blocked)/
+def roadmapTaskDirectory = layout.projectDirectory.dir('docs/roadmap/tasks')
 
 // Convert each path string into a Gradle file object rooted at the current project directory.
 def requiredFiles = requiredFilePaths.collect { layout.projectDirectory.file(it) }
@@ -21,16 +51,68 @@ def requiredFiles = requiredFilePaths.collect { layout.projectDirectory.file(it)
 // This task fails fast when required governance and design files are missing.
 tasks.register('validateDesignControlPack') {
     group = 'verification'
-    description = 'Validates that required G0/G1 design-control files exist.'
+    description = 'Validates that required design-control and roadmap files exist.'
 
     // Declaring inputs lets Gradle know what files affect this task for caching and up-to-date checks.
     inputs.files(requiredFiles)
+    inputs.dir(roadmapTaskDirectory)
 
     doLast {
         // At execution time, collect any missing files and report them together.
         def missing = requiredFiles.findAll { !it.asFile.exists() }
-        if (!missing.empty) {
+        if (!missing.isEmpty()) {
             throw new GradleException('Required design-control files missing: ' + missing.collect { it.asFile }.join(', '))
+        }
+
+        def taskDirectory = roadmapTaskDirectory.asFile
+        if (!taskDirectory.directory) {
+            throw new GradleException('Roadmap task directory missing: ' + taskDirectory)
+        }
+
+        def taskFiles =
+            (taskDirectory.listFiles({ file -> file.name.endsWith('.md') } as FileFilter) ?: [])
+                .toList()
+                .sort { it.name }
+        if (taskFiles.isEmpty()) {
+            throw new GradleException('No roadmap task files found in ' + taskDirectory)
+        }
+
+        def errors = []
+        def activeTaskFiles = []
+
+        taskFiles.each { taskFile ->
+            def text = taskFile.text
+
+            requiredTaskFields.each { field ->
+                if (!text.contains(field)) {
+                    errors.add("${taskFile}: missing required field ${field}")
+                }
+            }
+
+            def statusMatches = (text =~ /(?m)^Status:\s*(\S+)\s*$/)
+            if (!statusMatches.find()) {
+                errors.add("${taskFile}: missing Status value")
+            } else {
+                def status = statusMatches.group(1)
+                if (!allowedTaskStatuses.contains(status)) {
+                    errors.add("${taskFile}: invalid Status ${status}")
+                }
+                if (status in ['ready-for-implementation', 'in-progress']) {
+                    activeTaskFiles.add(taskFile)
+                }
+            }
+
+            if (!(text =~ taskTypePattern).find()) {
+                errors.add("${taskFile}: Expected behavior must include a valid Task type marker")
+            }
+        }
+
+        if (activeTaskFiles.size() != 1) {
+            errors.add('Exactly one roadmap task must be ready-for-implementation or in-progress; found ' + activeTaskFiles)
+        }
+
+        if (!errors.isEmpty()) {
+            throw new GradleException('Roadmap task validation failed:\n' + errors.join('\n'))
         }
     }
 }

@@ -1,6 +1,7 @@
 # G6-330 IOR Profiles and Object URLs
 
 Task ID: G6-330-IOR-PROFILES-OBJECT-URLS
+Status: draft
 Gate: G6 CDR and IOR vertical slice
 Requirement IDs: REQ-IOR-001, REQ-IOR-002, REQ-SEC-003, REQ-SEC-006, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005

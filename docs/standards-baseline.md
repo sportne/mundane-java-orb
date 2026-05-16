@@ -50,5 +50,5 @@ ignored by Git; only `reference/specs/README.md` is tracked to document source
 URLs and naming conventions.
 
 The local cache is a reading aid only. Requirements, conformance matrices, ADRs,
-and implementation handoffs must cite the canonical references in
+and implementation tasks must cite the canonical references in
 `docs/specification-traceability.md`.

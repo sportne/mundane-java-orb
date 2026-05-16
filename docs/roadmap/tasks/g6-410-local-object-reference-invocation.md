@@ -1,6 +1,7 @@
 # G6-410 Local Object Reference Invocation
 
 Task ID: G6-410-LOCAL-OBJECT-REFERENCE-INVOCATION
+Status: draft
 Gate: G6 local invocation vertical slice
 Requirement IDs: REQ-ORB-001, REQ-IDLJ-004, REQ-NFR-001, REQ-NFR-003, REQ-DOC-001
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010

@@ -1,6 +1,7 @@
 # G6-510 GIOP Messages
 
 Task ID: G6-510-GIOP-MESSAGES
+Status: draft
 Gate: G6 wire invocation vertical slice
 Requirement IDs: REQ-GIOP-001, REQ-SEC-001, REQ-SEC-002, REQ-SEC-003, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010

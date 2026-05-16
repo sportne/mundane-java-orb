@@ -1,6 +1,7 @@
 # G6-830 Real Peer Interop Reports
 
 Task ID: G6-830-REAL-PEER-INTEROP-REPORTS
+Status: draft
 Gate: G6 interop verification
 Requirement IDs: REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0006, ADR-0010

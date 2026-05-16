@@ -207,6 +207,32 @@ final class ArchitectureRulesTest {
         .check(classes);
   }
 
+  @Test
+  void commonFoundationPackageMustExistOnceImplementationStarts() throws IOException {
+    Path commonSources =
+        MODULES_DIRECTORY.resolve("corba-common/src/main/java/io/github/mundanej/mjo/common");
+
+    assertTrue(
+        Files.isDirectory(commonSources) && containsJavaSource(commonSources),
+        "G6 common foundation sources must remain visible to architecture checks");
+  }
+
+  @Test
+  void commonFoundationMustNotImportFeatureModules() throws IOException {
+    Path commonSources =
+        MODULES_DIRECTORY.resolve("corba-common/src/main/java/io/github/mundanej/mjo/common");
+    List<Path> violations;
+
+    try (var paths =
+        Files.find(commonSources, Integer.MAX_VALUE, ArchitectureRulesTest::isJavaSourceFile)) {
+      violations = paths.filter(ArchitectureRulesTest::importsFeaturePackage).toList();
+    }
+
+    assertTrue(
+        violations.isEmpty(),
+        () -> "corba-common foundation sources must not import feature modules: " + violations);
+  }
+
   private static JavaClasses projectClasses() {
     return new ClassFileImporter().importPackages("io.github.mundanej.mjo");
   }
@@ -237,6 +263,27 @@ final class ArchitectureRulesTest {
     } catch (IOException exception) {
       throw new IllegalStateException("Could not read " + sourceFile, exception);
     }
+  }
+
+  private static boolean containsJavaSource(Path directory) throws IOException {
+    try (var paths =
+        Files.find(directory, Integer.MAX_VALUE, ArchitectureRulesTest::isJavaSourceFile)) {
+      return paths.findAny().isPresent();
+    }
+  }
+
+  private static boolean importsFeaturePackage(Path sourceFile) {
+    try (Stream<String> lines = Files.lines(sourceFile)) {
+      return lines.anyMatch(ArchitectureRulesTest::isFeaturePackageImport);
+    } catch (IOException exception) {
+      throw new IllegalStateException("Could not read " + sourceFile, exception);
+    }
+  }
+
+  private static boolean isFeaturePackageImport(String line) {
+    String trimmed = line.trim();
+    return trimmed.startsWith("import io.github.mundanej.mjo.")
+        && !trimmed.startsWith("import io.github.mundanej.mjo.common.");
   }
 
   private static String[] merge(String first, String second, String[]... remaining) {

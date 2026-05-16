@@ -29,9 +29,9 @@ Every PR must state:
 
 ## Implementation restrictions
 
-Implementation PRs are forbidden until G0 through G5 have been approved.
-Runtime, protocol, IDL, ORB, POA, service, or compiler behavior must not be added
-without approved requirement IDs and a task handoff document.
+Runtime, protocol, IDL, ORB, POA, service, or compiler behavior must not be
+added unless a roadmap task has a status that permits implementation and cites
+approved requirement IDs.
 
 ## Local checks
 

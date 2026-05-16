@@ -1,16 +1,15 @@
 # G5 Validation Gate Readiness
 
-This document records scaffold readiness evidence for maintainer review before
-any G6 implementation task is approved. It does not approve G0 through G5 and
-does not start CORBA runtime, protocol, IDL, ORB, POA, service, or compiler
-implementation.
+This document records the historical scaffold readiness evidence used before
+G0 through G5 were approved by maintainers. Current G6 execution state now lives
+in `docs/roadmap/roadmap-index.md` and `docs/roadmap/tasks/`.
 
 ## Readiness evidence
 
 | Area | Evidence | G5 readiness status |
 |---|---|---|
 | Design control | Charter, scope, ADRs, requirements, conformance matrices, and specification traceability are present. | Ready for maintainer review. |
-| Agent governance | Task template and gate handoffs define allowed files, forbidden files, commands, and acceptance criteria. | Ready for maintainer review. |
+| Agent governance | Roadmap tasks define status, allowed files, forbidden files, commands, and acceptance criteria. | Ready for maintainer review. |
 | Architecture boundaries | Module boundary rules are documented and enforced by staged ArchUnit tests. | Ready with scaffold tolerance. |
 | Build gates | `validateDesignControlPack`, `checkAll`, and `qualityGate` are documented local entry points. | Ready for maintainer review. |
 | Coverage policy | Target thresholds are documented for implementation modules. | Ready with scaffold threshold deferral. |
@@ -49,7 +48,6 @@ git diff --check
 
 ## Approval boundary
 
-G5 readiness closure is evidence capture only. Maintainers must approve G0
-through G5 before any G6 implementation handoff may add CORBA behavior,
-published APIs, protocol handling, IDL parsing, code generation, real interop
-assertions, or Native Image execution.
+G5 readiness closure remains evidence capture only. G6 roadmap tasks now control
+whether CORBA behavior, published APIs, protocol handling, IDL parsing, code
+generation, real interop assertions, or Native Image execution may be added.
