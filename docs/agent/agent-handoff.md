@@ -25,6 +25,10 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
 
 ## Current open setup work
 
+- G5 validation readiness closure is captured in
+  `docs/agent/g5-validation-gate-readiness-handoff.md` and
+  `docs/verification/g5-validation-gate-readiness.md`; maintainer approval is
+  still required before G6 implementation work.
 - Exact specification clause IDs have G1 section-level references in
   `docs/specification-traceability.md`, requirement tables, and conformance
   matrices. Feature handoffs must narrow these to task-specific clauses.
@@ -42,4 +46,5 @@ This repository is in a gated scaffold phase. Implementation work requires an ap
 
 ## Implementation unlock
 
-Implementation remains forbidden until gates G0 through G5 are approved and a task-specific handoff exists.
+Implementation remains forbidden until gates G0 through G5 are approved and a
+task-specific G6 handoff exists.

@@ -20,8 +20,8 @@ implementations.
 
 ## Current gate
 
-This scaffold supports G0/G1/G4 preparation. Runtime implementation must not begin
-until G0 through G5 are approved.
+This scaffold supports G0 through G5 readiness preparation. Runtime
+implementation must not begin until G0 through G5 are approved.
 
 ## Non-goals for this scaffold
 
