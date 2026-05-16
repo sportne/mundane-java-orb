@@ -7,5 +7,5 @@
 | CDR | CORBA-IOP-CDR | REQ-CDR-001 | not-started | unassigned | G3 assigns tests. |
 | GIOP | CORBA-IOP-GIOP | REQ-GIOP-001 | not-started | unassigned | G3 assigns tests. |
 | IIOP | CORBA-IOP-IIOP | REQ-IIOP-001 | not-started | unassigned | G3 assigns tests. |
-| IOR | CORBA-IOP-IOR; CORBA-IOP-OBJECT-URL | REQ-IOR-001 | not-started | unassigned | G3 assigns tests. |
+| IOR | CORBA-IOP-IOR; CORBA-IOP-OBJECT-URL; CORBA-IF-IR | REQ-IOR-001 | partial | RepositoryIdTest, RepositoryIdVersionTest | RepositoryId value rules from CORBA Interfaces 14.7 are started in `modules/corba-repository-id`; IOR profiles, TypeCode integration, and object URLs remain not started. |
 | POA | CORBA-IF-POA | REQ-POA-001 | not-started | unassigned | G3 assigns tests. |

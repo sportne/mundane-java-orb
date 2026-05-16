@@ -1,7 +1,7 @@
 # G6-050 Testkit Golden Fixtures
 
 Task ID: G6-050-TESTKIT-GOLDEN-FIXTURES
-Status: draft
+Status: ready-for-implementation
 Gate: G6 foundation verification
 Requirement IDs: REQ-NFR-007, REQ-DOC-006, REQ-SEC-003
 ADR IDs: ADR-0004, ADR-0005, ADR-0007
@@ -15,4 +15,3 @@ Documentation to update: Verification strategy and test taxonomy if new fixture 
 Commands to run: ./gradlew :modules:corba-testkit:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Later feature tests can reuse fixtures without duplicating file parsing or comparison logic.
 Rollback notes: Revert testkit fixture helpers, tests, and verification docs together.
-

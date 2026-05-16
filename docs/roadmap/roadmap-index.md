@@ -34,8 +34,8 @@ values, task-type markers, and the rule that exactly one task is active as
 ### G6.1 Foundations
 
 - `tasks/g6-030-common-diagnostics-limits.md` - complete
-- `tasks/g6-040-repository-id-foundation.md` - ready-for-implementation
-- `tasks/g6-050-testkit-golden-fixtures.md`
+- `tasks/g6-040-repository-id-foundation.md` - complete
+- `tasks/g6-050-testkit-golden-fixtures.md` - ready-for-implementation
 
 ### G6.2 IDL Compiler Slice
 

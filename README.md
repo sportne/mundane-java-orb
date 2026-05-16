@@ -89,7 +89,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 ## Current next step
 
 The next executable roadmap task is
-`docs/roadmap/tasks/g6-040-repository-id-foundation.md`.
+`docs/roadmap/tasks/g6-050-testkit-golden-fixtures.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
