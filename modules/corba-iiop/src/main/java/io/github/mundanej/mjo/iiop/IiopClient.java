@@ -8,6 +8,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.Objects;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLSocket;
 
 /** Reusable single-connection IIOP client for local GIOP request/reply exchange. */
 public final class IiopClient implements AutoCloseable {
@@ -41,6 +43,11 @@ public final class IiopClient implements AutoCloseable {
       throw new IiopException(
           IiopDiagnosticCodes.CONNECT_TIMEOUT,
           "Timed out connecting to " + endpoint.host() + ":" + endpoint.port(),
+          exception);
+    } catch (SSLException exception) {
+      throw new IiopException(
+          IiopDiagnosticCodes.TLS_HANDSHAKE_FAILURE,
+          "TLS handshake failed for " + endpoint.host() + ":" + endpoint.port(),
           exception);
     } catch (IOException exception) {
       throw new IiopException(
@@ -77,8 +84,16 @@ public final class IiopClient implements AutoCloseable {
     } catch (IiopException exception) {
       close();
       throw exception;
+    } catch (SSLException exception) {
+      close();
+      throw new IiopException(
+          IiopDiagnosticCodes.TLS_HANDSHAKE_FAILURE, "TLS exchange failed", exception);
     } catch (IOException exception) {
       close();
+      if (options.tlsOptions().enabled()) {
+        throw new IiopException(
+            IiopDiagnosticCodes.TLS_HANDSHAKE_FAILURE, "TLS exchange failed", exception);
+      }
       throw new IiopException(
           IiopDiagnosticCodes.CONNECTION_FAILURE, "IIOP client exchange failed", exception);
     }
@@ -111,9 +126,46 @@ public final class IiopClient implements AutoCloseable {
 
   private static Socket connectSocket(IiopEndpoint endpoint, IiopOptions options)
       throws IOException {
-    Socket socket = new Socket();
-    socket.connect(
-        new InetSocketAddress(endpoint.host(), endpoint.port()), options.connectTimeoutMillis());
+    Socket socket = createSocket(options);
+    try {
+      socket.connect(
+          new InetSocketAddress(endpoint.host(), endpoint.port()), options.connectTimeoutMillis());
+      socket.setSoTimeout(options.readTimeoutMillis());
+      if (socket instanceof SSLSocket sslSocket) {
+        sslSocket.startHandshake();
+      }
+      return socket;
+    } catch (IOException exception) {
+      closeSocket(socket);
+      throw exception;
+    }
+  }
+
+  private static Socket createSocket(IiopOptions options) throws IOException {
+    if (!options.tlsOptions().enabled()) {
+      return new Socket();
+    }
+    SSLSocket socket =
+        (SSLSocket) options.tlsOptions().sslContext().getSocketFactory().createSocket();
+    socket.setUseClientMode(true);
+    configureTls(socket, options.tlsOptions());
     return socket;
+  }
+
+  private static void configureTls(SSLSocket socket, IiopTlsOptions tlsOptions) {
+    if (!tlsOptions.enabledProtocols().isEmpty()) {
+      socket.setEnabledProtocols(tlsOptions.enabledProtocols().toArray(String[]::new));
+    }
+    if (!tlsOptions.enabledCipherSuites().isEmpty()) {
+      socket.setEnabledCipherSuites(tlsOptions.enabledCipherSuites().toArray(String[]::new));
+    }
+  }
+
+  private static void closeSocket(Socket socket) {
+    try {
+      socket.close();
+    } catch (IOException ignored) {
+      // Close is best-effort during failed connection setup.
+    }
   }
 }

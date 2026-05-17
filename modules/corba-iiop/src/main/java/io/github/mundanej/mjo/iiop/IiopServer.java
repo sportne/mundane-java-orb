@@ -12,6 +12,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLSocket;
 
 /** Loopback-capable IIOP TCP server for local GIOP request/reply exchange. */
 public final class IiopServer implements AutoCloseable {
@@ -46,7 +49,7 @@ public final class IiopServer implements AutoCloseable {
     Objects.requireNonNull(options, "options");
     Objects.requireNonNull(handler, "handler");
     try {
-      ServerSocket serverSocket = new ServerSocket();
+      ServerSocket serverSocket = createServerSocket(options);
       serverSocket.bind(
           new InetSocketAddress(endpoint.host(), endpoint.port()), options.serverBacklog());
       return new IiopServer(
@@ -114,6 +117,9 @@ public final class IiopServer implements AutoCloseable {
 
   private void handleConnection(Socket socket) {
     try (socket) {
+      if (socket instanceof SSLSocket sslSocket) {
+        sslSocket.startHandshake();
+      }
       while (!closed && !socket.isClosed()) {
         GiopMessage message =
             IiopFrameCodec.readMessage(socket.getInputStream(), options.giopLimits());
@@ -125,6 +131,8 @@ public final class IiopServer implements AutoCloseable {
         GiopReply reply = Objects.requireNonNull(handler.handle(request), "handler reply");
         IiopFrameCodec.writeMessage(socket.getOutputStream(), reply, options.giopLimits());
       }
+    } catch (SSLException exception) {
+      // TLS negotiation failures close this connection before GIOP exchange.
     } catch (IiopException exception) {
       // The first TCP slice closes the connection on protocol and handler failures.
     } catch (Exception exception) {
@@ -132,6 +140,27 @@ public final class IiopServer implements AutoCloseable {
     } finally {
       openSockets.remove(socket);
       openConnectionCount.decrementAndGet();
+    }
+  }
+
+  private static ServerSocket createServerSocket(IiopOptions options) throws IOException {
+    if (!options.tlsOptions().enabled()) {
+      return new ServerSocket();
+    }
+    SSLServerSocket serverSocket =
+        (SSLServerSocket)
+            options.tlsOptions().sslContext().getServerSocketFactory().createServerSocket();
+    configureTls(serverSocket, options.tlsOptions());
+    serverSocket.setNeedClientAuth(options.tlsOptions().mutualTls());
+    return serverSocket;
+  }
+
+  private static void configureTls(SSLServerSocket serverSocket, IiopTlsOptions tlsOptions) {
+    if (!tlsOptions.enabledProtocols().isEmpty()) {
+      serverSocket.setEnabledProtocols(tlsOptions.enabledProtocols().toArray(String[]::new));
+    }
+    if (!tlsOptions.enabledCipherSuites().isEmpty()) {
+      serverSocket.setEnabledCipherSuites(tlsOptions.enabledCipherSuites().toArray(String[]::new));
     }
   }
 

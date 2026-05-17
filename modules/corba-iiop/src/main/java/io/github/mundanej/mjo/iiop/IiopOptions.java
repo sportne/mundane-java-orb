@@ -12,13 +12,15 @@ import java.util.Objects;
  * @param serverBacklog server socket backlog
  * @param maxOpenConnections maximum concurrent accepted connections
  * @param giopLimits GIOP frame and service-context limits
+ * @param tlsOptions endpoint-local TLS configuration
  */
 public record IiopOptions(
     Duration connectTimeout,
     Duration readTimeout,
     int serverBacklog,
     int maxOpenConnections,
-    GiopLimits giopLimits) {
+    GiopLimits giopLimits,
+    IiopTlsOptions tlsOptions) {
 
   private static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofSeconds(2);
   private static final Duration DEFAULT_READ_TIMEOUT = Duration.ofSeconds(2);
@@ -38,8 +40,25 @@ public record IiopOptions(
           IiopDiagnosticCodes.INVALID_CONFIGURATION, "maxOpenConnections must be positive");
     }
     Objects.requireNonNull(giopLimits, "giopLimits");
+    Objects.requireNonNull(tlsOptions, "tlsOptions");
     requireIntMillis(connectTimeout, "connectTimeout");
     requireIntMillis(readTimeout, "readTimeout");
+  }
+
+  /** Creates validated plain TCP options. */
+  public IiopOptions(
+      Duration connectTimeout,
+      Duration readTimeout,
+      int serverBacklog,
+      int maxOpenConnections,
+      GiopLimits giopLimits) {
+    this(
+        connectTimeout,
+        readTimeout,
+        serverBacklog,
+        maxOpenConnections,
+        giopLimits,
+        IiopTlsOptions.disabled());
   }
 
   /** Returns conservative defaults for local loopback tests. */
@@ -49,7 +68,8 @@ public record IiopOptions(
         DEFAULT_READ_TIMEOUT,
         DEFAULT_SERVER_BACKLOG,
         DEFAULT_MAX_OPEN_CONNECTIONS,
-        GiopLimits.defaults());
+        GiopLimits.defaults(),
+        IiopTlsOptions.disabled());
   }
 
   int connectTimeoutMillis() {

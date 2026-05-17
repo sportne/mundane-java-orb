@@ -93,10 +93,20 @@ multiple sequential request/reply cycles on one connection. Frame reads validate
 the fixed GIOP header size and configured message/body limits before allocating
 the declared body, then delegate message parsing to `GiopMessageReader`.
 
-This slice intentionally has no TLS/mTLS, connection pooling, ORB dispatch, POA
-lookup, generated stubs or skeletons, Naming Service behavior, peer interop, or
-GIOP exception-body marshaling. The boundary is:
+G6-530 adds endpoint-local TLS and mTLS configuration to the same client/server
+entrypoints. `IiopOptions` carries an explicit `SSLContext` for TLS modes plus
+optional protocol and cipher-suite filters. The transport creates
+`SSLSocket`/`SSLServerSocket` instances from that context only; it does not
+read or mutate JVM-global TLS defaults. mTLS is represented by the server
+requiring client authentication and the client presenting key material through
+its configured context.
+
+This slice intentionally has no connection pooling, ORB dispatch, POA lookup,
+generated stubs or skeletons, Naming Service behavior, peer interop, CORBA
+Security Service, TLS tagged components in IORs, hostname/SAN verification
+policy, or GIOP exception-body marshaling. The boundary is:
 
 ```text
-GiopRequest -> IiopClient -> TCP loopback -> IiopServer -> IiopRequestHandler -> GiopReply
+GiopRequest -> IiopClient -> TCP/TLS loopback -> IiopServer -> IiopRequestHandler -> GiopReply
+IiopOptions -> SSLContext -> SSLSocket/SSLServerSocket -> GIOP frame exchange
 ```

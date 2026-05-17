@@ -329,7 +329,10 @@ final class IiopTcpTest {
       List<String> joinedSources = paths.map(IiopTcpTest::readSource).toList();
       String source = String.join("\n", joinedSources);
 
-      assertTrue(!source.contains("javax.net.ssl"));
+      assertTrue(!source.contains("SSLContext.setDefault"));
+      assertTrue(!source.contains("javax.net.ssl.keyStore"));
+      assertTrue(!source.contains("javax.net.ssl.trustStore"));
+      assertTrue(!source.contains("HttpsURLConnection"));
       assertTrue(!source.contains("io.github.mundanej.mjo.orb"));
       assertTrue(!source.contains("io.github.mundanej.mjo.poa"));
       assertTrue(!source.contains("java.lang.reflect"));

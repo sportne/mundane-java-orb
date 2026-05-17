@@ -67,11 +67,11 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-510-giop-messages.md` - complete
 - `tasks/g6-520-iiop-tcp.md` - complete
-- `tasks/g6-530-iiop-tls-mtls.md` - ready-for-implementation
+- `tasks/g6-530-iiop-tls-mtls.md` - complete
 
 ### G6.7 Server Runtime Slice
 
-- `tasks/g6-610-poa-policy-matrix.md`
+- `tasks/g6-610-poa-policy-matrix.md` - ready-for-implementation
 - `tasks/g6-620-poa-lite-servant-dispatch.md`
 - `tasks/g6-630-full-poa-policy-expansion.md`
 

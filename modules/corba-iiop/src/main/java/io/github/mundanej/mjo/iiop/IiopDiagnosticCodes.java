@@ -35,5 +35,8 @@ public final class IiopDiagnosticCodes {
   /** Endpoint or option values were invalid. */
   public static final DiagnosticCode INVALID_CONFIGURATION = new DiagnosticCode("IIOP-0010");
 
+  /** TLS negotiation failed before GIOP exchange could continue. */
+  public static final DiagnosticCode TLS_HANDSHAKE_FAILURE = new DiagnosticCode("IIOP-0011");
+
   private IiopDiagnosticCodes() {}
 }
