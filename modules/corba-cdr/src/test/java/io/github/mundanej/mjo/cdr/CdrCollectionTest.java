@@ -115,6 +115,28 @@ final class CdrCollectionTest {
   }
 
   @Test
+  void rawOctetsRoundTripWithoutLengthPrefixAndUseDefensiveCopies() {
+    byte[] octets = bytes(0x01, 0x02, 0x03);
+    CdrWriter writer = CdrWriter.bigEndian().writeOctets(octets);
+    octets[0] = 0x7F;
+
+    byte[] decoded = CdrReader.bigEndian(writer.toByteArray()).readOctets(3);
+    decoded[1] = 0x7E;
+
+    assertArrayEquals(bytes(0x01, 0x02, 0x03), writer.toByteArray());
+    assertArrayEquals(
+        bytes(0x01, 0x02, 0x03), CdrReader.bigEndian(writer.toByteArray()).readOctets(3));
+  }
+
+  @Test
+  void rawOctetReadsValidateLengthAndRemainingBytes() {
+    assertCdrCode(
+        CdrDiagnosticCodes.INVALID_LENGTH, () -> CdrReader.bigEndian(bytes()).readOctets(-1));
+    assertCdrCode(
+        CdrDiagnosticCodes.TRUNCATED_INPUT, () -> CdrReader.bigEndian(bytes(0x01)).readOctets(2));
+  }
+
+  @Test
   void generatedStyleLoopsUseLengthFirstSequenceAndArrayHelpers() {
     CdrWriter writer = CdrWriter.bigEndian();
     int[] values = {3, 5, 8};

@@ -186,6 +186,16 @@ public final class CdrReader {
     return readRawBytes(readSequenceLength(), "octet sequence");
   }
 
+  /** Reads a caller-sized raw octet payload without a CDR length prefix. */
+  public byte[] readOctets(int byteCount) {
+    if (byteCount < 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH,
+          "CDR raw octet count must be nonnegative: " + byteCount);
+    }
+    return readRawBytes(byteCount, "raw octets");
+  }
+
   /** Reads a bounded length-prefixed CDR encapsulation. */
   public CdrEncapsulation readEncapsulation() {
     int length = readRequiredLength("encapsulation", limits.encapsulationOctets());

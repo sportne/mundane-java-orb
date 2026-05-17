@@ -30,6 +30,10 @@ behavior. Encapsulations validate byte-order markers and create nested readers
 whose alignment starts at the encapsulation stream, after the marker has been
 consumed.
 
+G6-510 adds caller-sized raw octet helpers for protocol layers that already know
+the byte count from an enclosing syntax. These helpers do not add length
+prefixes and do not introduce GIOP concepts into `corba-cdr`.
+
 Wstring, negotiated code sets, TypeCode, Any, object-reference, GIOP, IIOP, and
 ORB invocation behavior remain outside the current CDR slice.
 
@@ -44,6 +48,31 @@ proxies, runtime code generation, or native-image metadata.
 - Fragmentation must be bounded.
 - Service contexts must be parsed with configurable limits.
 - Unknown or unsupported message behavior must be profile-defined.
+
+## GIOP 1.2 Message Slice
+
+`modules/corba-giop` now provides a bounded in-memory GIOP 1.2 message model and
+byte round-trip layer. The reader validates the fixed `GIOP` magic, version,
+flags, message type, exact declared message size, complete body consumption for
+typed messages, and configured message/body/service-context limits before it
+returns a message value.
+
+The supported syntax covers request, reply, cancel request, locate request,
+locate reply, close connection, message error, and fragment messages. Request
+and locate request bodies support only KeyAddr target addresses in this slice;
+ProfileAddr and ReferenceAddr are rejected until object-reference integration.
+Service contexts are preserved as opaque `context_id` plus `context_data` bytes.
+Fragment messages preserve the GIOP 1.2 request id and raw fragment payload, and
+the header more-fragments flag remains visible on the message header.
+
+This slice intentionally has no TCP listener, no client connection management,
+no ORB dispatch, no POA object lookup, no peer interop, no GIOP reply exception
+marshaling, and no semantic interpretation of service contexts. The boundary is:
+
+```text
+complete byte array -> GiopMessageReader -> typed GIOP message
+typed GIOP message -> GiopMessageWriter -> complete byte array
+```
 
 ## IIOP rules
 

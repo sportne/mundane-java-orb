@@ -65,8 +65,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.6 Wire Invocation Slice
 
-- `tasks/g6-510-giop-messages.md` - ready-for-implementation
-- `tasks/g6-520-iiop-tcp.md`
+- `tasks/g6-510-giop-messages.md` - complete
+- `tasks/g6-520-iiop-tcp.md` - ready-for-implementation
 - `tasks/g6-530-iiop-tls-mtls.md`
 
 ### G6.7 Server Runtime Slice

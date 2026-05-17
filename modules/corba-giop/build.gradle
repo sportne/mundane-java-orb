@@ -8,3 +8,14 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'GIOP message model, parser, writer, service contexts, and fragmentation.'
+
+dependencies {
+    // GIOP message bodies are encoded as bounded CDR streams.
+    api project(':modules:corba-cdr')
+
+    // GIOP limits use the shared bounded-limit value type.
+    api project(':modules:corba-common')
+
+    // GIOP tests compare deterministic wire bytes with the repository golden-fixture helpers.
+    testImplementation project(':modules:corba-testkit')
+}

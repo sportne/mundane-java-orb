@@ -206,6 +206,12 @@ public final class CdrWriter {
     return this;
   }
 
+  /** Writes raw octets without a CDR length prefix. */
+  public CdrWriter writeOctets(byte[] value) {
+    writeRawBytes(Arrays.copyOf(Objects.requireNonNull(value, "value"), value.length));
+    return this;
+  }
+
   /** Writes a bounded length-prefixed CDR encapsulation. */
   public CdrWriter writeEncapsulation(CdrEncapsulation encapsulation) {
     Objects.requireNonNull(encapsulation, "encapsulation");
