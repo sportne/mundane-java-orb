@@ -19,4 +19,5 @@ dependencies {
     // Tests parse IDL fixtures and compare golden generated source.
     testImplementation project(':modules:corba-idl-parser')
     testImplementation project(':modules:corba-testkit')
+    testImplementation project(':modules:corba-typecode')
 }

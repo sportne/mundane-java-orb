@@ -120,3 +120,19 @@ source is deterministic, includes source IDL identity and mapping metadata, and
 compiles without `org.omg.*`, ORB runtime APIs, CDR codecs, repository IDs,
 helpers, holders, stubs, skeletons, POA classes, reflection, dynamic class
 loading, or Native Image metadata.
+
+## Descriptor And Codec Boundary
+
+G6-220 adds a source-generation-only descriptor pass after Java mapping. It
+emits generated Java source for static IDL type and operation descriptors plus
+compile-only codec surfaces. Generated descriptor source may reference
+`corba-typecode`, `corba-cdr`, and `corba-repository-id`, but the codegen module
+itself remains a source renderer and does not depend on protocol/runtime
+packages.
+
+The G6-220 codec classes are intentionally nonfunctional. They expose stable
+`IdlCodec<T>` fields and fail with `UnsupportedOperationException` until G6-320
+adds bounded CDR string, sequence, array, and encapsulation handling. The pass
+does not add CLI generation commands, ORB invocation behavior, GIOP/IIOP
+transport, runtime registries, reflection metadata, helpers, holders, stubs,
+skeletons, or POA artifacts.

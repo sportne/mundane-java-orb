@@ -8,4 +8,5 @@
 | GIOP | CORBA-IOP-GIOP | REQ-GIOP-001 | not-started | unassigned | G3 assigns tests. |
 | IIOP | CORBA-IOP-IIOP | REQ-IIOP-001 | not-started | unassigned | G3 assigns tests. |
 | IOR | CORBA-IOP-IOR; CORBA-IOP-OBJECT-URL; CORBA-IF-IR | REQ-IOR-001 | partial | RepositoryIdTest, RepositoryIdVersionTest | RepositoryId value rules from CORBA Interfaces 14.7 are started in `modules/corba-repository-id`; IOR profiles, TypeCode integration, and object URLs remain not started. |
+| TypeCode/static metadata | CORBA-IF-TYPECODE | REQ-IDLJ-004, REQ-NATIVE-002, REQ-DYN-001 | partial | `IdlDescriptorTest`, `JavaDescriptorSourceGeneratorTest` | G6-220 starts generated static descriptor metadata and compile-only codec surfaces. Full TypeCode, Any, DynamicAny, and functional marshaling remain future work. |
 | POA | CORBA-IF-POA | REQ-POA-001 | not-started | unassigned | G3 assigns tests. |

@@ -41,3 +41,6 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 - `:modules:corba-idlj-cli:nativeIdljValidateSmoke` builds and executes a
   GraalVM Native Image smoke executable for the validation-only `corba-idlj`
   command path over compact valid and invalid IDL fixtures.
+- `:modules:corba-typecode:nativeTypecodeDescriptorSmoke` builds and executes a
+  GraalVM Native Image smoke executable for static descriptor construction and
+  compile-only codec failure behavior.

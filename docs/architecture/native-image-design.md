@@ -14,6 +14,11 @@ Detailed enforceable rules are listed in `architecture-rule-catalog.md`.
   unless a narrow ADR grants an exception.
 - Document runtime class initialization choices.
 
+G6-220 starts the generated descriptor path with static metadata values and
+compile-only codec surfaces. A narrow Native Image smoke check validates that
+descriptor construction and unsupported codec failures work without reflection,
+service loading, or dynamic class discovery.
+
 ## Native test targets
 
 - `idlj` CLI.

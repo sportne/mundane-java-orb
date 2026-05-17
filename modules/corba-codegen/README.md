@@ -12,6 +12,12 @@ G6-210 adds a resource-backed Hello fixture test that parses
 mapping modes, compares exact golden Java source, and compiles the generated
 test artifact. Public CLI generation remains deferred.
 
+G6-220 adds deterministic static descriptor and compile-only codec source
+generation for the same Hello fixture. Descriptor/codegen output references the
+`corba-typecode` runtime descriptor API, while the `corba-codegen` production
+module continues to render source text without depending on protocol/runtime
+packages.
+
 The renderer emits compile-safe Java source for:
 
 - Java interfaces from IDL interfaces;
@@ -22,9 +28,12 @@ The renderer emits compile-safe Java source for:
   scope.
 
 Generated source includes source IDL identity, mapping mode, and compatibility
-profile comments. It intentionally avoids `org.omg.*`, ORB runtime APIs, CDR,
-repository IDs, helpers, holders, stubs, skeletons, POA classes, reflection, and
-dynamic class loading in this slice.
+profile comments. The minimal Java source slice intentionally avoids `org.omg.*`,
+ORB runtime APIs, CDR, repository IDs, helpers, holders, stubs, skeletons, POA
+classes, reflection, and dynamic class loading. The descriptor slice may emit
+references to `corba-typecode`, `corba-cdr`, and `corba-repository-id` APIs but
+still avoids ORB runtime, transport, reflection, dynamic discovery, and legacy
+helper/holder/stub/POA artifacts.
 
 ## Documentation requirements
 

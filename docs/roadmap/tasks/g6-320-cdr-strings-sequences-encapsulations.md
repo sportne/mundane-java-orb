@@ -1,7 +1,7 @@
 # G6-320 CDR Strings, Sequences, and Encapsulations
 
 Task ID: G6-320-CDR-STRINGS-SEQUENCES-ENCAPSULATIONS
-Status: draft
+Status: ready-for-implementation
 Gate: G6 CDR and IOR vertical slice
 Requirement IDs: REQ-CDR-001, REQ-SEC-001, REQ-SEC-002, REQ-SEC-003, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: CDR design and conformance notes.
 Commands to run: ./gradlew :modules:corba-cdr:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Length-bearing values validate configured limits before allocation.
 Rollback notes: Revert CDR collection/encapsulation implementation, tests, and docs together.
-

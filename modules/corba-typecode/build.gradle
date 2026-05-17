@@ -8,3 +8,92 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'TypeCode model, descriptors, and static metadata foundations.'
+
+dependencies {
+    // Static descriptors refer to repository IDs and compile-only CDR codec surfaces.
+    api project(':modules:corba-cdr')
+    api project(':modules:corba-repository-id')
+
+    // Descriptor tests use repository fixture/golden helpers where useful.
+    testImplementation project(':modules:corba-testkit')
+}
+
+sourceSets {
+    nativeSmoke {
+        java.srcDir 'src/nativeSmoke/java'
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
+def nativeSmokeMainClass = 'io.github.mundanej.mjo.typecode.TypecodeDescriptorNativeSmoke'
+def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
+def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/typecodeDescriptorSmoke')
+def nativeSmokeBinary = nativeSmokeOutputDirectory.map { directory ->
+    directory.file('typecode-descriptor-native-smoke').asFile
+}
+def javaHomeNativeImage = providers.provider {
+    def javaHome = System.getenv('JAVA_HOME')
+    if (!javaHome) {
+        return null
+    }
+    def candidate = new File(javaHome, 'bin/native-image')
+    candidate.isFile() ? candidate.absolutePath : null
+}
+def sdkmanNativeImage = providers.provider {
+    def candidatesRoot = System.getenv('SDKMAN_CANDIDATES_DIR')
+    if (!candidatesRoot) {
+        def home = System.getenv('HOME')
+        if (!home) {
+            return null
+        }
+        candidatesRoot = new File(home, '.sdkman/candidates').absolutePath
+    }
+    def javaCandidates = new File(candidatesRoot, 'java')
+    def current = new File(javaCandidates, 'current/bin/native-image')
+    if (current.isFile()) {
+        return current.absolutePath
+    }
+    def candidates = javaCandidates.listFiles()
+            ?.collect { candidate -> new File(candidate, 'bin/native-image') }
+            ?.findAll { nativeImage -> nativeImage.isFile() }
+            ?.sort { left, right -> left.absolutePath <=> right.absolutePath }
+    candidates ? candidates.last().absolutePath : null
+}
+def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
+        .orElse(javaHomeNativeImage)
+        .orElse(sdkmanNativeImage)
+        .orElse('native-image')
+
+tasks.register('nativeTypecodeDescriptorSmokeCompile', Exec) {
+    group = 'verification'
+    description = 'Builds a GraalVM Native Image smoke executable for static type descriptors.'
+    dependsOn tasks.named('nativeSmokeClasses')
+    inputs.files(nativeSmokeRuntimeClasspath)
+    outputs.file(nativeSmokeBinary)
+
+    doFirst {
+        nativeSmokeOutputDirectory.get().asFile.mkdirs()
+        executable = nativeImageExecutable.get()
+        args = [
+            '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-o',
+            nativeSmokeBinary.get().absolutePath,
+            '-cp',
+            nativeSmokeRuntimeClasspath.asPath,
+            nativeSmokeMainClass
+        ]
+    }
+}
+
+tasks.register('nativeTypecodeDescriptorSmoke', Exec) {
+    group = 'verification'
+    description = 'Runs the GraalVM Native Image smoke executable for static type descriptors.'
+    dependsOn tasks.named('nativeTypecodeDescriptorSmokeCompile')
+
+    doFirst {
+        executable = nativeSmokeBinary.get().absolutePath
+        args = []
+    }
+}

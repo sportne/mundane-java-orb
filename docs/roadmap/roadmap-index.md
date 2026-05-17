@@ -50,12 +50,12 @@ values, task-type markers, and the rule that at least one task is active as
 ### G6.3 Generated Hello Slice
 
 - `tasks/g6-210-generated-hello-golden-source.md` - complete
-- `tasks/g6-220-generated-codecs-descriptors.md` - ready-for-implementation
+- `tasks/g6-220-generated-codecs-descriptors.md` - complete
 
 ### G6.4 CDR and IOR Slice
 
 - `tasks/g6-310-cdr-primitives.md` - complete
-- `tasks/g6-320-cdr-strings-sequences-encapsulations.md`
+- `tasks/g6-320-cdr-strings-sequences-encapsulations.md` - ready-for-implementation
 - `tasks/g6-330-ior-profiles-object-urls.md`
 
 ### G6.5 Local Invocation Slice
