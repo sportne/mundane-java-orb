@@ -73,11 +73,11 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-610-poa-policy-matrix.md` - complete
 - `tasks/g6-620-poa-lite-servant-dispatch.md` - complete
-- `tasks/g6-630-full-poa-policy-expansion.md` - ready-for-implementation
+- `tasks/g6-630-full-poa-policy-expansion.md` - complete
 
 ### G6.8 Dynamic and Metadata Slice
 
-- `tasks/g6-710-typecode-any.md`
+- `tasks/g6-710-typecode-any.md` - ready-for-implementation
 - `tasks/g6-720-dynamicany-dii-dsi.md`
 - `tasks/g6-730-interface-repository-static-metadata.md`
 

@@ -37,6 +37,37 @@ public final class LocalOrb {
     LocalExceptionMapper.requireNonNull(descriptor, "descriptor");
     LocalExceptionMapper.requireNonNull(dispatcher, "dispatcher");
     String objectId = "local-" + nextObjectNumber++;
+    return bindWithCheckedId(javaType, descriptor, dispatcher, objectId);
+  }
+
+  /** Binds a generated-style dispatcher to a caller-supplied local object id. */
+  public synchronized <T> LocalObjectReference<T> bindWithObjectId(
+      Class<T> javaType,
+      IdlGeneratedTypeDescriptor descriptor,
+      String objectId,
+      LocalInvocationDispatcher dispatcher) {
+    requireActive();
+    LocalExceptionMapper.requireNonNull(javaType, "javaType");
+    LocalExceptionMapper.requireNonNull(descriptor, "descriptor");
+    LocalExceptionMapper.requireNonNull(dispatcher, "dispatcher");
+    String checkedObjectId = requireNonBlank(objectId, "objectId");
+    if (bindings.containsKey(checkedObjectId)) {
+      throw LocalExceptionMapper.badParam("Local object id is already bound: " + checkedObjectId);
+    }
+    return bindWithCheckedId(javaType, descriptor, dispatcher, checkedObjectId);
+  }
+
+  /** Removes one local object binding. Missing object ids are ignored. */
+  public synchronized void unbind(String objectId) {
+    requireActive();
+    bindings.remove(requireNonBlank(objectId, "objectId"));
+  }
+
+  private <T> LocalObjectReference<T> bindWithCheckedId(
+      Class<T> javaType,
+      IdlGeneratedTypeDescriptor descriptor,
+      LocalInvocationDispatcher dispatcher,
+      String objectId) {
     LocalObjectReference<T> reference =
         new LocalObjectReference<>(ownerToken, objectId, javaType, descriptor);
     bindings.put(objectId, new Binding(descriptor, dispatcher));
@@ -110,6 +141,14 @@ public final class LocalOrb {
     if (shutdown) {
       throw LocalExceptionMapper.badInvOrder("Local ORB is shut down");
     }
+  }
+
+  private static String requireNonBlank(String value, String name) {
+    LocalExceptionMapper.requireNonNull(value, name);
+    if (value.isBlank()) {
+      throw LocalExceptionMapper.badParam(name + " must not be blank");
+    }
+    return value;
   }
 
   private record Binding(

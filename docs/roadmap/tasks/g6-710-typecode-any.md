@@ -1,7 +1,7 @@
 # G6-710 TypeCode and Any
 
 Task ID: G6-710-TYPECODE-ANY
-Status: draft
+Status: ready-for-implementation
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-CDR-001, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Dynamic CORBA design, package docs, and conformance row
 Commands to run: ./gradlew :modules:corba-typecode:test :modules:corba-any:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Any/TypeCode behavior uses static descriptors and remains native-image friendly.
 Rollback notes: Revert TypeCode/Any implementation, tests, and docs together.
-

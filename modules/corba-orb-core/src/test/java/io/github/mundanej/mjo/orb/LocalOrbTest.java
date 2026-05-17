@@ -109,6 +109,64 @@ final class LocalOrbTest {
   }
 
   @Test
+  void callerSuppliedObjectIdsCanBeBoundInvokedUnboundAndReused() {
+    LocalOrb orb = LocalOrb.create();
+    LocalObjectReference<Greeter> first =
+        orb.bindWithObjectId(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            "user-id",
+            new GreeterDispatcher(new GreeterServant()));
+
+    assertEquals("user-id", first.objectId());
+    assertEquals("Hello Ada", orb.invoke(first, GREET, List.of("Ada")));
+
+    orb.unbind("user-id");
+
+    OBJECT_NOT_EXIST staleFailure =
+        assertThrows(OBJECT_NOT_EXIST.class, () -> orb.invoke(first, GREET, List.of("Ada")));
+    LocalObjectReference<Greeter> second =
+        orb.bindWithObjectId(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            "user-id",
+            request -> "Rebound " + request.arguments().get(0));
+
+    assertEquals(CompletionStatus.COMPLETED_NO, staleFailure.completed);
+    assertEquals("Rebound Ada", orb.invoke(second, GREET, List.of("Ada")));
+  }
+
+  @Test
+  void callerSuppliedObjectIdsRejectInvalidAndDuplicateBindings() {
+    LocalOrb orb = LocalOrb.create();
+    CountingDispatcher dispatcher = new CountingDispatcher();
+
+    assertThrows(
+        BAD_PARAM.class, () -> orb.bindWithObjectId(null, GREETER_DESCRIPTOR, "id", dispatcher));
+    assertThrows(
+        BAD_PARAM.class, () -> orb.bindWithObjectId(Greeter.class, null, "id", dispatcher));
+    assertThrows(
+        BAD_PARAM.class,
+        () -> orb.bindWithObjectId(Greeter.class, GREETER_DESCRIPTOR, null, dispatcher));
+    assertThrows(
+        BAD_PARAM.class,
+        () -> orb.bindWithObjectId(Greeter.class, GREETER_DESCRIPTOR, " ", dispatcher));
+    assertThrows(
+        BAD_PARAM.class, () -> orb.bindWithObjectId(Greeter.class, GREETER_DESCRIPTOR, "id", null));
+
+    orb.bindWithObjectId(Greeter.class, GREETER_DESCRIPTOR, "id", dispatcher);
+
+    BAD_PARAM duplicate =
+        assertThrows(
+            BAD_PARAM.class,
+            () -> orb.bindWithObjectId(Greeter.class, GREETER_DESCRIPTOR, "id", dispatcher));
+
+    assertEquals(CompletionStatus.COMPLETED_NO, duplicate.completed);
+    assertThrows(BAD_PARAM.class, () -> orb.unbind(null));
+    assertThrows(BAD_PARAM.class, () -> orb.unbind(" "));
+  }
+
+  @Test
   void staleReferenceFailsDeterministically() {
     LocalObjectReference<Greeter> otherOrbReference =
         LocalOrb.create()

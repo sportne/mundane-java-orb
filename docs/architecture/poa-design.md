@@ -2,7 +2,9 @@
 
 This document is the design-control source for Portable Object Adapter policy
 behavior. G6-610 defines the approved policy matrix and staging boundary. G6-620
-starts the POA-lite runtime path for active-object-map servant dispatch.
+starts the POA-lite runtime path for active-object-map servant dispatch. G6-630
+adds the local full-POA transient policy expansion for generated-style
+invocation.
 
 ## Object Model
 
@@ -46,10 +48,10 @@ starts the POA-lite runtime path for active-object-map servant dispatch.
 | Servant retention | Request processing | Lookup behavior | Servant manager type | G6 stage |
 |---|---|---|---|---|
 | `RETAIN` | `USE_ACTIVE_OBJECT_MAP_ONLY` | Resolve object id in the active object map; reject unknown ids. | None | POA-lite in G6-620 |
-| `RETAIN` | `USE_DEFAULT_SERVANT` | Prefer active object map where applicable, otherwise dispatch to the configured default servant. | None | Full POA in G6-630 |
-| `RETAIN` | `USE_SERVANT_MANAGER` | Use active object map when present; ask a `ServantActivator` to incarnate missing retained entries. | `ServantActivator` | Full POA in G6-630 |
-| `NON_RETAIN` | `USE_DEFAULT_SERVANT` | Dispatch each request to the configured default servant without recording an active entry. | None | Full POA in G6-630 |
-| `NON_RETAIN` | `USE_SERVANT_MANAGER` | Ask a `ServantLocator` before each request and call postinvoke after dispatch. | `ServantLocator` | Full POA in G6-630 |
+| `RETAIN` | `USE_DEFAULT_SERVANT` | Prefer active object map where applicable, otherwise dispatch to the configured default servant. | None | Implemented locally in G6-630 |
+| `RETAIN` | `USE_SERVANT_MANAGER` | Use active object map when present; ask a `ServantActivator` to incarnate missing retained entries. | `ServantActivator` | Implemented locally in G6-630 |
+| `NON_RETAIN` | `USE_DEFAULT_SERVANT` | Dispatch each request to the configured default servant without recording an active entry. | None | Implemented locally in G6-630 |
+| `NON_RETAIN` | `USE_SERVANT_MANAGER` | Ask a `ServantLocator` before each request and call postinvoke after dispatch. | `ServantLocator` | Implemented locally in G6-630 |
 | `NON_RETAIN` | `USE_ACTIVE_OBJECT_MAP_ONLY` | Invalid. | None | Rejected by policy validation |
 
 ## POA Manager States
@@ -57,8 +59,8 @@ starts the POA-lite runtime path for active-object-map servant dispatch.
 | State | Request effect | G6 stage |
 |---|---|---|
 | Active | Dispatch eligible requests according to the POA policy set. | POA-lite supports this state. |
-| Holding | Accept requests but hold dispatch until the manager becomes active or another terminal decision occurs. | Full POA in G6-630. |
-| Discarding | Reject or discard new requests according to the future wire/runtime mapping. | Full POA in G6-630. |
+| Holding | Accept requests but hold dispatch until the manager becomes active or another terminal decision occurs. | Implemented locally in G6-630. |
+| Discarding | Reject or discard new requests according to the future wire/runtime mapping. | Implemented locally in G6-630 as deterministic local rejection. |
 | Inactive | Reject new requests and activations; release local runtime state during shutdown/destroy. | POA-lite supports deterministic inactive rejection. |
 
 POA-lite does not implement request queues. Its manager model is intentionally
@@ -68,16 +70,16 @@ limited to active dispatch and inactive shutdown rejection.
 
 | Combination area | POA-lite in G6-620 | Full POA in G6-630 | Invalid combination |
 |---|---|---|---|
-| Thread policy | `ORB_CTRL_MODEL` | `SINGLE_THREAD_MODEL` | None at policy validation time. |
-| Lifespan policy | `TRANSIENT` | `PERSISTENT` | Persistent references without durable POA/ORB identity are rejected until implemented. |
-| Object id uniqueness | `UNIQUE_ID` | `MULTIPLE_ID` | None at policy validation time. |
-| Object id assignment | `SYSTEM_ID` | `USER_ID` | None at policy validation time. |
-| Servant retention | `RETAIN` | `NON_RETAIN` | None by itself; invalidity depends on request processing and implicit activation. |
-| Request processing | `USE_ACTIVE_OBJECT_MAP_ONLY` with `RETAIN` | `USE_DEFAULT_SERVANT`; `USE_SERVANT_MANAGER` | `USE_ACTIVE_OBJECT_MAP_ONLY` with `NON_RETAIN`. |
-| Implicit activation | `NO_IMPLICIT_ACTIVATION` | `IMPLICIT_ACTIVATION` with `SYSTEM_ID + RETAIN` | `IMPLICIT_ACTIVATION` with `USER_ID` or `NON_RETAIN`. |
-| Servant manager | None | `ServantActivator` for `RETAIN`; `ServantLocator` for `NON_RETAIN` | Manager type that does not match servant retention policy. |
-| Adapter activator | None | Child POA lookup and creation policy | Any behavior that creates a POA outside approved adapter activator rules. |
-| POA manager behavior | Active dispatch and inactive rejection | Holding queues, discarding, full inactive semantics | Treating holding/discarding as active dispatch. |
+| Thread policy | `ORB_CTRL_MODEL` | `SINGLE_THREAD_MODEL` implemented locally in G6-630 | None at policy validation time. |
+| Lifespan policy | `TRANSIENT` | `PERSISTENT` explicitly deferred in G6-630 | Persistent references without durable POA/ORB identity are rejected until implemented. |
+| Object id uniqueness | `UNIQUE_ID` | `MULTIPLE_ID` implemented locally in G6-630 | None at policy validation time. |
+| Object id assignment | `SYSTEM_ID` | `USER_ID` implemented locally in G6-630 | None at policy validation time. |
+| Servant retention | `RETAIN` | `NON_RETAIN` implemented locally in G6-630 | None by itself; invalidity depends on request processing and implicit activation. |
+| Request processing | `USE_ACTIVE_OBJECT_MAP_ONLY` with `RETAIN` | `USE_DEFAULT_SERVANT`; `USE_SERVANT_MANAGER` implemented locally in G6-630 | `USE_ACTIVE_OBJECT_MAP_ONLY` with `NON_RETAIN`. |
+| Implicit activation | `NO_IMPLICIT_ACTIVATION` | `IMPLICIT_ACTIVATION` with `SYSTEM_ID + RETAIN` implemented locally in G6-630 | `IMPLICIT_ACTIVATION` with `USER_ID` or `NON_RETAIN`. |
+| Servant manager | None | `ServantActivator` for `RETAIN`; `ServantLocator` for `NON_RETAIN` implemented locally in G6-630 | Manager type that does not match servant retention policy. |
+| Adapter activator | None | Child POA lookup and creation policy implemented locally in G6-630 | Any behavior that creates a POA outside approved adapter activator rules. |
+| POA manager behavior | Active dispatch and inactive rejection | Holding, discarding, and full inactive semantics implemented locally in G6-630 | Treating holding/discarding as active dispatch. |
 
 ## Staged Boundary
 
@@ -114,12 +116,11 @@ POA-lite object id for this slice.
 
 ### Full POA Expansion
 
-G6-630 owns the remaining policy combinations and must either implement or
-explicitly reject each unsupported combination with deterministic diagnostics.
-That includes:
+G6-630 implements the remaining local transient policy combinations and
+explicitly rejects unsupported persistent references with deterministic
+diagnostics. Implemented local behavior includes:
 
 - `SINGLE_THREAD_MODEL`;
-- `PERSISTENT`;
 - `MULTIPLE_ID`;
 - `USER_ID`;
 - `NON_RETAIN`;
@@ -130,6 +131,11 @@ That includes:
 - adapter activators and child POA lookup behavior;
 - holding and discarding POA manager semantics.
 
+`PERSISTENT` remains deferred because the repository does not yet define durable
+POA/ORB identity, restart rules, or persistent object-reference encoding.
+Network dispatch, peer interoperability, and `org.omg.PortableServer`
+compatibility types also remain outside the G6-630 local slice.
+
 ## Test Coverage
 
 | Test ID | Stage | Coverage intent |
@@ -137,6 +143,7 @@ That includes:
 | `PoaPolicyMatrixTest` | G6-620 implemented | Validates the POA-lite policy profile and rejects known invalid combinations such as `NON_RETAIN + USE_ACTIVE_OBJECT_MAP_ONLY`. |
 | `PoaLiteDispatchTest` | G6-620 implemented | Covers explicit activation, system object id assignment, active object map lookup, generated-style servant dispatch, unknown object ids, and shutdown. |
 | `PoaLiteBoundaryTest` | G6-620 implemented | Confirms the POA-lite production slice avoids deferred protocol, reflection, serialization, and full POA lifecycle mechanisms. |
-| `PoaPolicyCombinationTest` | G6-630 | Exercises the full policy matrix, including default servants, servant managers, implicit activation, and persistent/deferred combinations. |
-| `PoaManagerStateTest` | G6-630 | Covers active, holding, discarding, and inactive state transitions and request effects. |
-| `PoaServantManagerTest` | G6-630 | Covers `ServantActivator` and `ServantLocator` lifecycle behavior. |
+| `PoaPolicyCombinationTest` | G6-630 implemented | Exercises the full local policy matrix, including default servants, implicit activation, user IDs, multiple IDs, and persistent/deferred combinations. |
+| `PoaManagerStateTest` | G6-630 implemented | Covers active, holding, discarding, inactive, and single-thread state behavior. |
+| `PoaServantManagerTest` | G6-630 implemented | Covers `ServantActivator` and `ServantLocator` lifecycle behavior. |
+| `PoaAdapterActivatorTest` | G6-630 implemented | Covers child POA lookup through an adapter activator. |

@@ -1,10 +1,10 @@
 /**
- * Minimal POA-lite servant dispatch for generated-style local invocation.
+ * Local POA servant dispatch for generated-style invocation.
  *
- * <p>This package implements only the G6-620 approved profile: {@code ORB_CTRL_MODEL}, {@code
- * TRANSIENT}, {@code UNIQUE_ID}, {@code SYSTEM_ID}, {@code RETAIN}, {@code
- * USE_ACTIVE_OBJECT_MAP_ONLY}, and {@code NO_IMPLICIT_ACTIVATION}. It is an in-process
- * active-object-map dispatch layer over {@code LocalOrb}; full POA policy behavior remains a later
- * task.
+ * <p>This package includes the preserved G6-620 POA-lite active-object-map surface and the G6-630
+ * local full-POA policy expansion for transient object references, POA manager states, default
+ * servants, servant managers, adapter activators, user object ids, multiple ids, and implicit
+ * activation. Persistent references, wire dispatch, and {@code org.omg.PortableServer}
+ * compatibility types remain staged future work.
  */
 package io.github.mundanej.mjo.poa;

@@ -9,12 +9,12 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-/** Boundary tests for POA-lite production code. */
+/** Boundary tests for POA production code. */
 @Tag("unit")
 final class PoaLiteBoundaryTest {
 
   @Test
-  void productionPoaLiteSourceDoesNotReferenceDeferredRuntimeMechanisms() throws IOException {
+  void productionPoaSourceDoesNotReferenceForbiddenRuntimeMechanisms() throws IOException {
     Path productionRoot = Path.of("src/main/java/io/github/mundanej/mjo/poa");
     String source = readProductionSource(productionRoot);
 
@@ -25,9 +25,6 @@ final class PoaLiteBoundaryTest {
     assertFalse(source.contains("java.io.ObjectInput"));
     assertFalse(source.contains("java.io.ObjectOutput"));
     assertFalse(source.contains("Proxy.newProxyInstance"));
-    assertFalse(source.contains("ServantActivator"));
-    assertFalse(source.contains("ServantLocator"));
-    assertFalse(source.contains("AdapterActivator"));
   }
 
   private static String readProductionSource(Path productionRoot) throws IOException {
