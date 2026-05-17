@@ -12,6 +12,25 @@ This page is the quick orientation guide for contributors who need to understand
 
 See `docs/build/toolchain-matrix.md` for the JVM and Native Image lanes.
 
+## Native Image tool discovery
+
+Do not assume GraalVM Native Image is already on the shell `PATH`. Local agents
+and contributors should first check SDKMAN-managed JDKs under
+`$SDKMAN_CANDIDATES_DIR/java` or `$HOME/.sdkman/candidates/java`, choose the
+needed GraalVM candidate, then run native checks with `JAVA_HOME` and `PATH`
+set explicitly. For example:
+
+```bash
+JAVA_HOME="$HOME/.sdkman/candidates/java/21.0.2-graalce" \
+PATH="$JAVA_HOME/bin:$PATH" \
+./gradlew :modules:corba-idl-semantics:nativeIdlSemanticsSmoke
+```
+
+If a native-image executable lives outside a JDK `bin` directory, set
+`NATIVE_IMAGE=/path/to/native-image` explicitly. Falling back to a bare
+`native-image` lookup is acceptable only after checking SDKMAN candidates and
+the requested `JAVA_HOME`.
+
 ## Project layout
 
 - `settings.gradle` lists every Gradle project and centralizes repositories.

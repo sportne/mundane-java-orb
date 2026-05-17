@@ -28,10 +28,10 @@ This repository is in **Gate G6 foundation implementation state**:
 - JUnit Platform/Jupiter, ArchUnit, JaCoCo, Checkstyle, SpotBugs, Error Prone,
   Spotless, publishing, offline-build, and Native Image hooks are scaffolded;
 - shared diagnostics and bounded-limit foundation types have started;
-- the IDL lexer, minimal preprocessor, parser, and AST foundations have started
-  under approved roadmap tasks;
+- the IDL lexer, minimal preprocessor, parser, AST, and semantic-analysis
+  foundations have started under approved roadmap tasks;
 - CDR primitive read/write behavior has started under approved roadmap tasks;
-- CORBA runtime, GIOP/IIOP transport, semantic analysis, ORB, POA, service, and
+- CORBA runtime, GIOP/IIOP transport, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
 ## Primary goals
@@ -93,7 +93,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-610-poa-policy-matrix.md`.
+- `docs/roadmap/tasks/g6-150-idlj-validate-cli.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

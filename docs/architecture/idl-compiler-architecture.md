@@ -57,3 +57,30 @@ token pasting, stringification, arithmetic preprocessor expressions, predefined
 macro sets, and full macro-rescan corner cases must produce explicit
 diagnostics or remain assigned to future conformance-hardening work until they
 are implemented.
+
+## Semantic Model Boundary
+
+The semantic analyzer owns the first syntax-to-symbol pass after parsing. It
+accepts an `IdlTranslationUnit`, never reparses source text, and emits either a
+deterministic `IdlSemanticModel` or stable `IDL-04xx` diagnostics.
+
+The G6-140 model covers the parser-approved subset only:
+
+- module, interface, operation, attribute, struct, field, enum, enumerator,
+  exception, constant, and parameter symbols;
+- absolute qualified names using IDL `::` spelling;
+- builtin primitive type references and user-defined struct, enum, exception,
+  and interface type references;
+- case-insensitive duplicate detection within each semantic scope;
+- simple declaration-order constant evaluation;
+- `raises(...)` validation against previously declared exceptions.
+
+The analyzer uses two-pass collection for type names so fields, attributes,
+operation returns, and parameters may refer to types declared later in the same
+translation unit. Constant references and `raises(...)` targets remain
+declaration-order constrained in this slice.
+
+The semantic model is deliberately not a compiler back end. Repository ID
+construction, Java mapping, generated source, generated codecs, TypeCode, Any,
+CDR, GIOP/IIOP, ORB runtime behavior, reflection, dynamic classpath scanning,
+and Native Image metadata generation remain assigned to later roadmap tasks.

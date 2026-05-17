@@ -43,8 +43,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g6-110-idl-diagnostics-lexer.md` - complete
 - `tasks/g6-120-idl-preprocessor-includes.md` - complete
 - `tasks/g6-130-idl-minimal-parser-ast.md` - complete
-- `tasks/g6-140-idl-semantics-symbols.md`
-- `tasks/g6-150-idlj-validate-cli.md`
+- `tasks/g6-140-idl-semantics-symbols.md` - complete
+- `tasks/g6-150-idlj-validate-cli.md` - ready-for-implementation
 - `tasks/g6-160-idl-java-minimal-generation.md`
 
 ### G6.3 Generated Hello Slice
@@ -71,7 +71,7 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.7 Server Runtime Slice
 
-- `tasks/g6-610-poa-policy-matrix.md` - ready-for-implementation
+- `tasks/g6-610-poa-policy-matrix.md`
 - `tasks/g6-620-poa-lite-servant-dispatch.md`
 - `tasks/g6-630-full-poa-policy-expansion.md`
 

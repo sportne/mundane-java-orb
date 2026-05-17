@@ -8,3 +8,68 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'IDL semantic analyzer, symbol table, type checking, inheritance checks, and constant evaluation.'
+
+sourceSets {
+    nativeSmoke {
+        java.srcDir 'src/nativeSmoke/java'
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
+dependencies {
+    // Semantic analysis consumes syntax-only IDL ASTs and emits shared stable diagnostics.
+    api project(':modules:corba-common')
+    api project(':modules:corba-idl-ast')
+
+    // Tests and native smoke fixtures parse IDL text before exercising semantic behavior.
+    testImplementation project(':modules:corba-idl-parser')
+    nativeSmokeImplementation project(':modules:corba-idl-parser')
+}
+
+def nativeSmokeMainClass = 'io.github.mundanej.mjo.idl.semantics.IdlSemanticsNativeSmoke'
+def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
+def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/idlSemanticsSmoke')
+def nativeSmokeBinary = nativeSmokeOutputDirectory.map { directory ->
+    directory.file('idl-semantics-native-smoke').asFile
+}
+def javaHomeNativeImage = providers.environmentVariable('JAVA_HOME').map { javaHome ->
+    def candidate = new File(javaHome, 'bin/native-image')
+    candidate.isFile() ? candidate.absolutePath : 'native-image'
+}
+def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
+        .orElse(javaHomeNativeImage)
+        .orElse('native-image')
+
+tasks.register('nativeIdlSemanticsSmokeCompile', Exec) {
+    group = 'verification'
+    description = 'Builds a GraalVM Native Image smoke executable for IDL semantic analysis.'
+    dependsOn tasks.named('nativeSmokeClasses')
+    inputs.files(nativeSmokeRuntimeClasspath)
+    outputs.file(nativeSmokeBinary)
+
+    doFirst {
+        nativeSmokeOutputDirectory.get().asFile.mkdirs()
+        executable = nativeImageExecutable.get()
+        args = [
+            '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-o',
+            nativeSmokeBinary.get().absolutePath,
+            '-cp',
+            nativeSmokeRuntimeClasspath.asPath,
+            nativeSmokeMainClass
+        ]
+    }
+}
+
+tasks.register('nativeIdlSemanticsSmoke', Exec) {
+    group = 'verification'
+    description = 'Runs the GraalVM Native Image smoke executable for IDL semantic analysis.'
+    dependsOn tasks.named('nativeIdlSemanticsSmokeCompile')
+
+    doFirst {
+        executable = nativeSmokeBinary.get().absolutePath
+        args = []
+    }
+}
