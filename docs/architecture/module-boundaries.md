@@ -2,6 +2,9 @@
 
 ## Hard rules
 
+The repository-wide rule source is `architecture-rule-catalog.md`. This page
+summarizes the module-layering subset of that catalog.
+
 - Only `corba-omg-api` may define `org.omg.*` packages.
 - Protocol modules must not depend on ORB core.
 - IDL modules must not depend on transport modules.
@@ -19,8 +22,8 @@ The rules are enforced by:
 - ArchUnit tests in `modules/corba-architecture-tests`, including staged
   checks for OMG package ownership, IDL isolation from transport/protocol
   packages, protocol-to-runtime separation, CDR/GIOP/IIOP dependency limits,
-  reflection restrictions, Java serialization restrictions, and runtime
-  bytecode-generation restrictions;
+  Native Image restrictions, Java serialization restrictions, baseline Java
+  safety restrictions, and runtime bytecode-generation restrictions;
 - static analysis;
 - coding-agent rules;
 - module dependency reviews.

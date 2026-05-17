@@ -39,6 +39,31 @@ final class JavaSourceGeneratorTest {
   private final IdlSemanticAnalyzer analyzer = new IdlSemanticAnalyzer();
   private final IdlJavaMapper mapper = new IdlJavaMapper();
   private final JavaSourceGenerator generator = new JavaSourceGenerator();
+  private static final List<String> FORBIDDEN_GENERATED_SOURCE_TOKENS =
+      List.of(
+          "org.omg",
+          "Helper",
+          "Holder",
+          "Stub",
+          "Skeleton",
+          "POA",
+          "io.github.mundanej.mjo.cdr",
+          "io.github.mundanej.mjo.orb",
+          "java.lang.reflect",
+          "ServiceLoader",
+          "ClassLoader",
+          "Proxy",
+          "java.lang.invoke",
+          "ObjectInputStream",
+          "ObjectOutputStream",
+          "Externalizable",
+          "Serializable",
+          "System.exit",
+          "ProcessBuilder",
+          "Runtime.getRuntime",
+          "finalize",
+          "sun.",
+          "jdk.internal.");
 
   @TempDir private Path tempDir;
 
@@ -107,12 +132,7 @@ final class JavaSourceGeneratorTest {
 
     String allSource =
         sources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat);
-    assertFalse(allSource.contains("org.omg"));
-    assertFalse(allSource.contains("Helper"));
-    assertFalse(allSource.contains("Holder"));
-    assertFalse(allSource.contains("Stub"));
-    assertFalse(allSource.contains("POA"));
-    assertFalse(allSource.contains("java.lang.reflect"));
+    assertNoForbiddenGeneratedSourceTokens(allSource);
     compile(sources);
   }
 
@@ -207,6 +227,13 @@ final class JavaSourceGeneratorTest {
         .findFirst()
         .orElseThrow()
         .sourceText();
+  }
+
+  private static void assertNoForbiddenGeneratedSourceTokens(String sourceText) {
+    List<String> violations =
+        FORBIDDEN_GENERATED_SOURCE_TOKENS.stream().filter(sourceText::contains).toList();
+
+    assertEquals(List.of(), violations, "Generated source contains forbidden architecture tokens");
   }
 
   private void compile(List<GeneratedJavaSource> sources) throws Exception {

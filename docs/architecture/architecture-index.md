@@ -3,6 +3,7 @@
 Architecture documents:
 
 - `overview.md`
+- `architecture-rule-catalog.md`
 - `module-boundaries.md`
 - `artifact-model.md`
 - `build-architecture.md`

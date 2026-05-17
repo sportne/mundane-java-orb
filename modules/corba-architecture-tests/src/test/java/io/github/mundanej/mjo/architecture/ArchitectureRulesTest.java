@@ -1,15 +1,19 @@
 package io.github.mundanej.mjo.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.fields;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.tngtech.archunit.ArchConfiguration;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption.DoNotIncludeTests;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -23,6 +27,11 @@ final class ArchitectureRulesTest {
 
   private static final Pattern OMG_PACKAGE_DECLARATION =
       Pattern.compile("^\\s*package\\s+org\\.omg(\\.|;).*");
+  private static final Pattern EXPLICIT_SERIALIZABLE_REFERENCE =
+      Pattern.compile(".*\\b(java\\.io\\.)?Serializable\\b.*");
+  private static final Pattern SERIALIZATION_HOOK =
+      Pattern.compile(
+          ".*\\b(readObject|writeObject|readObjectNoData|readResolve|writeReplace)\\s*\\(.*");
   private static final Path REPOSITORY_ROOT = findRepositoryRoot();
   private static final Path MODULES_DIRECTORY = REPOSITORY_ROOT.resolve("modules");
   private static final String[] IDL_MODULE_PACKAGES = {"..codegen..", "..idl..", "..idlj.."};
@@ -71,6 +80,27 @@ final class ArchitectureRulesTest {
     "..trading..",
     "..transaction.."
   };
+  private static final String[] NATIVE_IMAGE_DYNAMIC_MECHANISM_PACKAGES = {
+    "java.lang.reflect..", "java.lang.invoke..", "org.reflections.."
+  };
+  private static final String[] BYTECODE_GENERATION_AND_INTERNAL_JDK_PACKAGES = {
+    "java.lang.instrument..",
+    "javax.tools..",
+    "jdk.internal..",
+    "net.bytebuddy..",
+    "org.cglib..",
+    "org.objectweb.asm..",
+    "sun.."
+  };
+  private static final List<String> FORBIDDEN_PRODUCTION_SOURCE_TOKENS =
+      List.of(
+          "ObjectInputStream",
+          "ObjectOutputStream",
+          "Externalizable",
+          "serialPersistentFields",
+          "java.io.Serializable",
+          "sun.misc.Unsafe",
+          "jdk.internal.misc.Unsafe");
 
   @BeforeAll
   static void allowEmptyRulesDuringScaffoldPhase() {
@@ -98,7 +128,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void idlModulesMustNotDependOnTransportOrProtocolPackages() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -111,7 +141,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void cdrMustNotDependOnUpperProtocolRuntimeOrServicePackages() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -124,7 +154,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void giopMustNotDependOnOrbCorePoaOrServices() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -137,7 +167,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void iiopMustNotDependOnOrbCorePoaServicesOrIdlPackages() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -150,7 +180,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void protocolModulesMustNotDependOnOrbCoreOrPoa() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -163,7 +193,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void coreProtocolModulesMustNotUseReflection() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -176,7 +206,7 @@ final class ArchitectureRulesTest {
 
   @Test
   void normalMarshallingModulesMustNotUseJavaSerialization() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
@@ -189,22 +219,129 @@ final class ArchitectureRulesTest {
 
   @Test
   void normalRuntimePathsMustNotUseBytecodeGenerationOrInternalJdkApis() {
-    JavaClasses classes = projectClasses();
+    JavaClasses classes = productionClasses();
 
     noClasses()
         .that()
         .resideInAnyPackage(NORMAL_RUNTIME_PACKAGES)
         .should()
         .dependOnClassesThat()
-        .resideInAnyPackage(
-            "java.lang.instrument..",
-            "javax.tools..",
-            "jdk.internal..",
-            "net.bytebuddy..",
-            "org.cglib..",
-            "org.objectweb.asm..",
-            "sun..")
+        .resideInAnyPackage(BYTECODE_GENERATION_AND_INTERNAL_JDK_PACKAGES)
         .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotUseNativeImageHostileDynamicMechanisms() {
+    JavaClasses classes = productionClasses();
+
+    noClasses()
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage(NATIVE_IMAGE_DYNAMIC_MECHANISM_PACKAGES)
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.util.ServiceLoader")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.lang.ClassLoader")
+        .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotUseJavaSerializationMechanisms() {
+    JavaClasses classes = productionClasses();
+
+    noClasses()
+        .should()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.io.ObjectInputStream")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.io.ObjectOutputStream")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.io.Externalizable")
+        .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotUseInternalJdkUnsafeOrSecurityManagerApis() {
+    JavaClasses classes = productionClasses();
+
+    noClasses()
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("sun..", "jdk.internal..")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("sun.misc.Unsafe")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("jdk.internal.misc.Unsafe")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.security.AccessController")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.lang.SecurityManager")
+        .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotTerminateOutsideCliEntrypoints() {
+    JavaClasses classes = productionClasses();
+
+    noClasses()
+        .that()
+        .doNotHaveFullyQualifiedName("io.github.mundanej.mjo.idlj.IdljCli")
+        .should()
+        .callMethod(System.class, "exit", int.class)
+        .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotForceGcOrSpawnProcesses() {
+    JavaClasses classes = productionClasses();
+
+    noClasses()
+        .should()
+        .callMethod(System.class, "gc")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.lang.Runtime")
+        .orShould()
+        .dependOnClassesThat()
+        .haveFullyQualifiedName("java.lang.ProcessBuilder")
+        .check(classes);
+  }
+
+  @Test
+  void productionCodeMustNotDeclareFinalizers() {
+    noMethods().should().haveName("finalize").check(productionClasses());
+  }
+
+  @Test
+  void productionCodeMustNotExposePublicStaticMutableFields() {
+    fields().that().arePublic().and().areStatic().should().beFinal().check(productionClasses());
+  }
+
+  @Test
+  void productionSourcesMustNotDeclareExplicitSerializableOrSerializationHooks()
+      throws IOException {
+    List<Path> violations;
+
+    try (var paths =
+        Files.find(
+            MODULES_DIRECTORY, Integer.MAX_VALUE, ArchitectureRulesTest::isMainJavaSourceFile)) {
+      violations =
+          paths.filter(ArchitectureRulesTest::containsForbiddenProductionSourceConstruct).toList();
+    }
+
+    assertTrue(
+        violations.isEmpty(),
+        () ->
+            "Production sources must not declare serialization constructs without ADR: "
+                + violations);
   }
 
   @Test
@@ -233,8 +370,10 @@ final class ArchitectureRulesTest {
         () -> "corba-common foundation sources must not import feature modules: " + violations);
   }
 
-  private static JavaClasses projectClasses() {
-    return new ClassFileImporter().importPackages("io.github.mundanej.mjo");
+  private static JavaClasses productionClasses() {
+    return new ClassFileImporter()
+        .withImportOption(new DoNotIncludeTests())
+        .importPackages("io.github.mundanej.mjo");
   }
 
   private static Path findRepositoryRoot() {
@@ -254,6 +393,14 @@ final class ArchitectureRulesTest {
         MODULES_DIRECTORY.relativize(path.normalize()).toString().replace('\\', '/');
     return attributes.isRegularFile()
         && relativePath.contains("/src/")
+        && relativePath.endsWith(".java");
+  }
+
+  private static boolean isMainJavaSourceFile(Path path, BasicFileAttributes attributes) {
+    String relativePath =
+        MODULES_DIRECTORY.relativize(path.normalize()).toString().replace('\\', '/');
+    return attributes.isRegularFile()
+        && relativePath.contains("/src/main/java/")
         && relativePath.endsWith(".java");
   }
 
@@ -278,6 +425,29 @@ final class ArchitectureRulesTest {
     } catch (IOException exception) {
       throw new IllegalStateException("Could not read " + sourceFile, exception);
     }
+  }
+
+  private static boolean containsForbiddenProductionSourceConstruct(Path sourceFile) {
+    try (Stream<String> lines = Files.lines(sourceFile)) {
+      return lines.anyMatch(ArchitectureRulesTest::isForbiddenProductionSourceLine);
+    } catch (IOException exception) {
+      throw new IllegalStateException("Could not read " + sourceFile, exception);
+    }
+  }
+
+  private static boolean isForbiddenProductionSourceLine(String line) {
+    String stripped = line.strip();
+    return FORBIDDEN_PRODUCTION_SOURCE_TOKENS.stream().anyMatch(stripped::contains)
+        || isExplicitSerializableDeclaration(stripped)
+        || SERIALIZATION_HOOK.matcher(stripped).matches();
+  }
+
+  private static boolean isExplicitSerializableDeclaration(String line) {
+    return EXPLICIT_SERIALIZABLE_REFERENCE.matcher(line).matches()
+        && !line.startsWith("*")
+        && !line.startsWith("//")
+        && Arrays.stream(new String[] {"class ", "record ", "interface ", "enum "})
+            .anyMatch(line::contains);
   }
 
   private static boolean isFeaturePackageImport(String line) {
