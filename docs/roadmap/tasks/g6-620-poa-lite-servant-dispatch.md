@@ -1,7 +1,7 @@
 # G6-620 POA-Lite Servant Dispatch
 
 Task ID: G6-620-POA-LITE-SERVANT-DISPATCH
-Status: draft
+Status: ready-for-implementation
 Gate: G6 server runtime vertical slice
 Requirement IDs: REQ-POA-001, REQ-ORB-001, REQ-IDLJ-004, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: POA package docs and POA-lite matrix rows.
 Commands to run: ./gradlew :modules:corba-poa:test :modules:corba-orb-core:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Generated skeletons can dispatch through POA-lite with documented policy limitations.
 Rollback notes: Revert POA-lite implementation, tests, and docs together.
-
