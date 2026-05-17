@@ -28,7 +28,8 @@ This repository is in **Gate G6 foundation implementation state**:
 - JUnit Platform/Jupiter, ArchUnit, JaCoCo, Checkstyle, SpotBugs, Error Prone,
   Spotless, publishing, offline-build, and Native Image hooks are scaffolded;
 - shared diagnostics and bounded-limit foundation types have started;
-- the IDL lexer foundation has started under approved roadmap tasks;
+- the IDL lexer and minimal preprocessor foundations have started under
+  approved roadmap tasks;
 - CORBA runtime, protocol, parser grammar, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
@@ -91,7 +92,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-120-idl-preprocessor-includes.md`;
+- `docs/roadmap/tasks/g6-130-idl-minimal-parser-ast.md`;
 - `docs/roadmap/tasks/g6-310-cdr-primitives.md`;
 - `docs/roadmap/tasks/g6-610-poa-policy-matrix.md`.
 

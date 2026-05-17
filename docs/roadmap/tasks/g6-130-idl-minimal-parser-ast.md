@@ -1,7 +1,7 @@
 # G6-130 Minimal IDL Parser and AST
 
 Task ID: G6-130-IDL-MINIMAL-PARSER-AST
-Status: draft
+Status: ready-for-implementation
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDL-001, REQ-IDL-002, REQ-IDL-003, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0004, ADR-0005
@@ -15,4 +15,3 @@ Documentation to update: AST package docs and IDL conformance rows.
 Commands to run: ./gradlew :modules:corba-idl-parser:test :modules:corba-idl-ast:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Minimal AST is deterministic, documented, and independent of code generation.
 Rollback notes: Revert parser/AST implementation, tests, and docs together.
-
