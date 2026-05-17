@@ -36,3 +36,23 @@ generated stub
   -> CDR reply body
   -> typed value or exception
 ```
+
+## Local invocation path
+
+The first G6 local invocation slice is intentionally in-process only:
+
+```text
+generated client
+  -> LocalOrb.invoke
+  -> LocalInvocationDispatcher
+  -> generated-style servant
+```
+
+`corba-modern-api` owns the generated-code-facing request and dispatcher
+contracts. `corba-orb-core` owns local object references, local object identity,
+dispatcher registration, lifecycle checks, and shutdown coordination.
+
+This path does not open sockets, construct GIOP messages, use IIOP transport,
+invoke POA policy behavior, create dynamic proxies, generate runtime bytecode,
+or use reflection for dispatch. Generated-style dispatchers call servants
+explicitly using static operation descriptors.

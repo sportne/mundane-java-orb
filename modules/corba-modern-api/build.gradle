@@ -8,3 +8,8 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Modern generated-code-facing public API.'
+
+dependencies {
+    // Modern generated-code-facing invocation contracts refer to static IDL descriptors.
+    api project(':modules:corba-typecode')
+}

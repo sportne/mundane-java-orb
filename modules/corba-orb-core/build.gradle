@@ -8,3 +8,8 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'ORB lifecycle, object references, invocation pipeline, initial references, and exception mapping.'
+
+dependencies {
+    // ORB core consumes the generated-code-facing local invocation API.
+    api project(':modules:corba-modern-api')
+}

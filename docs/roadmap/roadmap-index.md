@@ -60,8 +60,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.5 Local Invocation Slice
 
-- `tasks/g6-410-local-object-reference-invocation.md` - ready-for-implementation
-- `tasks/g6-420-exception-mapping.md`
+- `tasks/g6-410-local-object-reference-invocation.md` - complete
+- `tasks/g6-420-exception-mapping.md` - ready-for-implementation
 
 ### G6.6 Wire Invocation Slice
 

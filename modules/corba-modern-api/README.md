@@ -4,7 +4,17 @@ Modern generated-code-facing public API.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+G6 local invocation work has started here. The module exposes explicit
+generated-code-facing request and dispatcher contracts for in-process calls.
+
+Implemented behavior:
+
+- immutable local invocation request values;
+- generated-skeleton-style local invocation dispatch interface;
+- static descriptor-based operation metadata handoff to ORB core.
+
+This module does not implement ORB lifecycle, network transport, dynamic
+proxies, runtime bytecode generation, or reflection-based dispatch.
 
 ## Documentation requirements
 
