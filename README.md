@@ -40,6 +40,8 @@ This repository is in **Gate G6 foundation implementation state**:
   parsing has started under approved roadmap tasks;
 - in-process local object reference invocation has started under approved
   roadmap tasks;
+- deterministic local exception mapping has started under approved roadmap
+  tasks;
 - CORBA runtime, GIOP/IIOP transport, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
@@ -102,7 +104,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-420-exception-mapping.md`.
+- `docs/roadmap/tasks/g6-510-giop-messages.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

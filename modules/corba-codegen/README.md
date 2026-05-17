@@ -18,6 +18,10 @@ generation for the same Hello fixture. Descriptor/codegen output references the
 module continues to render source text without depending on protocol/runtime
 packages.
 
+G6-420 strengthens generated exception metadata coverage so `raises(...)`
+descriptors carry deterministic IDL names, Java names, repository IDs, and
+exception type kind for local invocation exception mapping.
+
 The renderer emits compile-safe Java source for:
 
 - Java interfaces from IDL interfaces;

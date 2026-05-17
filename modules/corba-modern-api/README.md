@@ -11,6 +11,7 @@ Implemented behavior:
 
 - immutable local invocation request values;
 - generated-skeleton-style local invocation dispatch interface;
+- checked exception propagation from generated-style dispatchers;
 - static descriptor-based operation metadata handoff to ORB core.
 
 This module does not implement ORB lifecycle, network transport, dynamic

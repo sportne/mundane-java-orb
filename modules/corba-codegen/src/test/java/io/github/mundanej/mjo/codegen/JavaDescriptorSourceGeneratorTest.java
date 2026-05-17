@@ -147,6 +147,11 @@ final class JavaDescriptorSourceGeneratorTest {
     assertContains(allDescriptorSource, "IdlParameterMode.OUT");
     assertContains(allDescriptorSource, "IdlParameterMode.INOUT");
     assertContains(allDescriptorSource, "IdlTypeKind.EXCEPTION");
+    assertContains(allDescriptorSource, "\"::Demo::Bad\", \"demo.Bad\"");
+    assertContains(
+        allDescriptorSource,
+        "new IdlTypeReference(IdlTypeKind.EXCEPTION, \"::Demo::Bad\", \"demo.Bad\", "
+            + "Optional.of(RepositoryId.parse(\"IDL:Demo/Bad:1.0\")))");
     compile(compileSources);
   }
 

@@ -12,4 +12,7 @@ description = 'ORB lifecycle, object references, invocation pipeline, initial re
 dependencies {
     // ORB core consumes the generated-code-facing local invocation API.
     api project(':modules:corba-modern-api')
+
+    // Local exception mapping exposes the minimal legacy CORBA system exception surface.
+    api project(':modules:corba-omg-api')
 }

@@ -48,11 +48,26 @@ generated client
   -> generated-style servant
 ```
 
+Exceptions follow the same in-process path and are normalized before they leave
+ORB core:
+
+```text
+generated client
+  -> LocalOrb.invoke
+  -> LocalInvocationDispatcher
+  -> generated-style servant
+  -> local exception mapper
+  -> typed user wrapper or CORBA system exception
+```
+
 `corba-modern-api` owns the generated-code-facing request and dispatcher
 contracts. `corba-orb-core` owns local object references, local object identity,
-dispatcher registration, lifecycle checks, and shutdown coordination.
+dispatcher registration, lifecycle checks, exception mapping, and shutdown
+coordination. `corba-omg-api` owns the minimal `org.omg.CORBA` exception
+compatibility surface used by this local slice.
 
 This path does not open sockets, construct GIOP messages, use IIOP transport,
 invoke POA policy behavior, create dynamic proxies, generate runtime bytecode,
-or use reflection for dispatch. Generated-style dispatchers call servants
-explicitly using static operation descriptors.
+use reflection for dispatch, or marshal exceptions as CDR reply bodies.
+Generated-style dispatchers call servants explicitly using static operation
+descriptors.

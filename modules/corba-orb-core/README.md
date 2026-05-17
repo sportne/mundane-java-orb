@@ -13,11 +13,13 @@ Implemented behavior:
 - deterministic per-ORB local object reference ids;
 - in-memory dispatcher registration;
 - descriptor-based local operation validation;
+- deterministic local exception mapping;
 - generated-style local invocation without network transport.
 
 This module does not implement GIOP/IIOP transport, POA policy behavior,
 external peer interoperability, Naming Service integration, dynamic proxies,
-runtime bytecode generation, or reflection-based dispatch.
+runtime bytecode generation, reflection-based dispatch, or CDR exception
+marshaling.
 
 ## Documentation requirements
 

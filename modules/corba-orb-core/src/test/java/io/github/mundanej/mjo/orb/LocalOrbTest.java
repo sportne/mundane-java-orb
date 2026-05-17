@@ -1,7 +1,9 @@
 package io.github.mundanej.mjo.orb;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -18,6 +20,12 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.omg.CORBA.BAD_INV_ORDER;
+import org.omg.CORBA.BAD_OPERATION;
+import org.omg.CORBA.BAD_PARAM;
+import org.omg.CORBA.CompletionStatus;
+import org.omg.CORBA.OBJECT_NOT_EXIST;
+import org.omg.CORBA.UNKNOWN;
 
 /** Unit and integration tests for local ORB object reference invocation. */
 @Tag("unit")
@@ -25,12 +33,24 @@ final class LocalOrbTest {
 
   private static final IdlTypeReference STRING_TYPE =
       new IdlTypeReference(IdlTypeKind.PRIMITIVE, "string", "java.lang.String", Optional.empty());
+  private static final IdlTypeReference BAD_NAME_TYPE =
+      new IdlTypeReference(
+          IdlTypeKind.EXCEPTION,
+          "::hello::BadName",
+          BadName.class.getName(),
+          Optional.of(RepositoryId.parse("IDL:hello/BadName:1.0")));
   private static final IdlOperationDescriptor GREET =
       new IdlOperationDescriptor(
           "greet",
           STRING_TYPE,
           List.of(new IdlParameterDescriptor("name", IdlParameterMode.IN, STRING_TYPE)),
           List.of());
+  private static final IdlOperationDescriptor RISKY_GREET =
+      new IdlOperationDescriptor(
+          "greet",
+          STRING_TYPE,
+          List.of(new IdlParameterDescriptor("name", IdlParameterMode.IN, STRING_TYPE)),
+          List.of(BAD_NAME_TYPE));
   private static final IdlOperationDescriptor FAREWELL =
       new IdlOperationDescriptor("farewell", STRING_TYPE, List.of(), List.of());
   private static final IdlGeneratedTypeDescriptor GREETER_DESCRIPTOR =
@@ -42,6 +62,15 @@ final class LocalOrbTest {
           List.of(),
           List.of(),
           List.of(GREET));
+  private static final IdlGeneratedTypeDescriptor RISKY_GREETER_DESCRIPTOR =
+      new IdlGeneratedTypeDescriptor(
+          IdlTypeKind.INTERFACE,
+          "::hello::RiskyGreeter",
+          "modern.hello.RiskyGreeter",
+          RepositoryId.parse("IDL:hello/RiskyGreeter:1.0"),
+          List.of(),
+          List.of(),
+          List.of(RISKY_GREET));
 
   @Test
   void generatedStyleClientCallsLocalGeneratedStyleDispatcher() {
@@ -86,11 +115,12 @@ final class LocalOrbTest {
             .bind(Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant()));
     LocalOrb orb = LocalOrb.create();
 
-    LocalOrbException exception =
+    OBJECT_NOT_EXIST exception =
         assertThrows(
-            LocalOrbException.class, () -> orb.invoke(otherOrbReference, GREET, List.of("Ada")));
+            OBJECT_NOT_EXIST.class, () -> orb.invoke(otherOrbReference, GREET, List.of("Ada")));
 
     assertEquals("Local object reference belongs to a different local ORB", exception.getMessage());
+    assertEquals(CompletionStatus.COMPLETED_NO, exception.completed);
   }
 
   @Test
@@ -100,8 +130,31 @@ final class LocalOrbTest {
     LocalObjectReference<Greeter> reference =
         orb.bind(Greeter.class, GREETER_DESCRIPTOR, dispatcher);
 
-    assertThrows(LocalOrbException.class, () -> orb.invoke(reference, FAREWELL, List.of()));
-    assertThrows(LocalOrbException.class, () -> orb.invoke(reference, GREET, List.of()));
+    assertThrows(BAD_OPERATION.class, () -> orb.invoke(reference, FAREWELL, List.of()));
+    assertThrows(BAD_PARAM.class, () -> orb.invoke(reference, GREET, List.of()));
+    assertEquals(0, dispatcher.count());
+  }
+
+  @Test
+  void nullInputsMapToBadParamBeforeDispatch() {
+    LocalOrb orb = LocalOrb.create();
+    CountingDispatcher dispatcher = new CountingDispatcher();
+    LocalObjectReference<Greeter> reference =
+        orb.bind(Greeter.class, GREETER_DESCRIPTOR, dispatcher);
+
+    BAD_PARAM nullType =
+        assertThrows(BAD_PARAM.class, () -> orb.bind(null, GREETER_DESCRIPTOR, dispatcher));
+    BAD_PARAM nullReference =
+        assertThrows(BAD_PARAM.class, () -> orb.invoke(null, GREET, List.of("Ada")));
+    BAD_PARAM nullOperation =
+        assertThrows(BAD_PARAM.class, () -> orb.invoke(reference, null, List.of("Ada")));
+    BAD_PARAM nullArguments =
+        assertThrows(BAD_PARAM.class, () -> orb.invoke(reference, GREET, null));
+
+    assertEquals(CompletionStatus.COMPLETED_NO, nullType.completed);
+    assertEquals(CompletionStatus.COMPLETED_NO, nullReference.completed);
+    assertEquals(CompletionStatus.COMPLETED_NO, nullOperation.completed);
+    assertEquals(CompletionStatus.COMPLETED_NO, nullArguments.completed);
     assertEquals(0, dispatcher.count());
   }
 
@@ -115,12 +168,19 @@ final class LocalOrbTest {
     orb.shutdown();
 
     assertTrue(orb.isShutdown());
-    assertThrows(
-        LocalOrbException.class,
-        () ->
-            orb.bind(
-                Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant())));
-    assertThrows(LocalOrbException.class, () -> orb.invoke(reference, GREET, List.of("Ada")));
+    BAD_INV_ORDER bindFailure =
+        assertThrows(
+            BAD_INV_ORDER.class,
+            () ->
+                orb.bind(
+                    Greeter.class,
+                    GREETER_DESCRIPTOR,
+                    new GreeterDispatcher(new GreeterServant())));
+    BAD_INV_ORDER invokeFailure =
+        assertThrows(BAD_INV_ORDER.class, () -> orb.invoke(reference, GREET, List.of("Ada")));
+
+    assertEquals(CompletionStatus.COMPLETED_NO, bindFailure.completed);
+    assertEquals(CompletionStatus.COMPLETED_NO, invokeFailure.completed);
   }
 
   @Test
@@ -133,9 +193,98 @@ final class LocalOrbTest {
     assertEquals("local:Ada", orb.invoke(reference, GREET, List.of("Ada")));
   }
 
+  @Test
+  void declaredUserExceptionMappingPreservesOriginalExceptionAndDescriptor() {
+    LocalOrb orb = LocalOrb.create();
+    BadName badName = new BadName("Ada");
+    LocalObjectReference<RiskyGreeter> reference =
+        orb.bind(
+            RiskyGreeter.class,
+            RISKY_GREETER_DESCRIPTOR,
+            request -> {
+              throw badName;
+            });
+
+    LocalInvocationUserException exception =
+        assertThrows(
+            LocalInvocationUserException.class,
+            () -> orb.invoke(reference, RISKY_GREET, List.of("Ada")));
+
+    assertSame(badName, exception.userException());
+    assertSame(badName, exception.getCause());
+    assertEquals(RISKY_GREET, exception.operation());
+    assertEquals(BAD_NAME_TYPE, exception.raisedType());
+  }
+
+  @Test
+  void generatedStyleClientRethrowsDeclaredUserException() {
+    LocalOrb orb = LocalOrb.create();
+    BadName badName = new BadName("Ada");
+    LocalObjectReference<RiskyGreeter> reference =
+        orb.bind(
+            RiskyGreeter.class,
+            RISKY_GREETER_DESCRIPTOR,
+            request -> {
+              throw badName;
+            });
+    RiskyGreeter client = new RiskyGreeterClient(orb, reference);
+
+    assertSame(badName, assertThrows(BadName.class, () -> client.greet("Ada")));
+  }
+
+  @Test
+  void undeclaredDispatcherExceptionMapsToUnknownWithCause() {
+    LocalOrb orb = LocalOrb.create();
+    IllegalArgumentException cause = new IllegalArgumentException("boom");
+    LocalObjectReference<Greeter> reference =
+        orb.bind(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            request -> {
+              throw cause;
+            });
+
+    UNKNOWN exception =
+        assertThrows(UNKNOWN.class, () -> orb.invoke(reference, GREET, List.of("Ada")));
+
+    assertSame(cause, exception.getCause());
+    assertEquals(CompletionStatus.COMPLETED_MAYBE, exception.completed);
+  }
+
+  @Test
+  void dispatcherThrownSystemExceptionIsRethrownUnchanged() {
+    LocalOrb orb = LocalOrb.create();
+    BAD_PARAM badParam = new BAD_PARAM("servant rejected", 5, CompletionStatus.COMPLETED_NO);
+    LocalObjectReference<Greeter> reference =
+        orb.bind(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            request -> {
+              throw badParam;
+            });
+
+    assertSame(
+        badParam,
+        assertThrows(BAD_PARAM.class, () -> orb.invoke(reference, GREET, List.of("Ada"))));
+  }
+
   private interface Greeter {
 
     String greet(String name);
+  }
+
+  private interface RiskyGreeter {
+
+    String greet(String name) throws BadName;
+  }
+
+  private static final class BadName extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    private BadName(String name) {
+      super(name);
+    }
   }
 
   private static final class GreeterServant implements Greeter {
@@ -159,6 +308,26 @@ final class LocalOrbTest {
     @Override
     public String greet(String name) {
       return (String) orb.invoke(reference, GREET, List.of(name));
+    }
+  }
+
+  private static final class RiskyGreeterClient implements RiskyGreeter {
+
+    private final LocalOrb orb;
+    private final LocalObjectReference<RiskyGreeter> reference;
+
+    private RiskyGreeterClient(LocalOrb orb, LocalObjectReference<RiskyGreeter> reference) {
+      this.orb = orb;
+      this.reference = reference;
+    }
+
+    @Override
+    public String greet(String name) throws BadName {
+      try {
+        return (String) orb.invoke(reference, RISKY_GREET, List.of(name));
+      } catch (LocalInvocationUserException exception) {
+        throw assertInstanceOf(BadName.class, exception.userException());
+      }
     }
   }
 

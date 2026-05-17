@@ -7,8 +7,8 @@ import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import org.omg.CORBA.SystemException;
 
 /** Minimal in-process ORB for generated-style local object invocation. */
 public final class LocalOrb {
@@ -33,9 +33,9 @@ public final class LocalOrb {
       IdlGeneratedTypeDescriptor descriptor,
       LocalInvocationDispatcher dispatcher) {
     requireActive();
-    Objects.requireNonNull(javaType, "javaType");
-    Objects.requireNonNull(descriptor, "descriptor");
-    Objects.requireNonNull(dispatcher, "dispatcher");
+    LocalExceptionMapper.requireNonNull(javaType, "javaType");
+    LocalExceptionMapper.requireNonNull(descriptor, "descriptor");
+    LocalExceptionMapper.requireNonNull(dispatcher, "dispatcher");
     String objectId = "local-" + nextObjectNumber++;
     LocalObjectReference<T> reference =
         new LocalObjectReference<>(ownerToken, objectId, javaType, descriptor);
@@ -47,14 +47,20 @@ public final class LocalOrb {
   public synchronized Object invoke(
       LocalObjectReference<?> reference, IdlOperationDescriptor operation, List<Object> arguments) {
     requireActive();
-    Objects.requireNonNull(reference, "reference");
-    Objects.requireNonNull(operation, "operation");
-    Objects.requireNonNull(arguments, "arguments");
+    LocalExceptionMapper.requireNonNull(reference, "reference");
+    LocalExceptionMapper.requireNonNull(operation, "operation");
+    LocalExceptionMapper.requireNonNull(arguments, "arguments");
     Binding binding = bindingFor(reference);
     validateOperation(binding.descriptor(), operation, arguments);
-    return binding
-        .dispatcher()
-        .invoke(new LocalInvocationRequest(binding.descriptor(), operation, arguments));
+    try {
+      return binding
+          .dispatcher()
+          .invoke(new LocalInvocationRequest(binding.descriptor(), operation, arguments));
+    } catch (SystemException exception) {
+      throw exception;
+    } catch (Exception exception) {
+      throw LocalExceptionMapper.mapDispatcherException(operation, exception);
+    }
   }
 
   /** Shuts this local ORB down. Repeated shutdown calls are safe. */
@@ -70,11 +76,13 @@ public final class LocalOrb {
 
   private Binding bindingFor(LocalObjectReference<?> reference) {
     if (reference.ownerToken() != ownerToken) {
-      throw new LocalOrbException("Local object reference belongs to a different local ORB");
+      throw LocalExceptionMapper.objectNotExist(
+          "Local object reference belongs to a different local ORB");
     }
     Binding binding = bindings.get(reference.objectId());
     if (binding == null) {
-      throw new LocalOrbException("Unknown local object reference: " + reference.objectId());
+      throw LocalExceptionMapper.objectNotExist(
+          "Unknown local object reference: " + reference.objectId());
     }
     return binding;
   }
@@ -84,11 +92,11 @@ public final class LocalOrb {
       IdlOperationDescriptor operation,
       List<Object> arguments) {
     if (!descriptor.operations().contains(operation)) {
-      throw new LocalOrbException(
+      throw LocalExceptionMapper.badOperation(
           "Operation is not declared by target descriptor: " + operation.name());
     }
     if (operation.parameters().size() != arguments.size()) {
-      throw new LocalOrbException(
+      throw LocalExceptionMapper.badParam(
           "Operation "
               + operation.name()
               + " expects "
@@ -100,7 +108,7 @@ public final class LocalOrb {
 
   private void requireActive() {
     if (shutdown) {
-      throw new LocalOrbException("Local ORB is shut down");
+      throw LocalExceptionMapper.badInvOrder("Local ORB is shut down");
     }
   }
 

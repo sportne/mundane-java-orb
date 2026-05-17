@@ -62,11 +62,32 @@ final class LocalInvocationRequestTest {
   }
 
   @Test
-  void dispatcherApiSupportsGeneratedSkeletonStyleImplementation() {
+  void dispatcherApiSupportsGeneratedSkeletonStyleImplementation() throws Exception {
     LocalInvocationDispatcher dispatcher =
         request -> "Hello " + request.arguments().get(0).toString();
 
     assertEquals(
         "Hello Ada", dispatcher.invoke(new LocalInvocationRequest(GREETER, GREET, List.of("Ada"))));
+  }
+
+  @Test
+  void dispatcherApiSupportsCheckedUserExceptions() {
+    LocalInvocationDispatcher dispatcher =
+        request -> {
+          throw new DeclaredUserException("declared");
+        };
+
+    assertThrows(
+        DeclaredUserException.class,
+        () -> dispatcher.invoke(new LocalInvocationRequest(GREETER, GREET, List.of("Ada"))));
+  }
+
+  private static final class DeclaredUserException extends Exception {
+
+    private static final long serialVersionUID = 1L;
+
+    private DeclaredUserException(String message) {
+      super(message);
+    }
   }
 }
