@@ -782,6 +782,9 @@ public final class IdlParser {
       }
       IdlToken first = tokens.getFirst();
       IdlToken last = tokens.get(tokens.size() - 2);
+      if (!first.span().start().sourceName().equals(last.span().end().sourceName())) {
+        return first.span();
+      }
       return new SourceSpan(first.span().start(), last.span().end());
     }
 

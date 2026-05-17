@@ -38,3 +38,6 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 - `:modules:corba-idl-semantics:nativeIdlSemanticsSmoke` builds and executes a
   GraalVM Native Image smoke executable for parser-to-semantics behavior over a
   compact IDL fixture.
+- `:modules:corba-idlj-cli:nativeIdljValidateSmoke` builds and executes a
+  GraalVM Native Image smoke executable for the validation-only `corba-idlj`
+  command path over compact valid and invalid IDL fixtures.

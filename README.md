@@ -30,6 +30,8 @@ This repository is in **Gate G6 foundation implementation state**:
 - shared diagnostics and bounded-limit foundation types have started;
 - the IDL lexer, minimal preprocessor, parser, AST, and semantic-analysis
   foundations have started under approved roadmap tasks;
+- the validation-only `corba-idlj validate` CLI has started under approved
+  roadmap tasks;
 - CDR primitive read/write behavior has started under approved roadmap tasks;
 - CORBA runtime, GIOP/IIOP transport, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
@@ -93,7 +95,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-150-idlj-validate-cli.md`.
+- `docs/roadmap/tasks/g6-160-idl-java-minimal-generation.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

@@ -9,3 +9,69 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'idlj-like command-line compiler distribution and CLI entry point.'
+
+application {
+    mainClass = 'io.github.mundanej.mjo.idlj.IdljCli'
+}
+
+sourceSets {
+    nativeSmoke {
+        java.srcDir 'src/nativeSmoke/java'
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
+dependencies {
+    // The validate command composes the existing parser and semantic model.
+    implementation project(':modules:corba-common')
+    implementation project(':modules:corba-idl-parser')
+    implementation project(':modules:corba-idl-semantics')
+}
+
+def nativeSmokeMainClass = 'io.github.mundanej.mjo.idlj.IdljCliNativeSmoke'
+def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
+def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/idljValidateSmoke')
+def nativeSmokeBinary = nativeSmokeOutputDirectory.map { directory ->
+    directory.file('idlj-validate-native-smoke').asFile
+}
+def javaHomeNativeImage = providers.environmentVariable('JAVA_HOME').map { javaHome ->
+    def candidate = new File(javaHome, 'bin/native-image')
+    candidate.isFile() ? candidate.absolutePath : 'native-image'
+}
+def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
+        .orElse(javaHomeNativeImage)
+        .orElse('native-image')
+
+tasks.register('nativeIdljValidateSmokeCompile', Exec) {
+    group = 'verification'
+    description = 'Builds a GraalVM Native Image smoke executable for idlj validate.'
+    dependsOn tasks.named('nativeSmokeClasses')
+    inputs.files(nativeSmokeRuntimeClasspath)
+    outputs.file(nativeSmokeBinary)
+
+    doFirst {
+        nativeSmokeOutputDirectory.get().asFile.mkdirs()
+        executable = nativeImageExecutable.get()
+        args = [
+            '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-o',
+            nativeSmokeBinary.get().absolutePath,
+            '-cp',
+            nativeSmokeRuntimeClasspath.asPath,
+            nativeSmokeMainClass
+        ]
+    }
+}
+
+tasks.register('nativeIdljValidateSmoke', Exec) {
+    group = 'verification'
+    description = 'Runs the GraalVM Native Image smoke executable for idlj validate.'
+    dependsOn tasks.named('nativeIdljValidateSmokeCompile')
+
+    doFirst {
+        executable = nativeSmokeBinary.get().absolutePath
+        args = []
+    }
+}

@@ -1,7 +1,7 @@
 # G6-160 Minimal IDL-to-Java Generation
 
 Task ID: G6-160-IDL-JAVA-MINIMAL-GENERATION
-Status: draft
+Status: ready-for-implementation
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDLJ-002, REQ-IDLJ-003, REQ-IDLJ-004, REQ-DOC-005
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Mapping package docs and IDL-to-Java conformance rows.
 Commands to run: ./gradlew :modules:corba-idl-java-mapping:test :modules:corba-codegen:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Generated source is deterministic, documented, and does not require reflection in normal paths.
 Rollback notes: Revert mapping/codegen implementation, tests, and conformance updates together.
-

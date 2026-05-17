@@ -84,3 +84,21 @@ The semantic model is deliberately not a compiler back end. Repository ID
 construction, Java mapping, generated source, generated codecs, TypeCode, Any,
 CDR, GIOP/IIOP, ORB runtime behavior, reflection, dynamic classpath scanning,
 and Native Image metadata generation remain assigned to later roadmap tasks.
+
+## Validation CLI Boundary
+
+The first `corba-idlj` command-line slice exposes validation only:
+
+```text
+corba-idlj validate [-Ipath|-I path|--include path] [--quiet] <files...>
+```
+
+The command reads UTF-8 root IDL files in argument order, expands includes
+through explicit include roots, parses the approved minimal subset, and runs
+semantic analysis only when parsing succeeds. It emits deterministic human
+diagnostics to stderr and returns stable exit codes for success, validation
+failure, and command/input failure.
+
+This boundary intentionally stops before compiler back-end behavior. The CLI
+does not generate Java source, CDR codecs, repository IDs, descriptors, ORB
+runtime artifacts, protocol behavior, or Native Image metadata in G6-150.
