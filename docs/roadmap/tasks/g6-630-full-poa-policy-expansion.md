@@ -1,7 +1,7 @@
 # G6-630 Full POA Policy Expansion
 
 Task ID: G6-630-FULL-POA-POLICY-EXPANSION
-Status: draft
+Status: ready-for-implementation
 Gate: G6 server runtime expansion
 Requirement IDs: REQ-POA-001, REQ-POA-002, REQ-ORB-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0003, ADR-0005
@@ -15,4 +15,3 @@ Documentation to update: POA design and conformance matrix status.
 Commands to run: ./gradlew :modules:corba-poa:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Approved POA policies are implemented or explicitly deferred with documented reasons.
 Rollback notes: Revert full POA expansion, tests, and docs together.
-

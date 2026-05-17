@@ -72,8 +72,8 @@ values, task-type markers, and the rule that at least one task is active as
 ### G6.7 Server Runtime Slice
 
 - `tasks/g6-610-poa-policy-matrix.md` - complete
-- `tasks/g6-620-poa-lite-servant-dispatch.md` - ready-for-implementation
-- `tasks/g6-630-full-poa-policy-expansion.md`
+- `tasks/g6-620-poa-lite-servant-dispatch.md` - complete
+- `tasks/g6-630-full-poa-policy-expansion.md` - ready-for-implementation
 
 ### G6.8 Dynamic and Metadata Slice
 

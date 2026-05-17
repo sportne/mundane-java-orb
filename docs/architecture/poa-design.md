@@ -1,8 +1,8 @@
 # POA Design
 
 This document is the design-control source for Portable Object Adapter policy
-behavior. G6-610 defines the approved policy matrix and staging boundary only;
-runtime behavior begins in G6-620.
+behavior. G6-610 defines the approved policy matrix and staging boundary. G6-620
+starts the POA-lite runtime path for active-object-map servant dispatch.
 
 ## Object Model
 
@@ -108,6 +108,10 @@ references, implicit servant activation, default servants, servant managers,
 servant locators, adapter activators, full POA manager queuing, generated-code
 changes, or peer interoperability behavior.
 
+The G6-620 implementation provides this profile as an in-process dispatch layer
+over `LocalOrb`. It uses the `LocalObjectReference.objectId()` value as the
+POA-lite object id for this slice.
+
 ### Full POA Expansion
 
 G6-630 owns the remaining policy combinations and must either implement or
@@ -126,12 +130,13 @@ That includes:
 - adapter activators and child POA lookup behavior;
 - holding and discarding POA manager semantics.
 
-## Future Test Coverage
+## Test Coverage
 
 | Test ID | Stage | Coverage intent |
 |---|---|---|
-| `PoaPolicyMatrixTest` | G6-620 | Validates the POA-lite policy profile and rejects known invalid combinations such as `NON_RETAIN + USE_ACTIVE_OBJECT_MAP_ONLY`. |
-| `PoaLiteDispatchTest` | G6-620 | Covers explicit activation, system object id assignment, active object map lookup, generated-style servant dispatch, unknown object ids, and shutdown. |
+| `PoaPolicyMatrixTest` | G6-620 implemented | Validates the POA-lite policy profile and rejects known invalid combinations such as `NON_RETAIN + USE_ACTIVE_OBJECT_MAP_ONLY`. |
+| `PoaLiteDispatchTest` | G6-620 implemented | Covers explicit activation, system object id assignment, active object map lookup, generated-style servant dispatch, unknown object ids, and shutdown. |
+| `PoaLiteBoundaryTest` | G6-620 implemented | Confirms the POA-lite production slice avoids deferred protocol, reflection, serialization, and full POA lifecycle mechanisms. |
 | `PoaPolicyCombinationTest` | G6-630 | Exercises the full policy matrix, including default servants, servant managers, implicit activation, and persistent/deferred combinations. |
 | `PoaManagerStateTest` | G6-630 | Covers active, holding, discarding, and inactive state transitions and request effects. |
 | `PoaServantManagerTest` | G6-630 | Covers `ServantActivator` and `ServantLocator` lifecycle behavior. |

@@ -50,6 +50,8 @@ This repository is in **Gate G6 foundation implementation state**:
   approved roadmap tasks;
 - the POA policy matrix and POA-lite/full-POA implementation boundary have
   started under approved roadmap tasks;
+- POA-lite active-object-map servant dispatch has started under approved
+  roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -112,7 +114,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-620-poa-lite-servant-dispatch.md`.
+- `docs/roadmap/tasks/g6-630-full-poa-policy-expansion.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
