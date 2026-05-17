@@ -30,7 +30,8 @@ This repository is in **Gate G6 foundation implementation state**:
 - shared diagnostics and bounded-limit foundation types have started;
 - the IDL lexer, minimal preprocessor, parser, and AST foundations have started
   under approved roadmap tasks;
-- CORBA runtime, protocol, semantic analysis, ORB, POA, service, and
+- CDR primitive read/write behavior has started under approved roadmap tasks;
+- CORBA runtime, GIOP/IIOP transport, semantic analysis, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
 ## Primary goals
@@ -92,7 +93,6 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-310-cdr-primitives.md`;
 - `docs/roadmap/tasks/g6-610-poa-policy-matrix.md`.
 
 Remaining human gates, including final license approval and dependency-policy

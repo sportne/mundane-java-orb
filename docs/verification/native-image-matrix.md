@@ -7,6 +7,7 @@
 
 ## Required native binaries
 
+- CDR primitive test binary.
 - `corba-idlj`.
 - generated client sample.
 - generated server sample.
@@ -22,3 +23,8 @@
 - startup/shutdown;
 - class-initialization audit;
 - reflection metadata audit.
+
+## Current G6 native checks
+
+- `:modules:corba-cdr:nativeCdrSmoke` builds and executes a GraalVM Native
+  Image smoke executable for the CDR primitive reader and writer API.

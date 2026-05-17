@@ -8,3 +8,66 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Common Data Representation reader/writer and CDR golden-wire fixtures.'
+
+dependencies {
+    // CDR readers and writers reuse the shared bounded-limit value type for safe wire-size checks.
+    api project(':modules:corba-common')
+
+    // CDR tests compare deterministic wire bytes with the repository golden-fixture helpers.
+    testImplementation project(':modules:corba-testkit')
+}
+
+sourceSets {
+    nativeSmoke {
+        java.srcDir 'src/nativeSmoke/java'
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.output + configurations.runtimeClasspath
+    }
+}
+
+def nativeSmokeMainClass = 'io.github.mundanej.mjo.cdr.CdrNativeSmoke'
+def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
+def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/cdrSmoke')
+def nativeSmokeBinary = nativeSmokeOutputDirectory.map { directory ->
+    directory.file('cdr-native-smoke').asFile
+}
+def javaHomeNativeImage = providers.environmentVariable('JAVA_HOME').map { javaHome ->
+    def candidate = new File(javaHome, 'bin/native-image')
+    candidate.isFile() ? candidate.absolutePath : 'native-image'
+}
+def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
+        .orElse(javaHomeNativeImage)
+        .orElse('native-image')
+
+tasks.register('nativeCdrSmokeCompile', Exec) {
+    group = 'verification'
+    description = 'Builds a GraalVM Native Image smoke executable for CDR primitives.'
+    dependsOn tasks.named('nativeSmokeClasses')
+    inputs.files(nativeSmokeRuntimeClasspath)
+    outputs.file(nativeSmokeBinary)
+
+    doFirst {
+        nativeSmokeOutputDirectory.get().asFile.mkdirs()
+        executable = nativeImageExecutable.get()
+        args = [
+            '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '-o',
+            nativeSmokeBinary.get().absolutePath,
+            '-cp',
+            nativeSmokeRuntimeClasspath.asPath,
+            nativeSmokeMainClass
+        ]
+    }
+}
+
+tasks.register('nativeCdrSmoke', Exec) {
+    group = 'verification'
+    description = 'Runs the GraalVM Native Image smoke executable for CDR primitives.'
+    dependsOn tasks.named('nativeCdrSmokeCompile')
+
+    doFirst {
+        executable = nativeSmokeBinary.get().absolutePath
+        args = []
+    }
+}
