@@ -8,3 +8,13 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Legacy and modern Java language mapping rules.'
+
+dependencies {
+    // Mapping consumes validated semantic models and AST structure.
+    api project(':modules:corba-common')
+    api project(':modules:corba-idl-ast')
+    api project(':modules:corba-idl-semantics')
+
+    // Tests parse compact IDL fixtures before mapping.
+    testImplementation project(':modules:corba-idl-parser')
+}

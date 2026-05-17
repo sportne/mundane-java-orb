@@ -8,3 +8,15 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Deterministic Java source generation and generated metadata support.'
+
+dependencies {
+    // Source generation consumes the IDL-to-Java mapping model.
+    api project(':modules:corba-common')
+    api project(':modules:corba-idl-ast')
+    api project(':modules:corba-idl-semantics')
+    api project(':modules:corba-idl-java-mapping')
+
+    // Tests parse IDL fixtures and compare golden generated source.
+    testImplementation project(':modules:corba-idl-parser')
+    testImplementation project(':modules:corba-testkit')
+}

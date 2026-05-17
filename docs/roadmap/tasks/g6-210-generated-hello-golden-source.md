@@ -1,7 +1,7 @@
 # G6-210 Generated Hello Golden Source
 
 Task ID: G6-210-GENERATED-HELLO-GOLDEN-SOURCE
-Status: draft
+Status: ready-for-implementation
 Gate: G6 generated-code vertical slice
 Requirement IDs: REQ-IDLJ-001, REQ-IDLJ-002, REQ-IDLJ-003, REQ-DOC-005, REQ-NFR-007
 ADR IDs: ADR-0003, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Generated-code verification notes and conformance test 
 Commands to run: ./gradlew :modules:corba-codegen:test :modules:corba-idlj-cli:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: The first end-to-end IDL-to-source vertical slice is deterministic and locally testable.
 Rollback notes: Revert generated Hello fixtures, codegen changes, tests, and docs together.
-

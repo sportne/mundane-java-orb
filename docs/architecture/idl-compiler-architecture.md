@@ -102,3 +102,21 @@ failure, and command/input failure.
 This boundary intentionally stops before compiler back-end behavior. The CLI
 does not generate Java source, CDR codecs, repository IDs, descriptors, ORB
 runtime artifacts, protocol behavior, or Native Image metadata in G6-150.
+
+## Java Mapping And Source Boundary
+
+The first source-generation slice consumes a valid `IdlSemanticModel` and emits
+an intermediate `JavaMappingModel` before rendering Java source. Mapping is
+explicitly mode-specific:
+
+- `LEGACY_COMPATIBILITY` uses conservative legacy-oriented naming while staying
+  compile-safe without legacy runtime artifacts;
+- `MODERN` maps the same semantic subset into a distinct modern package
+  namespace.
+
+G6-160 covers modules, interfaces, operations, attributes, structs, enums,
+exceptions, and constants for the parser-approved minimal subset. Generated
+source is deterministic, includes source IDL identity and mapping metadata, and
+compiles without `org.omg.*`, ORB runtime APIs, CDR codecs, repository IDs,
+helpers, holders, stubs, skeletons, POA classes, reflection, dynamic class
+loading, or Native Image metadata.

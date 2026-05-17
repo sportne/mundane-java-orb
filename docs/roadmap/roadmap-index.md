@@ -45,11 +45,11 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g6-130-idl-minimal-parser-ast.md` - complete
 - `tasks/g6-140-idl-semantics-symbols.md` - complete
 - `tasks/g6-150-idlj-validate-cli.md` - complete
-- `tasks/g6-160-idl-java-minimal-generation.md` - ready-for-implementation
+- `tasks/g6-160-idl-java-minimal-generation.md` - complete
 
 ### G6.3 Generated Hello Slice
 
-- `tasks/g6-210-generated-hello-golden-source.md`
+- `tasks/g6-210-generated-hello-golden-source.md` - ready-for-implementation
 - `tasks/g6-220-generated-codecs-descriptors.md`
 
 ### G6.4 CDR and IOR Slice
