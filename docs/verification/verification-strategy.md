@@ -16,6 +16,9 @@ The project uses layered verification:
 12. performance and soak tests;
 13. offline build tests.
 
+Reusable fixture loading, text normalization, golden-source comparisons, and
+golden-wire comparisons follow `fixture-conventions.md`.
+
 A feature is not complete until its conformance matrix row shows implementation,
 unit testing, integration testing, interop testing where applicable, and
 native-image testing where applicable.

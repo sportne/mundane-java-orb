@@ -35,11 +35,11 @@ values, task-type markers, and the rule that exactly one task is active as
 
 - `tasks/g6-030-common-diagnostics-limits.md` - complete
 - `tasks/g6-040-repository-id-foundation.md` - complete
-- `tasks/g6-050-testkit-golden-fixtures.md` - ready-for-implementation
+- `tasks/g6-050-testkit-golden-fixtures.md` - complete
 
 ### G6.2 IDL Compiler Slice
 
-- `tasks/g6-110-idl-diagnostics-lexer.md`
+- `tasks/g6-110-idl-diagnostics-lexer.md` - ready-for-implementation
 - `tasks/g6-120-idl-preprocessor-includes.md`
 - `tasks/g6-130-idl-minimal-parser-ast.md`
 - `tasks/g6-140-idl-semantics-symbols.md`

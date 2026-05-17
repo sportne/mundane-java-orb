@@ -14,3 +14,6 @@
 | `fuzz` | Parser/protocol fuzz tests. |
 | `security` | Hostile input and security behavior tests. |
 | `offline-build` | Offline repository and dependency validation. |
+
+Golden fixture layout and comparison behavior are defined in
+`fixture-conventions.md`.

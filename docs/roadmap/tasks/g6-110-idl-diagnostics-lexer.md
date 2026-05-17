@@ -1,7 +1,7 @@
 # G6-110 IDL Diagnostics and Lexer
 
 Task ID: G6-110-IDL-DIAGNOSTICS-LEXER
-Status: draft
+Status: ready-for-implementation
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDL-001, REQ-IDL-003, REQ-SEC-003, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0007
@@ -15,4 +15,3 @@ Documentation to update: Package docs and IDL lexical conformance row.
 Commands to run: ./gradlew :modules:corba-idl-parser:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Lexer emits stable tokens and diagnostics without parsing declarations.
 Rollback notes: Revert lexer implementation, tests, and conformance updates together.
-
