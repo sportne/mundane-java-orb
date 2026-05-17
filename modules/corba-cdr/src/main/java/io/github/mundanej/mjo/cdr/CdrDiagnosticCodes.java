@@ -2,7 +2,7 @@ package io.github.mundanej.mjo.cdr;
 
 import io.github.mundanej.mjo.common.DiagnosticCode;
 
-/** Stable diagnostic codes for CDR primitive encoding and decoding failures. */
+/** Stable diagnostic codes for CDR encoding and decoding failures. */
 public final class CdrDiagnosticCodes {
 
   /** Input ended before the aligned primitive value was fully available. */
@@ -22,6 +22,22 @@ public final class CdrDiagnosticCodes {
 
   /** Long double raw payload was not exactly 16 octets. */
   public static final DiagnosticCode INVALID_LONG_DOUBLE = new DiagnosticCode("CDR-0006");
+
+  /** Length-bearing CDR value used an invalid length. */
+  public static final DiagnosticCode INVALID_LENGTH = new DiagnosticCode("CDR-0007");
+
+  /** Length-bearing CDR value exceeded its configured bound. */
+  public static final DiagnosticCode LENGTH_LIMIT_EXCEEDED = new DiagnosticCode("CDR-0008");
+
+  /** Narrow string payload was not terminated as required by CDR. */
+  public static final DiagnosticCode MALFORMED_STRING = new DiagnosticCode("CDR-0009");
+
+  /** Encapsulation byte-order marker was not one of the CDR marker values. */
+  public static final DiagnosticCode INVALID_ENCAPSULATION_BYTE_ORDER =
+      new DiagnosticCode("CDR-0010");
+
+  /** Sequence or fixed-array size was invalid for generated-code loops. */
+  public static final DiagnosticCode INVALID_COLLECTION_SIZE = new DiagnosticCode("CDR-0011");
 
   private CdrDiagnosticCodes() {}
 }

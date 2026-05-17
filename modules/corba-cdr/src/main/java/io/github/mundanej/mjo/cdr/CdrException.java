@@ -3,7 +3,7 @@ package io.github.mundanej.mjo.cdr;
 import io.github.mundanej.mjo.common.DiagnosticCode;
 import java.util.Objects;
 
-/** Thrown when CDR primitive input or output violates the supported wire rules. */
+/** Thrown when CDR input or output violates the supported wire rules. */
 public final class CdrException extends IllegalArgumentException {
 
   private static final long serialVersionUID = 1L;

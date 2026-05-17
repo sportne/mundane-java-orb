@@ -6,7 +6,7 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 
-/** Bounded CDR primitive writer with explicit byte order and alignment handling. */
+/** Bounded CDR writer with explicit byte order and alignment handling. */
 public final class CdrWriter {
 
   private static final BoundedLimit DEFAULT_OUTPUT_LENGTH_LIMIT =
@@ -14,19 +14,31 @@ public final class CdrWriter {
   private static final BigInteger UNSIGNED_LONG_LONG_LIMIT = BigInteger.ONE.shiftLeft(64);
 
   private final CdrByteOrder byteOrder;
+  private final CdrLimits limits;
   private final BoundedLimit outputLengthLimit;
   private byte[] output = new byte[32];
   private int position;
 
   /** Creates a primitive writer with the default output bound. */
   public CdrWriter(CdrByteOrder byteOrder) {
-    this(byteOrder, DEFAULT_OUTPUT_LENGTH_LIMIT);
+    this(byteOrder, DEFAULT_OUTPUT_LENGTH_LIMIT, CdrLimits.defaults());
+  }
+
+  /** Creates a writer with caller-supplied CDR limits and the default output bound. */
+  public CdrWriter(CdrByteOrder byteOrder, CdrLimits limits) {
+    this(byteOrder, DEFAULT_OUTPUT_LENGTH_LIMIT, limits);
   }
 
   /** Creates a primitive writer with a caller-supplied output bound. */
   public CdrWriter(CdrByteOrder byteOrder, BoundedLimit outputLengthLimit) {
+    this(byteOrder, outputLengthLimit, CdrLimits.defaults());
+  }
+
+  /** Creates a writer with caller-supplied output and length-bearing value bounds. */
+  public CdrWriter(CdrByteOrder byteOrder, BoundedLimit outputLengthLimit, CdrLimits limits) {
     this.byteOrder = Objects.requireNonNull(byteOrder, "byteOrder");
     this.outputLengthLimit = Objects.requireNonNull(outputLengthLimit, "outputLengthLimit");
+    this.limits = Objects.requireNonNull(limits, "limits");
   }
 
   /** Creates a big-endian primitive writer. */
@@ -34,14 +46,29 @@ public final class CdrWriter {
     return new CdrWriter(CdrByteOrder.BIG_ENDIAN);
   }
 
+  /** Creates a big-endian writer with caller-supplied limits. */
+  public static CdrWriter bigEndian(CdrLimits limits) {
+    return new CdrWriter(CdrByteOrder.BIG_ENDIAN, limits);
+  }
+
   /** Creates a little-endian primitive writer. */
   public static CdrWriter littleEndian() {
     return new CdrWriter(CdrByteOrder.LITTLE_ENDIAN);
   }
 
+  /** Creates a little-endian writer with caller-supplied limits. */
+  public static CdrWriter littleEndian(CdrLimits limits) {
+    return new CdrWriter(CdrByteOrder.LITTLE_ENDIAN, limits);
+  }
+
   /** Returns the configured byte order. */
   public CdrByteOrder byteOrder() {
     return byteOrder;
+  }
+
+  /** Returns the configured bounds for length-bearing CDR values. */
+  public CdrLimits limits() {
+    return limits;
   }
 
   /** Returns the next byte offset to be written. */
@@ -140,6 +167,55 @@ public final class CdrWriter {
     return this;
   }
 
+  /** Writes a bounded narrow CDR string using one-octet Latin-1 character mapping. */
+  public CdrWriter writeString(String value) {
+    Objects.requireNonNull(value, "value");
+    long length = (long) value.length() + 1L;
+    requireBoundedLength(length, limits.stringOctets());
+    byte[] bytes = new byte[(int) length];
+    for (int index = 0; index < value.length(); index++) {
+      char character = value.charAt(index);
+      if (character > 0x00FF) {
+        throw new CdrException(
+            CdrDiagnosticCodes.INVALID_CHARACTER,
+            "CDR string character must fit in one octet: " + (int) character);
+      }
+      bytes[index] = (byte) character;
+    }
+    writeUnsignedLong(length);
+    writeRawBytes(bytes);
+    return this;
+  }
+
+  /** Writes a bounded CDR sequence length. */
+  public CdrWriter writeSequenceLength(int elementCount) {
+    validateSequenceLength(elementCount);
+    return writeUnsignedLong(elementCount);
+  }
+
+  /** Validates a fixed-array element count for generated-code loops. */
+  public int validateFixedArrayLength(int elementCount) {
+    return validateSequenceLength(elementCount);
+  }
+
+  /** Writes a bounded CDR sequence of octets. */
+  public CdrWriter writeOctetSequence(byte[] value) {
+    Objects.requireNonNull(value, "value");
+    writeSequenceLength(value.length);
+    writeRawBytes(value);
+    return this;
+  }
+
+  /** Writes a bounded length-prefixed CDR encapsulation. */
+  public CdrWriter writeEncapsulation(CdrEncapsulation encapsulation) {
+    Objects.requireNonNull(encapsulation, "encapsulation");
+    byte[] bytes = encapsulation.bytes();
+    requireBoundedLength(bytes.length, limits.encapsulationOctets());
+    writeUnsignedLong(bytes.length);
+    writeRawBytes(bytes);
+    return this;
+  }
+
   /** Returns a defensive copy of the encoded bytes. */
   public byte[] toByteArray() {
     return Arrays.copyOf(output, position);
@@ -157,6 +233,12 @@ public final class CdrWriter {
       }
     }
     return this;
+  }
+
+  private void writeRawBytes(byte[] bytes) {
+    prepareAlignedWrite(1, bytes.length);
+    System.arraycopy(bytes, 0, output, position, bytes.length);
+    position += bytes.length;
   }
 
   private void writeBigIntegerBytes(BigInteger value, int byteCount) {
@@ -204,6 +286,24 @@ public final class CdrWriter {
     }
   }
 
+  private int validateSequenceLength(int elementCount) {
+    if (elementCount < 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_COLLECTION_SIZE,
+          "CDR sequence element count must be nonnegative: " + elementCount);
+    }
+    requireBoundedLength(elementCount, limits.sequenceElements());
+    return elementCount;
+  }
+
+  private static void requireBoundedLength(long length, BoundedLimit limit) {
+    if (length < 0 || length > 0xFFFF_FFFFL) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH, "CDR length must fit in unsigned long: " + length);
+    }
+    limit.check(length).ifPresent(CdrWriter::throwLengthLimitExceeded);
+  }
+
   private static int paddingFor(int position, int alignment) {
     if (alignment <= 0 || Integer.bitCount(alignment) != 1 || alignment > 8) {
       throw new IllegalArgumentException("alignment must be a power of two in 1..8");
@@ -214,5 +314,9 @@ public final class CdrWriter {
 
   private static void throwOutputLimitExceeded(LimitViolation violation) {
     throw new CdrException(CdrDiagnosticCodes.OUTPUT_LIMIT_EXCEEDED, violation.message());
+  }
+
+  private static void throwLengthLimitExceeded(LimitViolation violation) {
+    throw new CdrException(CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED, violation.message());
   }
 }

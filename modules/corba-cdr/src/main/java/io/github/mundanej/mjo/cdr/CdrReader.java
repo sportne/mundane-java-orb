@@ -1,19 +1,28 @@
 package io.github.mundanej.mjo.cdr;
 
+import io.github.mundanej.mjo.common.BoundedLimit;
+import io.github.mundanej.mjo.common.LimitViolation;
 import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Objects;
 
-/** Bounded CDR primitive reader with explicit byte order and alignment handling. */
+/** Bounded CDR reader with explicit byte order and alignment handling. */
 public final class CdrReader {
 
   private final CdrByteOrder byteOrder;
+  private final CdrLimits limits;
   private final byte[] input;
   private int position;
 
   /** Creates a primitive reader over a defensive copy of the input bytes. */
   public CdrReader(CdrByteOrder byteOrder, byte[] input) {
+    this(byteOrder, input, CdrLimits.defaults());
+  }
+
+  /** Creates a reader over a defensive copy of the input bytes with caller-supplied limits. */
+  public CdrReader(CdrByteOrder byteOrder, byte[] input, CdrLimits limits) {
     this.byteOrder = Objects.requireNonNull(byteOrder, "byteOrder");
+    this.limits = Objects.requireNonNull(limits, "limits");
     this.input = Arrays.copyOf(Objects.requireNonNull(input, "input"), input.length);
   }
 
@@ -22,14 +31,29 @@ public final class CdrReader {
     return new CdrReader(CdrByteOrder.BIG_ENDIAN, input);
   }
 
+  /** Creates a big-endian reader with caller-supplied limits. */
+  public static CdrReader bigEndian(byte[] input, CdrLimits limits) {
+    return new CdrReader(CdrByteOrder.BIG_ENDIAN, input, limits);
+  }
+
   /** Creates a little-endian primitive reader. */
   public static CdrReader littleEndian(byte[] input) {
     return new CdrReader(CdrByteOrder.LITTLE_ENDIAN, input);
   }
 
+  /** Creates a little-endian reader with caller-supplied limits. */
+  public static CdrReader littleEndian(byte[] input, CdrLimits limits) {
+    return new CdrReader(CdrByteOrder.LITTLE_ENDIAN, input, limits);
+  }
+
   /** Returns the configured byte order. */
   public CdrByteOrder byteOrder() {
     return byteOrder;
+  }
+
+  /** Returns the configured bounds for length-bearing CDR values. */
+  public CdrLimits limits() {
+    return limits;
   }
 
   /** Returns the next byte offset to be read. */
@@ -122,6 +146,57 @@ public final class CdrReader {
     return readPrimitiveBytes(8, 16);
   }
 
+  /** Reads a bounded narrow CDR string using one-octet Latin-1 character mapping. */
+  public String readString() {
+    int length = readRequiredLength("string", limits.stringOctets());
+    if (length == 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH, "CDR string length must include a null terminator");
+    }
+    byte[] bytes = readRawBytes(length, "string octets");
+    if (bytes[length - 1] != 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.MALFORMED_STRING, "CDR string must end with a null octet");
+    }
+    char[] characters = new char[length - 1];
+    for (int index = 0; index < characters.length; index++) {
+      characters[index] = (char) (bytes[index] & 0xFF);
+    }
+    return new String(characters);
+  }
+
+  /** Reads and validates a bounded CDR sequence length. */
+  public int readSequenceLength() {
+    return readRequiredLength("sequence", limits.sequenceElements());
+  }
+
+  /** Validates a fixed-array element count for generated-code loops. */
+  public int validateFixedArrayLength(int elementCount) {
+    if (elementCount < 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_COLLECTION_SIZE,
+          "CDR fixed-array element count must be nonnegative: " + elementCount);
+    }
+    limits.sequenceElements().check(elementCount).ifPresent(CdrReader::throwLengthLimitExceeded);
+    return elementCount;
+  }
+
+  /** Reads a bounded CDR sequence of octets. */
+  public byte[] readOctetSequence() {
+    return readRawBytes(readSequenceLength(), "octet sequence");
+  }
+
+  /** Reads a bounded length-prefixed CDR encapsulation. */
+  public CdrEncapsulation readEncapsulation() {
+    int length = readRequiredLength("encapsulation", limits.encapsulationOctets());
+    if (length == 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH,
+          "CDR encapsulation length must include a byte-order marker");
+    }
+    return CdrEncapsulation.fromBytes(readRawBytes(length, "encapsulation octets"));
+  }
+
   private int readUnsigned(int alignment, int byteCount) {
     long value = readUnsignedLongBits(alignment, byteCount);
     return Math.toIntExact(value);
@@ -146,6 +221,24 @@ public final class CdrReader {
     int padding = paddingFor(position, alignment);
     requireRemaining(padding + byteCount, "aligned primitive");
     position += padding;
+    byte[] value = Arrays.copyOfRange(input, position, position + byteCount);
+    position += byteCount;
+    return value;
+  }
+
+  private int readRequiredLength(String label, BoundedLimit limit) {
+    long length = readUnsignedLong();
+    if (length > Integer.MAX_VALUE) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH,
+          "CDR " + label + " length exceeds Java array limits: " + length);
+    }
+    limit.check(length).ifPresent(CdrReader::throwLengthLimitExceeded);
+    return (int) length;
+  }
+
+  private byte[] readRawBytes(int byteCount, String label) {
+    requireRemaining(byteCount, label);
     byte[] value = Arrays.copyOfRange(input, position, position + byteCount);
     position += byteCount;
     return value;
@@ -178,5 +271,9 @@ public final class CdrReader {
       bytes[left] = bytes[right];
       bytes[right] = temporary;
     }
+  }
+
+  private static void throwLengthLimitExceeded(LimitViolation violation) {
+    throw new CdrException(CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED, violation.message());
   }
 }

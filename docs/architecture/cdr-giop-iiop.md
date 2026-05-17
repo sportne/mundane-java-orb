@@ -9,11 +9,12 @@
 - Encapsulation handling is separate from top-level message handling.
 - Generated codecs call CDR APIs directly.
 
-## CDR Primitive Slice
+## CDR Reader/Writer Slices
 
 `modules/corba-cdr` exposes syntax-independent primitive readers and writers.
-The first implementation slice covers explicit byte order, primitive alignment,
-bounded writer output, and deterministic primitive wire encodings only.
+The first implementation slices cover explicit byte order, primitive alignment,
+bounded writer output, deterministic primitive wire encodings, and bounded
+length-bearing values.
 
 Primitive coverage includes boolean, octet, char, short, unsigned short, long,
 unsigned long, long long, unsigned long long, float, double, and raw 16-octet
@@ -21,13 +22,21 @@ long double payloads. Boolean decoding is strict: only octets `0` and `1` are
 accepted. Long double numeric interpretation is deferred; this slice preserves
 the 16-octet payload.
 
-String, sequence, array, encapsulation, TypeCode, Any, object-reference, GIOP,
-IIOP, and ORB invocation behavior remain outside the primitive slice.
+Length-bearing CDR coverage includes narrow strings, sequence lengths,
+fixed-array element-count validation for generated-code loops, raw octet
+sequences, and length-prefixed encapsulations. Narrow strings use one-octet
+Latin-1 mapping in this CDR slice because code-set negotiation is GIOP-level
+behavior. Encapsulations validate byte-order markers and create nested readers
+whose alignment starts at the encapsulation stream, after the marker has been
+consumed.
+
+Wstring, negotiated code sets, TypeCode, Any, object-reference, GIOP, IIOP, and
+ORB invocation behavior remain outside the current CDR slice.
 
 The primitive reader/writer package participates in the Native Image validation
-lane. Its native smoke executable exercises deterministic CDR primitive wire
-behavior without reflection, dynamic proxies, runtime code generation, or
-native-image metadata.
+lane. Its native smoke executable exercises deterministic CDR primitive,
+string, sequence, and encapsulation behavior without reflection, dynamic
+proxies, runtime code generation, or native-image metadata.
 
 ## GIOP rules
 

@@ -17,6 +17,11 @@ public final class CdrNativeSmoke {
         CdrWriter.littleEndian()
             .writeBoolean(true)
             .writeOctet(0xCA)
+            .writeString("native")
+            .writeOctetSequence(bytes(1, 1, 2, 3))
+            .writeEncapsulation(
+                CdrEncapsulation.of(
+                    CdrByteOrder.BIG_ENDIAN, bytes(0, 0, 0, 0x00, 0x00, 0x00, 0x2A)))
             .writeLong(-1)
             .writeUnsignedLong(0xFFFFFFFFL)
             .writeUnsignedLongLong(maxUnsignedLongLong)
@@ -27,6 +32,11 @@ public final class CdrNativeSmoke {
     CdrReader reader = CdrReader.littleEndian(writer.toByteArray());
     require(reader.readBoolean(), "boolean");
     requireEquals(0xCA, reader.readOctet(), "octet");
+    requireEquals("native", reader.readString(), "string");
+    require(Arrays.equals(bytes(1, 1, 2, 3), reader.readOctetSequence()), "octet sequence");
+    CdrReader nested = reader.readEncapsulation().reader();
+    requireEquals(42, nested.readLong(), "encapsulated long");
+    requireEquals(0, nested.remaining(), "encapsulated remaining bytes");
     requireEquals(-1, reader.readLong(), "signed long");
     requireEquals(0xFFFFFFFFL, reader.readUnsignedLong(), "unsigned long");
     requireEquals(maxUnsignedLongLong, reader.readUnsignedLongLong(), "unsigned long long");
@@ -58,6 +68,13 @@ public final class CdrNativeSmoke {
   }
 
   private static void requireEquals(BigInteger expected, BigInteger actual, String label) {
+    if (!expected.equals(actual)) {
+      throw new AssertionError(
+          "CDR native smoke failed: " + label + "; expected " + expected + ", got " + actual);
+    }
+  }
+
+  private static void requireEquals(String expected, String actual, String label) {
     if (!expected.equals(actual)) {
       throw new AssertionError(
           "CDR native smoke failed: " + label + "; expected " + expected + ", got " + actual);

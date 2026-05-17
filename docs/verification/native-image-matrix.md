@@ -34,7 +34,8 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 ## Current G6 native checks
 
 - `:modules:corba-cdr:nativeCdrSmoke` builds and executes a GraalVM Native
-  Image smoke executable for the CDR primitive reader and writer API.
+  Image smoke executable for the CDR primitive, string, sequence, and
+  encapsulation reader/writer API.
 - `:modules:corba-idl-semantics:nativeIdlSemanticsSmoke` builds and executes a
   GraalVM Native Image smoke executable for parser-to-semantics behavior over a
   compact IDL fixture.

@@ -34,7 +34,8 @@ This repository is in **Gate G6 foundation implementation state**:
   roadmap tasks;
 - compile-safe minimal IDL-to-Java mapping and source generation have started
   under approved roadmap tasks;
-- CDR primitive read/write behavior has started under approved roadmap tasks;
+- CDR primitive and length-bearing value read/write behavior has started under
+  approved roadmap tasks;
 - CORBA runtime, GIOP/IIOP transport, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
@@ -97,7 +98,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-320-cdr-strings-sequences-encapsulations.md`.
+- `docs/roadmap/tasks/g6-330-ior-profiles-object-urls.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
