@@ -1,7 +1,7 @@
 # G6-610 POA Policy Matrix
 
 Task ID: G6-610-POA-POLICY-MATRIX
-Status: draft
+Status: ready-for-implementation
 Gate: G6 server runtime design
 Requirement IDs: REQ-POA-001, REQ-POA-002, REQ-NFR-007
 ADR IDs: ADR-0002, ADR-0004, ADR-0005

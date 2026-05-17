@@ -86,10 +86,13 @@ see `docs/build/offline-build.md` and `tools/prepare-offline-repository.sh`.
 
 Build conventions live in `build-logic/` as composable Gradle convention plugins. Published and internal test modules live under `modules/`; non-published examples live under `examples/`.
 
-## Current next step
+## Ready roadmap tasks
 
-The next executable roadmap task is
-`docs/roadmap/tasks/g6-110-idl-diagnostics-lexer.md`.
+The currently ready roadmap tasks are:
+
+- `docs/roadmap/tasks/g6-110-idl-diagnostics-lexer.md`;
+- `docs/roadmap/tasks/g6-310-cdr-primitives.md`;
+- `docs/roadmap/tasks/g6-610-poa-policy-matrix.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

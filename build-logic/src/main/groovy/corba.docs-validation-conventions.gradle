@@ -79,6 +79,7 @@ tasks.register('validateDesignControlPack') {
 
         def errors = []
         def activeTaskFiles = []
+        def openTaskFiles = []
 
         taskFiles.each { taskFile ->
             def text = taskFile.text
@@ -100,6 +101,9 @@ tasks.register('validateDesignControlPack') {
                 if (status in ['ready-for-implementation', 'in-progress']) {
                     activeTaskFiles.add(taskFile)
                 }
+                if (!(status in ['complete', 'human-gate-blocked'])) {
+                    openTaskFiles.add(taskFile)
+                }
             }
 
             if (!(text =~ taskTypePattern).find()) {
@@ -107,8 +111,8 @@ tasks.register('validateDesignControlPack') {
             }
         }
 
-        if (activeTaskFiles.size() != 1) {
-            errors.add('Exactly one roadmap task must be ready-for-implementation or in-progress; found ' + activeTaskFiles)
+        if (activeTaskFiles.isEmpty() && !openTaskFiles.isEmpty()) {
+            errors.add('At least one roadmap task must be ready-for-implementation or in-progress while open tasks remain')
         }
 
         if (!errors.isEmpty()) {

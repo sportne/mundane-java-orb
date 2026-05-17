@@ -1,7 +1,7 @@
 # G6-310 CDR Primitives
 
 Task ID: G6-310-CDR-PRIMITIVES
-Status: draft
+Status: ready-for-implementation
 Gate: G6 CDR and IOR vertical slice
 Requirement IDs: REQ-CDR-001, REQ-SEC-001, REQ-SEC-004, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: CDR design notes, package docs, and conformance rows.
 Commands to run: ./gradlew :modules:corba-cdr:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Primitive wire encodings are deterministic, bounded, and covered by golden-wire fixtures.
 Rollback notes: Revert CDR primitive implementation, tests, and docs together.
-

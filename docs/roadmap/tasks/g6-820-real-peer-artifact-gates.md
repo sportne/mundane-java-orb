@@ -1,7 +1,7 @@
 # G6-820 Real Peer Artifact Gates
 
 Task ID: G6-820-REAL-PEER-ARTIFACT-GATES
-Status: draft
+Status: human-gate-blocked
 Gate: G6 interop infrastructure
 Requirement IDs: REQ-INTEROP-005, REQ-INTEROP-006, REQ-INTEROP-007, REQ-INTEROP-008, REQ-INTEROP-009
 ADR IDs: ADR-0006, ADR-0010

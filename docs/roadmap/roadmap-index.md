@@ -7,18 +7,19 @@ implementation.
 Each task file under `docs/roadmap/tasks/` uses the fields from
 `docs/roadmap/implementation-task-template.md`. After G0-G5 approval, these task
 files are the source of truth for G6 execution state. A task may be implemented
-when its `Status:` is `ready-for-implementation` and its scope is specific
-enough to execute directly.
+when its `Status:` is `ready-for-implementation`, its scope is specific enough
+to execute directly, and its file boundaries do not conflict with other active
+work.
 
 `validateDesignControlPack` enforces the task template shape, accepted status
-values, task-type markers, and the rule that exactly one task is active as
-`ready-for-implementation` or `in-progress`.
+values, task-type markers, and the rule that at least one task is active as
+`ready-for-implementation` or `in-progress` while open roadmap work remains.
 
 ## Status vocabulary
 
 - `draft`: Task exists but is not approved for execution.
-- `ready-for-implementation`: Task is approved as the next executable slice.
-- `in-progress`: Task is actively being executed.
+- `ready-for-implementation`: Task is approved, unblocked, and available for execution.
+- `in-progress`: Task is actively being executed; file boundaries must not conflict with other active work.
 - `complete`: Task has been implemented and accepted.
 - `blocked`: Task depends on another implementation, design, artifact, or validation task.
 - `human-gate-blocked`: Task depends on maintainer, legal, license, or release approval.
@@ -53,7 +54,7 @@ values, task-type markers, and the rule that exactly one task is active as
 
 ### G6.4 CDR and IOR Slice
 
-- `tasks/g6-310-cdr-primitives.md`
+- `tasks/g6-310-cdr-primitives.md` - ready-for-implementation
 - `tasks/g6-320-cdr-strings-sequences-encapsulations.md`
 - `tasks/g6-330-ior-profiles-object-urls.md`
 
@@ -70,7 +71,7 @@ values, task-type markers, and the rule that exactly one task is active as
 
 ### G6.7 Server Runtime Slice
 
-- `tasks/g6-610-poa-policy-matrix.md`
+- `tasks/g6-610-poa-policy-matrix.md` - ready-for-implementation
 - `tasks/g6-620-poa-lite-servant-dispatch.md`
 - `tasks/g6-630-full-poa-policy-expansion.md`
 
@@ -83,7 +84,7 @@ values, task-type markers, and the rule that exactly one task is active as
 ### G6.9 Naming and Interop Slice
 
 - `tasks/g6-810-cosnaming-vertical-slice.md`
-- `tasks/g6-820-real-peer-artifact-gates.md`
+- `tasks/g6-820-real-peer-artifact-gates.md` - human-gate-blocked
 - `tasks/g6-830-real-peer-interop-reports.md`
 
 ### G6.10 Native and Release Hardening

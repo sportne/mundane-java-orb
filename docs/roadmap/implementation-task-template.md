@@ -23,8 +23,10 @@ Rollback notes:
 - Allowed files must be specific.
 - Status must be one of `draft`, `ready-for-implementation`, `in-progress`,
   `complete`, `blocked`, or `human-gate-blocked`.
-- Exactly one roadmap task may be `ready-for-implementation` or `in-progress`
-  at a time.
+- Multiple roadmap tasks may be `ready-for-implementation` or `in-progress`
+  when their file boundaries and dependencies do not conflict.
+- At least one roadmap task must be `ready-for-implementation` or `in-progress`
+  while open, non-human-gated roadmap work remains.
 - Forbidden files must list product implementation areas when the task is infrastructure/design-only.
 - Commands must be runnable locally.
 - Acceptance criteria must be objective.
