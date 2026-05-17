@@ -67,6 +67,31 @@ This project has not reached version 1.0, so agents do not need to preserve back
 
 Use `docs/roadmap/implementation-task-template.md` for implementation tasks.
 
+## Roadmap execution workflow
+
+When asked to identify or execute the next implementation task:
+
+- Start from `README.md` and `docs/roadmap/roadmap-index.md`, then inspect the candidate task file before editing.
+- Prefer the numerically next ready task. If a later task is marked ready while earlier dependent work is still draft or incomplete, verify that the later readiness is intentional before proceeding.
+- Before implementation, amend the task contract if the allowed-files list omits files required for build, docs, native verification, roadmap status, or top-level README consistency.
+- After completing a task, mark it `complete`, promote exactly the next unblocked task to `ready-for-implementation`, and update the top-level ready-task list.
+
+## Native Image verification
+
+When adding or updating Native Image smoke tasks:
+
+- Do not rely only on ambient `native-image` on `PATH`.
+- Discovery order should be `NATIVE_IMAGE`, then `JAVA_HOME/bin/native-image`, then SDKMAN candidates under `$SDKMAN_CANDIDATES_DIR/java` or `$HOME/.sdkman/candidates/java`, then a final `native-image` fallback.
+- Prefer narrow smoke tests that exercise the new public API surface without duplicating the JVM unit suite.
+
+## Post-change review
+
+When asked to review changes before a commit:
+
+- Review tracked and untracked files, not only `git diff`.
+- Lead with findings ordered by severity; if there are no findings, say so clearly.
+- Suggest a concise conventional commit message, but do not stage or commit unless explicitly asked.
+
 ## Required pull-request checklist
 
 ```text
