@@ -1,7 +1,7 @@
 # G6-410 Local Object Reference Invocation
 
 Task ID: G6-410-LOCAL-OBJECT-REFERENCE-INVOCATION
-Status: draft
+Status: ready-for-implementation
 Gate: G6 local invocation vertical slice
 Requirement IDs: REQ-ORB-001, REQ-IDLJ-004, REQ-NFR-001, REQ-NFR-003, REQ-DOC-001
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Runtime architecture and package docs.
 Commands to run: ./gradlew :modules:corba-orb-core:test :modules:corba-modern-api:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: A generated client can call a local generated server path without IIOP.
 Rollback notes: Revert local invocation implementation, tests, and docs together.
-

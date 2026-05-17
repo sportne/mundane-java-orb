@@ -8,3 +8,14 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'IOR, IIOP profiles, tagged components, corbaloc, and corbaname parsing.'
+
+dependencies {
+    // IOR and IIOP profile bodies are CDR-encoded values, so this module builds on the CDR API.
+    api project(':modules:corba-cdr')
+
+    // IOR limits and diagnostics reuse the shared common foundation value types.
+    api project(':modules:corba-common')
+
+    // IOR tests compare deterministic binary encodings with golden-wire helpers.
+    testImplementation project(':modules:corba-testkit')
+}

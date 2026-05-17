@@ -36,6 +36,8 @@ This repository is in **Gate G6 foundation implementation state**:
   under approved roadmap tasks;
 - CDR primitive and length-bearing value read/write behavior has started under
   approved roadmap tasks;
+- IOR, IIOP profile body, stringified IOR, `corbaloc`, and `corbaname` value
+  parsing has started under approved roadmap tasks;
 - CORBA runtime, GIOP/IIOP transport, ORB, POA, service, and
   generated-code behavior remain limited to approved roadmap tasks.
 
@@ -98,7 +100,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-330-ior-profiles-object-urls.md`.
+- `docs/roadmap/tasks/g6-410-local-object-reference-invocation.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

@@ -56,11 +56,11 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-310-cdr-primitives.md` - complete
 - `tasks/g6-320-cdr-strings-sequences-encapsulations.md` - complete
-- `tasks/g6-330-ior-profiles-object-urls.md` - ready-for-implementation
+- `tasks/g6-330-ior-profiles-object-urls.md` - complete
 
 ### G6.5 Local Invocation Slice
 
-- `tasks/g6-410-local-object-reference-invocation.md`
+- `tasks/g6-410-local-object-reference-invocation.md` - ready-for-implementation
 - `tasks/g6-420-exception-mapping.md`
 
 ### G6.6 Wire Invocation Slice
