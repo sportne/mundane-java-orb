@@ -49,8 +49,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.3 Generated Hello Slice
 
-- `tasks/g6-210-generated-hello-golden-source.md` - ready-for-implementation
-- `tasks/g6-220-generated-codecs-descriptors.md`
+- `tasks/g6-210-generated-hello-golden-source.md` - complete
+- `tasks/g6-220-generated-codecs-descriptors.md` - ready-for-implementation
 
 ### G6.4 CDR and IOR Slice
 

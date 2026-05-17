@@ -26,6 +26,8 @@ byte values at that offset.
 
 ## Current scope
 
-This convention defines reusable test infrastructure only. Real IDL compiler
-golden output, protocol byte vectors, and interop assertion fixtures are added by
-later feature tasks.
+This convention defines reusable test infrastructure and the shared fixture
+layout. G6-210 adds `interop/idl/hello/hello.idl` as the first real IDL fixture
+and stores its expected generated Java under the codegen test resources.
+Protocol byte vectors and broader interop assertion fixtures are added by later
+feature tasks.

@@ -2,9 +2,9 @@
 
 | Mapping area | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| modules to packages | I2JAV-13-MODULES | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 maps IDL module scopes to deterministic compile-safe Java packages in explicit legacy and modern modes. |
-| interfaces | I2JAV-13-INTERFACES | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 emits compile-safe Java interfaces for the minimal parser subset. Legacy helper/stub/POA artifacts remain deferred. |
-| operations | I2JAV-13-INTERFACES, parameter passing modes | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 emits operation method signatures and checked raises clauses. Holder-based parameter passing remains deferred. |
+| modules to packages | I2JAV-13-MODULES | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest`, G6-210 Hello golden-source fixture | G6-160 maps IDL module scopes to deterministic compile-safe Java packages in explicit legacy and modern modes. G6-210 proves the shared Hello IDL fixture end to end. |
+| interfaces | I2JAV-13-INTERFACES | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest`, G6-210 Hello golden-source fixture | G6-160 emits compile-safe Java interfaces for the minimal parser subset. G6-210 compares and compiles resource-backed Hello interface goldens. Legacy helper/stub/POA artifacts remain deferred. |
+| operations | I2JAV-13-INTERFACES, parameter passing modes | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest`, G6-210 Hello golden-source fixture | G6-160 emits operation method signatures and checked raises clauses. G6-210 covers a fixture-backed string operation. Holder-based parameter passing remains deferred. |
 | attributes | I2JAV-13-INTERFACES | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 emits deterministic getter/setter method signatures for readonly and read/write attributes. |
 | structs | I2JAV-13-BASIC | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 emits compile-safe final value classes for minimal struct declarations. |
 | enums | I2JAV-13-BASIC | REQ-IDLJ-002 | partial | `IdlJavaMapperTest`, `JavaSourceGeneratorTest` | G6-160 emits Java enums for minimal IDL enum declarations. |

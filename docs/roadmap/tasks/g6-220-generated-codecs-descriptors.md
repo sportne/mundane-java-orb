@@ -1,7 +1,7 @@
 # G6-220 Generated Codecs and Descriptors
 
 Task ID: G6-220-GENERATED-CODECS-DESCRIPTORS
-Status: draft
+Status: ready-for-implementation
 Gate: G6 generated-code vertical slice
 Requirement IDs: REQ-IDLJ-004, REQ-NATIVE-002, REQ-NFR-001, REQ-DOC-005
 ADR IDs: ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Native-image and dynamic CORBA design notes.
 Commands to run: ./gradlew :modules:corba-codegen:test :modules:corba-cdr:test :modules:corba-typecode:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Generated descriptors are deterministic and suitable for later native-image validation.
 Rollback notes: Revert descriptor/codegen changes, tests, and docs together.
-

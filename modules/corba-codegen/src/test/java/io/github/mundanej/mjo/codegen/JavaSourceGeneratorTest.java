@@ -18,7 +18,9 @@ import io.github.mundanej.mjo.idl.parser.IdlParser;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticAnalyzer;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticModel;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticResult;
+import io.github.mundanej.mjo.testkit.FixtureSet;
 import io.github.mundanej.mjo.testkit.GoldenAssertions;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -137,6 +139,34 @@ final class JavaSourceGeneratorTest {
   }
 
   @Test
+  void generatesHelloGoldenSourcesFromIdlFixture() throws Exception {
+    IdlSemanticModel semanticModel =
+        semanticModel("hello/hello.idl", idlFixtures().readUtf8("hello/hello.idl"));
+
+    List<GeneratedJavaSource> legacySources =
+        generator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
+    List<GeneratedJavaSource> modernSources =
+        generator.generate(mapper.map(semanticModel, JavaMappingMode.MODERN));
+    List<GeneratedJavaSource> allSources = new ArrayList<>();
+    allSources.addAll(legacySources);
+    allSources.addAll(modernSources);
+
+    assertEquals(List.of("hello/Greeter.java"), sourcePaths(legacySources));
+    assertEquals(List.of("modern/hello/Greeter.java"), sourcePaths(modernSources));
+    GoldenAssertions.assertTextEquals(
+        "hello legacy Greeter",
+        goldenFixtures().readUtf8("hello/legacy/hello/Greeter.java"),
+        sourceText(legacySources, "hello/Greeter.java"));
+    GoldenAssertions.assertTextEquals(
+        "hello modern Greeter",
+        goldenFixtures().readUtf8("hello/modern/modern/hello/Greeter.java"),
+        sourceText(modernSources, "modern/hello/Greeter.java"));
+    assertNoForbiddenGeneratedSourceTokens(
+        allSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat));
+    compile(allSources);
+  }
+
+  @Test
   void generatedSourceValuesValidateAndExposePaths() {
     GeneratedJavaSource source = new GeneratedJavaSource("demo", "Thing", "package demo;\n");
 
@@ -213,12 +243,20 @@ final class JavaSourceGeneratorTest {
   }
 
   private IdlSemanticModel semanticModel(String source) {
-    IdlParseResult parseResult = parser.parse("codegen-test.idl", source);
+    return semanticModel("codegen-test.idl", source);
+  }
+
+  private IdlSemanticModel semanticModel(String sourceName, String source) {
+    IdlParseResult parseResult = parser.parse(sourceName, source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
     IdlSemanticResult semanticResult =
         analyzer.analyze(parseResult.translationUnit().orElseThrow());
     assertFalse(semanticResult.hasErrors(), () -> semanticResult.diagnostics().toString());
     return semanticResult.model().orElseThrow();
+  }
+
+  private static List<String> sourcePaths(List<GeneratedJavaSource> sources) {
+    return sources.stream().map(GeneratedJavaSource::sourcePath).toList();
   }
 
   private static String sourceText(List<GeneratedJavaSource> sources, String sourcePath) {
@@ -234,6 +272,28 @@ final class JavaSourceGeneratorTest {
         FORBIDDEN_GENERATED_SOURCE_TOKENS.stream().filter(sourceText::contains).toList();
 
     assertEquals(List.of(), violations, "Generated source contains forbidden architecture tokens");
+  }
+
+  private static FixtureSet idlFixtures() {
+    return new FixtureSet(findRepositoryRoot().resolve("interop/idl"));
+  }
+
+  private static FixtureSet goldenFixtures() throws Exception {
+    URL resource = JavaSourceGeneratorTest.class.getResource("/golden-source");
+    assertNotNull(resource, "golden-source test resource root");
+    return new FixtureSet(Path.of(resource.toURI()));
+  }
+
+  private static Path findRepositoryRoot() {
+    Path directory = Path.of("").toAbsolutePath().normalize();
+    while (directory != null) {
+      if (Files.isRegularFile(directory.resolve("AGENT.md"))
+          && Files.isDirectory(directory.resolve("modules"))) {
+        return directory;
+      }
+      directory = directory.getParent();
+    }
+    throw new IllegalStateException("Could not locate repository root from test working directory");
   }
 
   private void compile(List<GeneratedJavaSource> sources) throws Exception {

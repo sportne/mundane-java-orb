@@ -7,6 +7,11 @@ Deterministic Java source generation and generated metadata support.
 G6-160 implements the first deterministic Java source renderer for the minimal
 IDL-to-Java mapping model.
 
+G6-210 adds a resource-backed Hello fixture test that parses
+`interop/idl/hello/hello.idl`, runs semantic analysis, maps both explicit Java
+mapping modes, compares exact golden Java source, and compiles the generated
+test artifact. Public CLI generation remains deferred.
+
 The renderer emits compile-safe Java source for:
 
 - Java interfaces from IDL interfaces;

@@ -1,0 +1,5 @@
+module hello {
+  interface Greeter {
+    string greet(in string name);
+  };
+};

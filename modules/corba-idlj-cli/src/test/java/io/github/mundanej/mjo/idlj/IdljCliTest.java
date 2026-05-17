@@ -121,6 +121,15 @@ final class IdljCliTest {
     assertEquals(IdljExitCodes.SUCCESS, first.exitCode());
   }
 
+  @Test
+  void validatesSharedHelloFixtureWithoutGeneration() {
+    Path hello = findRepositoryRoot().resolve("interop/idl/hello/hello.idl");
+
+    CliRun result = run("validate", "--quiet", hello.toString());
+
+    assertQuietSuccess(result);
+  }
+
   private Path write(String name, String source) throws Exception {
     Path path = tempDir.resolve(name);
     Files.writeString(path, source, StandardCharsets.UTF_8);
@@ -148,6 +157,18 @@ final class IdljCliTest {
     StringWriter stderr = new StringWriter();
     int exitCode = cli.run(args, new PrintWriter(stdout, true), new PrintWriter(stderr, true));
     return new CliRun(exitCode, stdout.toString(), stderr.toString());
+  }
+
+  private static Path findRepositoryRoot() {
+    Path directory = Path.of("").toAbsolutePath().normalize();
+    while (directory != null) {
+      if (Files.isRegularFile(directory.resolve("AGENT.md"))
+          && Files.isDirectory(directory.resolve("modules"))) {
+        return directory;
+      }
+      directory = directory.getParent();
+    }
+    throw new IllegalStateException("Could not locate repository root from test working directory");
   }
 
   private record CliRun(int exitCode, String stdout, String stderr) {}
