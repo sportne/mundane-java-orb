@@ -8,3 +8,7 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'IDL lexer, preprocessor, parser, include resolver, and diagnostics.'
+
+dependencies {
+    api project(':modules:corba-common')
+}

@@ -40,8 +40,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.2 IDL Compiler Slice
 
-- `tasks/g6-110-idl-diagnostics-lexer.md` - ready-for-implementation
-- `tasks/g6-120-idl-preprocessor-includes.md`
+- `tasks/g6-110-idl-diagnostics-lexer.md` - complete
+- `tasks/g6-120-idl-preprocessor-includes.md` - ready-for-implementation
 - `tasks/g6-130-idl-minimal-parser-ast.md`
 - `tasks/g6-140-idl-semantics-symbols.md`
 - `tasks/g6-150-idlj-validate-cli.md`

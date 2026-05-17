@@ -1,7 +1,7 @@
 # G6-120 IDL Preprocessor and Includes
 
 Task ID: G6-120-IDL-PREPROCESSOR-INCLUDES
-Status: draft
+Status: ready-for-implementation
 Gate: G6 IDL compiler vertical slice
 Requirement IDs: REQ-IDL-001, REQ-IDL-003, REQ-SEC-003, REQ-DOC-001, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0004, ADR-0005
@@ -15,4 +15,3 @@ Documentation to update: IDL compiler architecture and package docs.
 Commands to run: ./gradlew :modules:corba-idl-parser:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Preprocessed token streams preserve source locations and reject unsafe include traversal.
 Rollback notes: Revert preprocessor implementation, tests, and docs together.
-
