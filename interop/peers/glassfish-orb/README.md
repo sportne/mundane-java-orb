@@ -6,8 +6,9 @@ Role: Eclipse GlassFish CORBA ORB interoperability and behavioral reference.
 
 G4 launch scaffold is defined in `peer.yaml` and the local wrapper scripts.
 
-Candidate peer: `org.glassfish.corba:glassfish-corba:5.0.0` from Maven Central
-/ Eclipse ORB.
+Candidate peer: `org.glassfish.corba:glassfish-corba:5.0.0` from Maven Central.
+The corresponding source repository and reference-design identity is
+`eclipse-ee4j/orb`.
 
 Dry-run commands are available through `build-image.sh`, `launch.sh`, and
 `health.sh`. Real peer execution remains blocked until artifact and license

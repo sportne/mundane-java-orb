@@ -42,7 +42,7 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-110-idl-diagnostics-lexer.md` - complete
 - `tasks/g6-120-idl-preprocessor-includes.md` - complete
-- `tasks/g6-130-idl-minimal-parser-ast.md` - ready-for-implementation
+- `tasks/g6-130-idl-minimal-parser-ast.md` - complete
 - `tasks/g6-140-idl-semantics-symbols.md`
 - `tasks/g6-150-idlj-validate-cli.md`
 - `tasks/g6-160-idl-java-minimal-generation.md`

@@ -5,7 +5,7 @@
 | Peer | Manifest | JVM peer | Native peer | Candidate origin | Notes |
 |---|---|---:|---:|---|---|
 | JacORB | `interop/peers/jacorb/peer.yaml` | yes | no | `org.jacorb:jacorb:3.9` | Java ORB. Our implementation must be tested in JVM and native modes against it. |
-| Eclipse GlassFish CORBA ORB | `interop/peers/glassfish-orb/peer.yaml` | yes | no | `org.glassfish.corba:glassfish-corba:5.0.0` | Java/Jakarta ORB. |
+| Eclipse GlassFish CORBA ORB | `interop/peers/glassfish-orb/peer.yaml` | yes | no | `org.glassfish.corba:glassfish-corba:5.0.0`, `eclipse-ee4j/orb` | Java/Jakarta ORB and Eclipse ORB source repository. |
 | JBoss OpenJDK ORB | `interop/peers/jboss-openjdk-orb/peer.yaml` | yes | no | `org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final` | Legacy Java/OpenJDK ORB behavior. |
 | ACE/TAO | `interop/peers/ace-tao/peer.yaml` | no | yes | `ACE+TAO-8.0.6` | C++ native ORB. |
 

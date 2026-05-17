@@ -11,4 +11,6 @@ description = 'IDL lexer, preprocessor, parser, include resolver, and diagnostic
 
 dependencies {
     api project(':modules:corba-common')
+    // Parser APIs return immutable syntax nodes from the AST module.
+    api project(':modules:corba-idl-ast')
 }

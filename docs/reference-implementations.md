@@ -5,7 +5,7 @@
 | Peer | Role |
 |---|---|
 | JacORB | Java ORB interoperability and behavioral reference. |
-| Eclipse GlassFish CORBA ORB | Jakarta/GlassFish lineage interoperability and behavioral reference. |
+| Eclipse GlassFish CORBA ORB | Jakarta/GlassFish lineage interoperability and behavioral reference. Source repository: `eclipse-ee4j/orb`. |
 | JBoss OpenJDK ORB | Legacy Java/OpenJDK ORB and JBoss application-server behavior reference. |
 | ACE/TAO | C++ ORB and cross-language interoperability reference. |
 

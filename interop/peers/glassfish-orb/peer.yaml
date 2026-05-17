@@ -27,8 +27,9 @@ candidateOrigin:
   coordinate: "org.glassfish.corba:glassfish-corba:5.0.0"
   version: "5.0.0"
   repository: Maven Central
-  project: Eclipse ORB
+  project: Eclipse GlassFish CORBA ORB
   sourceUrl: "https://central.sonatype.com/artifact/org.glassfish.corba/glassfish-corba"
+  sourceRepository: "https://github.com/eclipse-ee4j/orb"
 license:
   observed: EDL-1.0/EPL-family
   reviewRequired: true

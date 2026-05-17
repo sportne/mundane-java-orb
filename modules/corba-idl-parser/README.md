@@ -5,10 +5,12 @@ IDL lexer, preprocessor, parser, include resolver, and diagnostics.
 ## Current status
 
 G6 IDL compiler foundation work has started with bounded OMG IDL 4.2 lexical
-scanning and a minimal C-style preprocessing slice.
+scanning, a minimal C-style preprocessing slice, and a syntax-only parser for
+the first AST vertical slice.
 
-This module still does not implement parser grammar, AST construction, semantic
-analysis, code generation, ORB/runtime behavior, or protocol behavior.
+This module still does not implement semantic analysis, type checking,
+repository ID derivation, code generation, ORB/runtime behavior, or protocol
+behavior.
 
 ## Lexer behavior
 
@@ -34,6 +36,18 @@ analysis, code generation, ORB/runtime behavior, or protocol behavior.
   preprocessing constructs. Variadic macros, token pasting, stringification,
   arithmetic preprocessor expressions, predefined macros, and full C++ 2003
   compatibility remain deferred.
+
+## Parser behavior
+
+- Parses a minimal syntax subset covering modules, full interfaces, operations,
+  attributes, structs, enums, exceptions, and constants.
+- Builds immutable AST nodes from `corba-idl-ast` while preserving source spans.
+- Supports simple scoped names, primitive IDL type keywords, parameter
+  directions, optional `oneway`, and operation `raises(...)` clauses.
+- Records constant expressions as unevaluated token lexemes.
+- Emits stable `IDL-03xx` diagnostics for malformed syntax and unsupported
+  first-slice constructs such as typedefs, unions, valuetypes, sequences,
+  arrays, interface inheritance, forward declarations, and pragmas.
 
 ## Documentation requirements
 
