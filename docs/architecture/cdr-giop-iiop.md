@@ -79,3 +79,24 @@ typed GIOP message -> GiopMessageWriter -> complete byte array
 - TCP transport must support timeouts and backpressure.
 - TLS/mTLS support must be explicit and testable.
 - Connection pooling and request correlation must be observable.
+
+## IIOP TCP Slice
+
+`modules/corba-iiop` now provides a local loopback TCP transport for complete
+GIOP request/reply messages. The client opens one reusable socket, writes one
+bounded GIOP Request at a time, reads a complete GIOP Reply frame, and verifies
+the reply request id matches the outstanding request.
+
+The server binds a loopback-capable endpoint, accepts TCP connections until
+closed, handles each accepted connection on its own thread, and supports
+multiple sequential request/reply cycles on one connection. Frame reads validate
+the fixed GIOP header size and configured message/body limits before allocating
+the declared body, then delegate message parsing to `GiopMessageReader`.
+
+This slice intentionally has no TLS/mTLS, connection pooling, ORB dispatch, POA
+lookup, generated stubs or skeletons, Naming Service behavior, peer interop, or
+GIOP exception-body marshaling. The boundary is:
+
+```text
+GiopRequest -> IiopClient -> TCP loopback -> IiopServer -> IiopRequestHandler -> GiopReply
+```

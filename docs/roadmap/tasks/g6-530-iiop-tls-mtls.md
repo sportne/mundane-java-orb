@@ -1,7 +1,7 @@
 # G6-530 IIOP TLS and mTLS
 
 Task ID: G6-530-IIOP-TLS-MTLS
-Status: draft
+Status: ready-for-implementation
 Gate: G6 wire invocation vertical slice
 Requirement IDs: REQ-IIOP-002, REQ-SEC-005, REQ-DOC-004
 ADR IDs: ADR-0002, ADR-0004, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: IIOP and security configuration docs.
 Commands to run: ./gradlew :modules:corba-iiop:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: TLS settings are per-endpoint, deterministic, and covered by local tests.
 Rollback notes: Revert TLS/mTLS implementation, tests, and docs together.
-

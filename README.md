@@ -44,8 +44,10 @@ This repository is in **Gate G6 foundation implementation state**:
   tasks;
 - bounded GIOP 1.2 message read/write behavior has started under approved
   roadmap tasks;
-- CORBA runtime, IIOP transport, ORB, POA, service, and
-  generated-code behavior remain limited to approved roadmap tasks.
+- local loopback IIOP TCP request/reply transport has started under approved
+  roadmap tasks;
+- CORBA runtime, TLS/mTLS transport, ORB, POA, service, and generated-code
+  behavior remain limited to approved roadmap tasks.
 
 ## Primary goals
 
@@ -106,7 +108,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-520-iiop-tcp.md`.
+- `docs/roadmap/tasks/g6-530-iiop-tls-mtls.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
