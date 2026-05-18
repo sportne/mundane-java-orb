@@ -1,13 +1,13 @@
 # G6-720 DynamicAny, DII, and DSI
 
 Task ID: G6-720-DYNAMICANY-DII-DSI
-Status: ready-for-implementation
+Status: complete
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-ORB-001, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010
 Specification references: CORBA-IF-DYNANY, CORBA-IF-DII, CORBA-IF-DSI
 Target module: modules/corba-dynamic
-Allowed files: modules/corba-dynamic/src/**, modules/corba-any/src/**, modules/corba-typecode/src/**, docs/architecture/dynamic-corba-design.md
+Allowed files: modules/corba-dynamic/src/**, modules/corba-any/src/**, modules/corba-typecode/src/**, modules/corba-dynamic/build.gradle, modules/corba-dynamic/README.md, docs/architecture/dynamic-corba-design.md, docs/conformance/corba-3.4-matrix.md, README.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g6-720-dynamicany-dii-dsi.md, docs/roadmap/tasks/g6-730-interface-repository-static-metadata.md
 Forbidden files: reflection-driven normal invocation, runtime bytecode generation, peer interop execution
 Expected behavior: Task type: implementation. Implement DynamicAny plus descriptor-backed DII/DSI for the supported operation/type subset.
 Tests to add/update: Unit and integration tests for dynamic value construction, invocation, skeleton dispatch, and negative type errors.

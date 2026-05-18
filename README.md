@@ -57,6 +57,8 @@ This repository is in **Gate G6 foundation implementation state**:
   activation have started under approved roadmap tasks;
 - local descriptor-backed TypeCode metadata and Any payload CDR round-trips
   have started under approved roadmap tasks;
+- local descriptor-backed DynamicAny, DII-style invocation, and DSI-style
+  skeleton dispatch have started under approved roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -119,7 +121,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-720-dynamicany-dii-dsi.md`.
+- `docs/roadmap/tasks/g6-730-interface-repository-static-metadata.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

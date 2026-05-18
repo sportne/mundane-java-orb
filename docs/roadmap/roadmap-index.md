@@ -78,8 +78,8 @@ values, task-type markers, and the rule that at least one task is active as
 ### G6.8 Dynamic and Metadata Slice
 
 - `tasks/g6-710-typecode-any.md` - complete
-- `tasks/g6-720-dynamicany-dii-dsi.md` - ready-for-implementation
-- `tasks/g6-730-interface-repository-static-metadata.md`
+- `tasks/g6-720-dynamicany-dii-dsi.md` - complete
+- `tasks/g6-730-interface-repository-static-metadata.md` - ready-for-implementation
 
 ### G6.9 Naming and Interop Slice
 

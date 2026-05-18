@@ -46,6 +46,21 @@ descriptor foundation:
   support.
 
 This is a local descriptor-backed slice. It does not encode the full CORBA wire
-representation of TypeCode and does not introduce DynamicAny, DII, DSI,
-Interface Repository behavior, object-reference Any values, reflection-driven
-marshaling, or ORB transport dependencies.
+representation of TypeCode and does not introduce Interface Repository behavior,
+object-reference Any values, reflection-driven marshaling, or ORB transport
+dependencies.
+
+## G6-720 Local DynamicAny, DII, and DSI
+
+G6-720 adds the first local dynamic behavior over the G6-710 TypeCode/Any slice:
+
+- `modules/corba-dynamic` provides immutable `DynamicAny` values and factories
+  for supported primitive, enum, struct, exception, and sequence values.
+- Dynamic invocation is descriptor-backed and IN-parameter only. OUT and INOUT
+  parameters fail deterministically until a holder/out-argument model exists.
+- `DynamicInvoker` adapts local dynamic requests to `LocalOrb` invocation.
+- `DynamicSkeleton` adapts generated-style local dispatch to a dynamic handler.
+
+This slice does not implement wire DII/DSI, OMG compatibility APIs,
+object-reference dynamic values, peer interop execution, service-loader
+discovery, reflection-driven dispatch, or runtime bytecode generation.

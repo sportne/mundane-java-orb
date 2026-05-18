@@ -1,7 +1,7 @@
 # G6-730 Interface Repository Static Metadata
 
 Task ID: G6-730-INTERFACE-REPOSITORY-STATIC-METADATA
-Status: draft
+Status: ready-for-implementation
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-IDLJ-004, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010
@@ -15,4 +15,3 @@ Documentation to update: Dynamic CORBA and interface repository design notes.
 Commands to run: ./gradlew :modules:corba-interface-repository:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Metadata lookup is deterministic and does not scan the runtime classpath.
 Rollback notes: Revert static metadata bridge, tests, and docs together.
-
