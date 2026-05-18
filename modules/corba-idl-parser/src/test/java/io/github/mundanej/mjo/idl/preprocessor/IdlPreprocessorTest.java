@@ -295,6 +295,80 @@ final class IdlPreprocessorTest {
                 "", IdlIncludeKind.QUOTED, "source.idl", result.tokens().getLast().span()));
   }
 
+  @Test
+  @Tag("security")
+  void hostilePreprocessorInputsStayBoundedAndDiagnosticLimited() throws IOException {
+    Path a = tempDir.resolve("a.idl");
+    Path b = tempDir.resolve("b.idl");
+    Files.writeString(a, "#include \"b.idl\"\n");
+    Files.writeString(b, "#include \"a.idl\"\n");
+    IdlPreprocessor preprocessor = new IdlPreprocessor(PathIdlIncludeResolver.of(tempDir));
+    IdlPreprocessorOptions options =
+        new IdlPreprocessorOptions(
+            new IdlLexerOptions(
+                new BoundedLimit("source", 512),
+                new BoundedLimit("tokens", 64),
+                new BoundedLimit("token-length", 32),
+                new BoundedLimit("lexer-diagnostics", 4)),
+            new BoundedLimit("include-depth", 1),
+            new BoundedLimit("macro-expansions", 1),
+            new BoundedLimit("diagnostics", 4));
+
+    String[] hostileInputs = {
+      "#include \"../escape.idl\"\n",
+      "#include \"a.idl\"\n",
+      "#if 2\ninterface Bad;\n#endif\n#endif\n",
+      "#define A B\n#define B A\nA\n",
+      "#define A 1\nA A A\n"
+    };
+
+    for (String source : hostileInputs) {
+      IdlPreprocessResult result =
+          preprocessor.preprocess(new IdlSource("hostile.idl", source), options);
+      assertTrue(result.hasErrors(), source);
+      assertTrue(result.diagnostics().size() <= 4, source);
+      assertEquals(IdlTokenKind.END_OF_FILE, result.tokens().getLast().kind());
+    }
+  }
+
+  @Test
+  @Tag("security")
+  void boundedPreprocessorSmokeRemainsDeterministicAcrossRepeatedRuns() {
+    IdlSource source =
+        new IdlSource(
+            "bounded.idl",
+            """
+            #define NAME Greeter
+            module Demo { interface NAME { string greet(in string value); }; };
+            """);
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      IdlPreprocessResult result = new IdlPreprocessor().preprocess(source);
+      assertFalse(result.hasErrors());
+      assertEquals(
+          List.of(
+              "module",
+              "Demo",
+              "{",
+              "interface",
+              "Greeter",
+              "{",
+              "string",
+              "greet",
+              "(",
+              "in",
+              "string",
+              "value",
+              ")",
+              ";",
+              "}",
+              ";",
+              "}",
+              ";"),
+          nonEofLexemes(result));
+    }
+  }
+
   private static List<IdlToken> nonEofTokens(IdlPreprocessResult result) {
     return result.tokens().stream()
         .filter(token -> token.kind() != IdlTokenKind.END_OF_FILE)

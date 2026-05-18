@@ -91,7 +91,7 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-910-native-image-binaries.md` - complete
 - `tasks/g6-920-offline-release-validation.md` - complete
-- `tasks/g6-930-compatibility-security-performance-closure.md` - ready-for-implementation
+- `tasks/g6-930-compatibility-security-performance-closure.md` - complete
 
 ### Deferred gated tasks
 

@@ -74,3 +74,12 @@ The accepted metadata set is empty for:
 
 Any future metadata file must be committed as reviewed source and added to this
 matrix with the owning task and test evidence.
+
+## G6-930 closure evidence
+
+G6-930 keeps Native Image hardening verification source-level and deterministic
+by checking that native-image sources do not introduce reflection metadata,
+dynamic proxies, service-loader discovery, serialization metadata, runtime
+bytecode generation, process execution, internal JDK APIs, or `Unsafe`. The JVM
+test lane also repeats representative smoke entrypoints before optional Native
+Image compilation.

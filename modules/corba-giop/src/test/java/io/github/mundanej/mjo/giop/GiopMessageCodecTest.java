@@ -325,6 +325,64 @@ final class GiopMessageCodecTest {
     }
   }
 
+  @Test
+  @Tag("security")
+  void hostileDeclaredBodiesAndContextCountsFailBeforeAllocation() {
+    GiopLimits zeroBodyLimit =
+        new GiopLimits(
+            new BoundedLimit("test-message", 64),
+            new BoundedLimit("test-body", 0),
+            new BoundedLimit("test-context-count", 1),
+            new BoundedLimit("test-context-data", 1));
+    assertGiopCode(
+        GiopDiagnosticCodes.LIMIT_EXCEEDED,
+        () ->
+            new GiopMessageReader(zeroBodyLimit)
+                .read(
+                    bytes(
+                        0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x07, 0x00, 0x00, 0x00, 0x01,
+                        0x00)));
+
+    GiopLimits oneContextLimit =
+        new GiopLimits(
+            new BoundedLimit("test-message", 64),
+            new BoundedLimit("test-body", 64),
+            new BoundedLimit("test-context-count", 1),
+            new BoundedLimit("test-context-data", 1));
+    assertGiopCode(
+        GiopDiagnosticCodes.LIMIT_EXCEEDED,
+        () ->
+            new GiopMessageReader(oneContextLimit)
+                .read(
+                    bytes(
+                        0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0C,
+                        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02)));
+  }
+
+  @Test
+  @Tag("security")
+  void boundedMessageSmokeRemainsDeterministicAcrossRepeatedReads() {
+    GiopRequest request =
+        new GiopRequest(
+            GiopHeader.forType(GiopMessageType.REQUEST),
+            91,
+            3,
+            bytes(0x4B, 0x32),
+            "ping",
+            List.of(new GiopServiceContext(7, bytes(0x01))),
+            bytes(0xCA, 0xFE));
+    byte[] encoded = writer.write(request);
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      GiopRequest decoded = assertInstanceOf(GiopRequest.class, reader.read(encoded));
+      assertEquals(91, decoded.requestId());
+      assertArrayEquals(bytes(0x4B, 0x32), decoded.objectKey());
+      assertEquals("ping", decoded.operation());
+      assertEquals(List.of(new GiopServiceContext(7, bytes(0x01))), decoded.serviceContexts());
+      assertArrayEquals(bytes(0xCA, 0xFE), decoded.body());
+    }
+  }
+
   private static void assertGiopCode(Object expectedCode, ThrowingRunnable runnable) {
     GiopException exception = assertThrows(GiopException.class, runnable::run);
     assertEquals(expectedCode, exception.code());

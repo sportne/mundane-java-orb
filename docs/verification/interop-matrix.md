@@ -49,6 +49,11 @@ Docker/Podman container command or write a deterministic infrastructure-failure
 report when required external cache, base image, image, or runtime prerequisites
 are missing.
 
+G6-930 closes the structured-report verification surface for missing cache
+entries, missing digest-pinned base images, missing container runtimes, peer
+command failures, dry-run non-mutation, and report summary generation. Live peer
+success remains environment-gated by the approved external inputs above.
+
 ## Required directions
 
 | Client | Server | Required |

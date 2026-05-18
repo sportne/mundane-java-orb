@@ -239,9 +239,62 @@ final class CdrCollectionTest {
     assertCdrCode(CdrDiagnosticCodes.OUTPUT_LIMIT_EXCEEDED, () -> writer.writeString("a"));
   }
 
+  @Test
+  @Tag("security")
+  void hostileLengthFieldsFailBeforePayloadAllocation() {
+    CdrLimits strict =
+        new CdrLimits(
+            new BoundedLimit("test-string", 8),
+            new BoundedLimit("test-sequence", 4),
+            new BoundedLimit("test-encapsulation", 8));
+
+    int[] hostileLengths = {9, Integer.MAX_VALUE, 0x7FFF_FFFE};
+    for (int length : hostileLengths) {
+      byte[] lengthPrefix = bigEndianLength(length);
+      assertCdrCode(
+          CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+          () -> CdrReader.bigEndian(lengthPrefix, strict).readString());
+      assertCdrCode(
+          CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+          () -> CdrReader.bigEndian(lengthPrefix, strict).readSequenceLength());
+      assertCdrCode(
+          CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+          () -> CdrReader.bigEndian(lengthPrefix, strict).readEncapsulation());
+    }
+  }
+
+  @Test
+  @Tag("security")
+  void boundedCollectionSmokeRemainsDeterministicAcrossRepeatedReads() {
+    byte[] payload =
+        CdrWriter.bigEndian()
+            .writeString("ok")
+            .writeSequenceLength(2)
+            .writeLong(17)
+            .writeLong(19)
+            .writeEncapsulation(
+                CdrEncapsulation.of(
+                    CdrByteOrder.BIG_ENDIAN, bytes(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x17)))
+            .toByteArray();
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      CdrReader reader = CdrReader.bigEndian(payload);
+      assertEquals("ok", reader.readString());
+      assertEquals(2, reader.readSequenceLength());
+      assertEquals(17, reader.readLong());
+      assertEquals(19, reader.readLong());
+      assertEquals(23, reader.readEncapsulation().reader().readLong());
+      assertEquals(0, reader.remaining());
+    }
+  }
+
   private static void assertCdrCode(Object expectedCode, ThrowingRunnable runnable) {
     CdrException exception = assertThrows(CdrException.class, runnable::run);
     assertEquals(expectedCode, exception.code());
+  }
+
+  private static byte[] bigEndianLength(int value) {
+    return bytes(value >>> 24, value >>> 16, value >>> 8, value);
   }
 
   private static byte[] bytes(int... values) {

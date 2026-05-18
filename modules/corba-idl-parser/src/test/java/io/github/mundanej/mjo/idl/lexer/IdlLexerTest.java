@@ -291,6 +291,45 @@ final class IdlLexerTest {
                 new BoundedLimit("diagnostics", 1)));
   }
 
+  @Test
+  @Tag("security")
+  void hostileLexerInputsStayBoundedAndRecoverToEof() {
+    String[] hostileInputs = {
+      "\"unterminated",
+      "'unterminated",
+      "/* unterminated",
+      "$ $ $ $",
+      "0x 1e+ 09",
+      "module " + "X".repeat(64)
+    };
+    IdlLexerOptions options =
+        new IdlLexerOptions(
+            new BoundedLimit("source", 128),
+            new BoundedLimit("tokens", 8),
+            new BoundedLimit("token-length", 16),
+            new BoundedLimit("diagnostics", 4));
+
+    for (String source : hostileInputs) {
+      IdlLexResult result = lexer.tokenize("hostile.idl", source, options);
+      assertEquals(IdlTokenKind.END_OF_FILE, result.tokens().getLast().kind());
+      assertTrue(result.hasErrors(), source);
+      assertTrue(result.diagnostics().size() <= 4, source);
+    }
+  }
+
+  @Test
+  @Tag("security")
+  void boundedLexerSmokeRemainsDeterministicAcrossRepeatedTokenization() {
+    String source = "module Demo { interface Greeter { string greet(in string name); }; };";
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      IdlLexResult result = lexer.tokenize("bounded.idl", source);
+      assertFalse(result.hasErrors());
+      assertEquals(18, nonEofTokens(result).size());
+      assertEquals(IdlTokenKind.END_OF_FILE, result.tokens().getLast().kind());
+    }
+  }
+
   private static List<IdlToken> nonEofTokens(IdlLexResult result) {
     return result.tokens().stream()
         .filter(token -> token.kind() != IdlTokenKind.END_OF_FILE)

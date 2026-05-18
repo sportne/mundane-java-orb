@@ -252,6 +252,63 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void launchWritesPrerequisiteFailureReportWhenContainerRuntimeIsMissing() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path toolPath = temporaryDirectory.resolve("tool-path");
+    Files.createDirectories(toolPath);
+    for (String tool : List.of("bash", "python3", "date", "dirname", "mkdir")) {
+      Files.createSymbolicLink(toolPath.resolve(tool), executableOnPath(tool));
+    }
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "PATH",
+                    toolPath.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "basic-idl-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    String stderr =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/logs/basic-idl-server.stderr.log"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("G6-830 container runtime resolution failed"), report);
+    assertTrue(stderr.contains("CONTAINER_RUNTIME is unset"), stderr);
+  }
+
+  @Test
+  void launchWritesStructuredFailureReportWhenContainerCommandFails() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    "/bin/false",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "basic-idl-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"status\": \"failed\""), report);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
+    assertTrue(report.contains("\"exitCode\": 1"), report);
+    assertTrue(report.contains("G6-830 container command failed"), report);
+  }
+
+  @Test
   void reportSummarizesCapturedStructuredReports() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Map<String, String> environment =
@@ -489,6 +546,36 @@ final class InteropPeerGateTest {
     Path moduleRoot = Path.of("").toAbsolutePath();
     Path modulesRoot = Objects.requireNonNull(moduleRoot.getParent());
     return Objects.requireNonNull(modulesRoot.getParent());
+  }
+
+  private static Path executableOnPath(String name) {
+    String path = System.getenv("PATH");
+    if (path != null) {
+      for (String entry : pathEntries(path)) {
+        Path candidate = Path.of(entry).resolve(name);
+        if (Files.isExecutable(candidate)) {
+          return candidate;
+        }
+      }
+    }
+    throw new IllegalStateException("Required test executable not found on PATH: " + name);
+  }
+
+  private static List<String> pathEntries(String path) {
+    List<String> entries = new ArrayList<>();
+    int start = 0;
+    while (start <= path.length()) {
+      int separator = path.indexOf(java.io.File.pathSeparatorChar, start);
+      int end = separator == -1 ? path.length() : separator;
+      if (end > start) {
+        entries.add(path.substring(start, end));
+      }
+      if (separator == -1) {
+        return entries;
+      }
+      start = separator + 1;
+    }
+    return entries;
   }
 
   private static void assertSuccess(CommandResult result) {

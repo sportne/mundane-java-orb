@@ -4,6 +4,7 @@
 - `test-taxonomy.md`
 - `coverage-policy.md`
 - `fixture-conventions.md`
+- `g6-release-hardening-closure.md`
 - `g5-validation-gate-readiness.md`
 - `interop-matrix.md`
 - `native-image-matrix.md`

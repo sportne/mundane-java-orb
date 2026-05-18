@@ -22,3 +22,8 @@ golden-wire comparisons follow `fixture-conventions.md`.
 A feature is not complete until its conformance matrix row shows implementation,
 unit testing, integration testing, interop testing where applicable, and
 native-image testing where applicable.
+
+G6 release hardening closure evidence is recorded in
+`g6-release-hardening-closure.md`. That closure uses deterministic hostile-input
+and bounded-loop smoke tests in the normal unit lane rather than introducing
+flaky wall-clock benchmarks or environment-dependent fuzz tasks.

@@ -17,3 +17,8 @@
 
 Golden fixture layout and comparison behavior are defined in
 `fixture-conventions.md`.
+
+G6-930 hostile-input regressions intentionally run in the normal unit lane.
+They may also carry the `security` tag, but they do not use the excluded `fuzz`
+tag because they are deterministic bounded cases rather than long-running fuzz
+jobs.

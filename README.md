@@ -71,6 +71,9 @@ This repository is in **Gate G6 foundation implementation state**:
 - offline release validation now stages publications, validates BOM alignment,
   prepares checksum-manifested Maven repositories, and builds a standalone
   downstream consumer under approved roadmap tasks;
+- compatibility, security/fuzz-style hostile-input, structured interop failure,
+  Native Image boundary, and bounded performance/soak closure evidence has been
+  recorded under approved roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -132,9 +135,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-The currently ready roadmap tasks are:
-
-- `docs/roadmap/tasks/g6-930-compatibility-security-performance-closure.md`.
+There are currently no non-human-gated roadmap tasks ready for implementation.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

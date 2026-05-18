@@ -19,4 +19,13 @@ final class NativeImageSmokeEntrypointTest {
     IorDiagnosticsNativeSmoke.main(new String[0]);
     InteropReportNativeSmoke.main(new String[0]);
   }
+
+  @Test
+  void representativeSmokeEntrypointsRemainDeterministicAcrossBoundedRuns() throws Exception {
+    for (int iteration = 0; iteration < 16; iteration++) {
+      IdljValidateNativeSmoke.main(new String[0]);
+      IorDiagnosticsNativeSmoke.main(new String[0]);
+      InteropReportNativeSmoke.main(new String[0]);
+    }
+  }
 }

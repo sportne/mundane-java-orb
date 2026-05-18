@@ -16,6 +16,7 @@ Conformance matrix files:
 |---|---|
 | not-started | No design or implementation. |
 | designed | Architecture/design approved. |
+| partial | Some behavior is implemented and tested, with remaining gaps explicitly listed in the row notes. |
 | implemented | Code implemented. |
 | unit-tested | Unit/spec tests exist. |
 | golden-tested | Golden-source or golden-wire tests exist. |
@@ -23,3 +24,9 @@ Conformance matrix files:
 | interop-tested | External ORB tests exist. |
 | native-tested | Native Image tests exist. |
 | deferred | Explicitly deferred by ADR. |
+
+Rows with `partial` status must name the implemented subset, test evidence, and
+remaining unsupported behavior in the Notes column. G6-930 keeps these rows as
+`partial` instead of overstating conformance for slices that have local
+implementation and verification but not full spec, external interop, or
+native-image coverage.

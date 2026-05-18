@@ -159,6 +159,57 @@ final class IorWireTest {
                 new Ior("IDL:X:1.0", List.of(new TaggedProfile(1, bytes()))).toCdrBody(), strict));
   }
 
+  @Test
+  @Tag("security")
+  void hostileStringifiedIorAndProfileCountsFailBeforeAllocation() {
+    IorLimits strict =
+        new IorLimits(
+            new BoundedLimit("test-string", 32),
+            new BoundedLimit("test-sequence", 32),
+            new BoundedLimit("test-encapsulation", 8),
+            new BoundedLimit("test-profile-count", 1),
+            new BoundedLimit("test-profile-data", 8),
+            new BoundedLimit("test-component-count", 1),
+            new BoundedLimit("test-component-data", 8),
+            new BoundedLimit("test-object-key", 8),
+            new BoundedLimit("test-url", 32));
+
+    assertIorCode(
+        IorDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () -> StringifiedIor.parse("IOR:000000000000000000", strict));
+    assertIorCode(
+        IorDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () ->
+            Ior.fromCdrBody(
+                bytes(0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02),
+                strict));
+  }
+
+  @Test
+  @Tag("security")
+  void boundedIorSmokeRemainsDeterministicAcrossRepeatedReads() {
+    Ior ior =
+        new Ior(
+            "IDL:Example/Bounded:1.0",
+            List.of(
+                TaggedProfile.internetIop(
+                    new IiopProfile(
+                        IiopVersion.V1_2,
+                        "localhost",
+                        2809,
+                        new ObjectKey(bytes(0x01, 0x02)),
+                        List.of(new TaggedComponent(5, bytes(0xCA)))))));
+    String stringified = StringifiedIor.format(ior);
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      Ior decoded = StringifiedIor.parse(stringified);
+      assertEquals(ior, decoded);
+      assertArrayEquals(
+          bytes(0x01, 0x02),
+          decoded.profiles().getFirst().internetIopProfile().orElseThrow().objectKey().octets());
+    }
+  }
+
   private static void assertIorCode(Object expectedCode, ThrowingRunnable runnable) {
     IorException exception = assertThrows(IorException.class, runnable::run);
     assertEquals(expectedCode, exception.code());

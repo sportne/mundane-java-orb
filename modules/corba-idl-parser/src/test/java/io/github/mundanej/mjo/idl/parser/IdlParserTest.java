@@ -198,6 +198,42 @@ final class IdlParserTest {
     assertThrows(IllegalArgumentException.class, () -> parser.parse(invalidTokens));
   }
 
+  @Test
+  @Tag("security")
+  void hostileParserInputsProduceBoundedDiagnostics() {
+    String[] hostileInputs = {
+      "module Broken { interface I { void op(in long value); };",
+      "interface Bad { void op(in sequence<long> value); };",
+      "struct Bad { long values[999999999]; };",
+      "#if 2\ninterface Bad;\n#endif\n",
+      "$ $ $ $"
+    };
+
+    for (String source : hostileInputs) {
+      IdlParseResult result = parser.parse("hostile.idl", source);
+      assertTrue(result.hasErrors(), source);
+      assertTrue(result.diagnostics().size() <= 4, source);
+    }
+  }
+
+  @Test
+  @Tag("security")
+  void boundedParserSmokeRemainsDeterministicAcrossRepeatedParses() {
+    String source = "module Demo { interface Greeter { string greet(in string value); }; };";
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      IdlParseResult result = parser.parse("bounded.idl", source);
+      assertFalse(result.hasErrors());
+      IdlModule module =
+          (IdlModule) result.translationUnit().orElseThrow().declarations().getFirst();
+      IdlInterface idlInterface = (IdlInterface) module.declarations().getFirst();
+      IdlOperation operation = (IdlOperation) idlInterface.members().getFirst();
+      assertEquals("greet", operation.name());
+      assertEquals("string", operation.returnType().name());
+      assertEquals(IdlParameterDirection.IN, operation.parameters().getFirst().direction());
+    }
+  }
+
   private static List<String> fieldTypes(IdlStruct struct) {
     return struct.fields().stream().map(field -> field.type().name()).toList();
   }

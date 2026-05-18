@@ -107,9 +107,67 @@ final class ObjectUrlTest {
     assertTrue(CorbalocAddress.iiop(IiopVersion.V1_1, "h", 2).toString().contains("iiop"));
   }
 
+  @Test
+  @Tag("security")
+  void hostileObjectUrlsFailWithBoundedDiagnostics() {
+    IorLimits strict =
+        new IorLimits(
+            new BoundedLimit("test-string", 16),
+            new BoundedLimit("test-sequence", 16),
+            new BoundedLimit("test-encapsulation", 16),
+            new BoundedLimit("test-profile-count", 1),
+            new BoundedLimit("test-profile-data", 16),
+            new BoundedLimit("test-component-count", 1),
+            new BoundedLimit("test-component-data", 16),
+            new BoundedLimit("test-object-key", 4),
+            new BoundedLimit("test-url", 18));
+
+    String[] malformedUrls = {
+      "http://x",
+      "corbaloc:",
+      "corbaloc::h,,atm:x/k",
+      "corbaloc::[1080::1/k",
+      "corbaloc::host/%GG",
+      "corbaname::host#bad\u00E9"
+    };
+    for (String value : malformedUrls) {
+      assertIorCode(IorDiagnosticCodes.INVALID_OBJECT_URL, () -> parseObjectUrl(value));
+    }
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_PORT, () -> CorbalocUrl.parse("corbaloc::host:65536/key"));
+    assertIorCode(
+        IorDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () -> CorbanameUrl.parse("corbaname::host.example#name", strict));
+    assertIorCode(
+        IorDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () -> CorbalocUrl.parse("corbaloc::host/12345", strict));
+  }
+
+  @Test
+  @Tag("security")
+  void boundedObjectUrlSmokeRemainsDeterministicAcrossRepeatedParses() {
+    for (int iteration = 0; iteration < 128; iteration++) {
+      CorbalocUrl location = CorbalocUrl.parse("corbaloc:iiop:1.2@127.0.0.1:2809/NameService");
+      CorbanameUrl name = CorbanameUrl.parse("corbaname:rir:#root/context");
+
+      assertEquals("127.0.0.1", location.addresses().getFirst().host().orElseThrow());
+      assertArrayEquals(ascii("NameService"), location.objectKey().octets());
+      assertEquals("root/context", name.stringName());
+      assertEquals(CorbalocAddress.Kind.RIR, name.location().addresses().getFirst().kind());
+    }
+  }
+
   private static void assertIorCode(Object expectedCode, ThrowingRunnable runnable) {
     IorException exception = assertThrows(IorException.class, runnable::run);
     assertEquals(expectedCode, exception.code());
+  }
+
+  private static void parseObjectUrl(String value) {
+    if (value.startsWith("corbaname:")) {
+      CorbanameUrl.parse(value);
+    } else {
+      CorbalocUrl.parse(value);
+    }
   }
 
   private static byte[] ascii(String value) {

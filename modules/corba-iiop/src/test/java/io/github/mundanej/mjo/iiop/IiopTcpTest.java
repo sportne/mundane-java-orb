@@ -341,6 +341,46 @@ final class IiopTcpTest {
     }
   }
 
+  @Test
+  @Tag("security")
+  void hostileIiopFrameSizesFailBeforeBodyAllocation() {
+    GiopLimits strictLimits =
+        new GiopLimits(
+            new BoundedLimit("test-message", 16),
+            new BoundedLimit("test-body", 4),
+            new BoundedLimit("test-context-count", 1),
+            new BoundedLimit("test-context-data", 1));
+
+    byte[][] hostileFrames = {
+      bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x07, 0x7F, 0xFF, 0xFF, 0xFF),
+      bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x01, 0x07, 0xFF, 0xFF, 0xFF, 0x7F),
+      bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x07, 0x00, 0x00, 0x00, 0x05)
+    };
+
+    for (byte[] frame : hostileFrames) {
+      assertIiopCode(
+          IiopDiagnosticCodes.FRAME_LIMIT,
+          () -> IiopFrameCodec.readMessage(new ByteArrayInputStream(frame), strictLimits));
+    }
+  }
+
+  @Test
+  @Tag("security")
+  void boundedIiopFrameSmokeRemainsDeterministicAcrossRepeatedReads() throws Exception {
+    byte[] closeConnection =
+        new GiopMessageWriter()
+            .write(new GiopCloseConnection(GiopHeader.forType(GiopMessageType.CLOSE_CONNECTION)));
+
+    for (int iteration = 0; iteration < 128; iteration++) {
+      assertEquals(
+          GiopMessageType.CLOSE_CONNECTION,
+          IiopFrameCodec.readMessage(
+                  new ByteArrayInputStream(closeConnection), GiopLimits.defaults())
+              .header()
+              .messageType());
+    }
+  }
+
   private GiopReply handleHello(GiopRequest request) {
     assertEquals("greet", request.operation());
     assertArrayEquals(
