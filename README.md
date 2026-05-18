@@ -74,6 +74,8 @@ This repository is in **Gate G6 foundation implementation state**:
 - compatibility, security/fuzz-style hostile-input, structured interop failure,
   Native Image boundary, and bounded performance/soak closure evidence has been
   recorded under approved roadmap tasks;
+- the RMI-IIOP and Java-to-IDL design gate has a proposed ADR and architecture
+  package, but implementation remains human-gated;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 

@@ -13,6 +13,7 @@ Architecture documents:
 - `cdr-giop-iiop.md`
 - `poa-design.md`
 - `dynamic-corba-design.md`
+- `rmi-iiop-java-to-idl.md`
 - `services-design.md`
 - `native-image-design.md`
 - `architecture-decision-template.md`

@@ -4,7 +4,9 @@ RMI-IIOP and Java-to-IDL support, staged behind dedicated ADR.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Scaffold only. No RMI-IIOP or Java-to-IDL implementation behavior belongs here
+until maintainers accept the dedicated design ADR and promote follow-on roadmap
+tasks.
 
 ## Documentation requirements
 
