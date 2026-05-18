@@ -8,3 +8,12 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Interface Repository and static metadata bridge.'
+
+dependencies {
+    // The static repository exposes deterministic diagnostic codes and descriptor lookups.
+    api project(':modules:corba-common')
+    api project(':modules:corba-typecode')
+
+    // Tests use shared architecture and fixture helpers.
+    testImplementation project(':modules:corba-testkit')
+}

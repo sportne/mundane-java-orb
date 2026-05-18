@@ -22,6 +22,9 @@ G6-420 strengthens generated exception metadata coverage so `raises(...)`
 descriptors carry deterministic IDL names, Java names, repository IDs, and
 exception type kind for local invocation exception mapping.
 
+G6-730 adds generated `GeneratedInterfaceRepository` sources that explicitly
+assemble descriptor constants into a closed-world static metadata repository.
+
 The renderer emits compile-safe Java source for:
 
 - Java interfaces from IDL interfaces;
@@ -36,8 +39,8 @@ profile comments. The minimal Java source slice intentionally avoids `org.omg.*`
 ORB runtime APIs, CDR, repository IDs, helpers, holders, stubs, skeletons, POA
 classes, reflection, and dynamic class loading. The descriptor slice may emit
 references to `corba-typecode`, `corba-cdr`, and `corba-repository-id` APIs but
-still avoids ORB runtime, transport, reflection, dynamic discovery, and legacy
-helper/holder/stub/POA artifacts.
+still avoids ORB runtime, transport, reflection, dynamic discovery, classpath
+scanning, and legacy helper/holder/stub/POA artifacts.
 
 ## Documentation requirements
 

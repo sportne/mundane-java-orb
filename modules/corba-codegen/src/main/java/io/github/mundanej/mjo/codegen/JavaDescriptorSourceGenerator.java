@@ -75,6 +75,7 @@ public final class JavaDescriptorSourceGenerator {
       sources.add(renderDescriptor(mappingModel, descriptorModel, declaration));
       sources.add(renderCodec(mappingModel, declaration));
     }
+    sources.add(renderRepository(mappingModel, descriptorModel));
     return sources.stream().sorted(Comparator.comparing(GeneratedJavaSource::sourcePath)).toList();
   }
 
@@ -193,6 +194,24 @@ public final class JavaDescriptorSourceGenerator {
     }
     source.append("\n  private ").append(simpleName).append("() {}\n").append("}\n");
     return new GeneratedJavaSource(packageName, simpleName, source.toString());
+  }
+
+  private static GeneratedJavaSource renderRepository(
+      JavaMappingModel mappingModel, DescriptorModel descriptorModel) {
+    String packageName = repositoryPackage(descriptorModel);
+    StringBuilder source = header(mappingModel, packageName);
+    source
+        .append("import io.github.mundanej.mjo.ir.StaticInterfaceRepository;\n")
+        .append("import java.util.List;\n\n")
+        .append("public final class GeneratedInterfaceRepository {\n\n")
+        .append("  public static final StaticInterfaceRepository REPOSITORY =\n")
+        .append("      StaticInterfaceRepository.of(\n")
+        .append("          ")
+        .append(repositoryDescriptors(descriptorModel))
+        .append(");\n\n")
+        .append("  private GeneratedInterfaceRepository() {}\n")
+        .append("}\n");
+    return new GeneratedJavaSource(packageName, "GeneratedInterfaceRepository", source.toString());
   }
 
   private static String fields(DescriptorModel descriptorModel, DescriptorDeclaration declaration) {
@@ -333,6 +352,38 @@ public final class JavaDescriptorSourceGenerator {
 
   private static String subpackage(String packageName, String child) {
     return packageName.isEmpty() ? child : packageName + "." + child;
+  }
+
+  private static String repositoryPackage(DescriptorModel descriptorModel) {
+    List<String> packages =
+        descriptorModel.declarations().stream()
+            .map(JavaDescriptorSourceGenerator::descriptorPackage)
+            .distinct()
+            .toList();
+    if (packages.size() == 1) {
+      return packages.get(0);
+    }
+    return "metadata";
+  }
+
+  private static String descriptorPackage(DescriptorDeclaration declaration) {
+    return subpackage(declaration.javaType().name().packageName(), "metadata");
+  }
+
+  private static String repositoryDescriptors(DescriptorModel descriptorModel) {
+    if (descriptorModel.declarations().isEmpty()) {
+      return "List.of()";
+    }
+    return descriptorModel.declarations().stream()
+        .map(declaration -> descriptorQualifiedName(declaration) + ".DESCRIPTOR")
+        .collect(java.util.stream.Collectors.joining(",\n              ", "List.of(", ")"));
+  }
+
+  private static String descriptorQualifiedName(DescriptorDeclaration declaration) {
+    return descriptorPackage(declaration)
+        + "."
+        + declaration.javaType().name().simpleName()
+        + "Descriptor";
   }
 
   private static String repositoryId(String idlScopedName) {

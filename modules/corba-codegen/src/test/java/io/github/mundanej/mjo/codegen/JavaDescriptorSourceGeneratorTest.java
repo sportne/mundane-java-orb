@@ -77,11 +77,16 @@ final class JavaDescriptorSourceGeneratorTest {
     allSources.addAll(modernSources);
 
     assertEquals(
-        List.of("hello/codec/GreeterCodec.java", "hello/metadata/GreeterDescriptor.java"),
+        List.of(
+            "hello/codec/GreeterCodec.java",
+            "hello/metadata/GeneratedInterfaceRepository.java",
+            "hello/metadata/GreeterDescriptor.java"),
         sourcePaths(legacySources));
     assertEquals(
         List.of(
-            "modern/hello/codec/GreeterCodec.java", "modern/hello/metadata/GreeterDescriptor.java"),
+            "modern/hello/codec/GreeterCodec.java",
+            "modern/hello/metadata/GeneratedInterfaceRepository.java",
+            "modern/hello/metadata/GreeterDescriptor.java"),
         sourcePaths(modernSources));
     assertGolden(
         "hello legacy codec", "hello/legacy/hello/codec/GreeterCodec.java.golden", legacySources);
@@ -90,12 +95,20 @@ final class JavaDescriptorSourceGeneratorTest {
         "hello/legacy/hello/metadata/GreeterDescriptor.java.golden",
         legacySources);
     assertGolden(
+        "hello legacy repository",
+        "hello/legacy/hello/metadata/GeneratedInterfaceRepository.java.golden",
+        legacySources);
+    assertGolden(
         "hello modern codec",
         "hello/modern/modern/hello/codec/GreeterCodec.java.golden",
         modernSources);
     assertGolden(
         "hello modern descriptor",
         "hello/modern/modern/hello/metadata/GreeterDescriptor.java.golden",
+        modernSources);
+    assertGolden(
+        "hello modern repository",
+        "hello/modern/modern/hello/metadata/GeneratedInterfaceRepository.java.golden",
         modernSources);
     assertNoForbiddenGeneratedSourceTokens(
         allSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat));
@@ -133,6 +146,7 @@ final class JavaDescriptorSourceGeneratorTest {
             "demo/codec/ShapeCodec.java",
             "demo/metadata/BadDescriptor.java",
             "demo/metadata/ColorDescriptor.java",
+            "demo/metadata/GeneratedInterfaceRepository.java",
             "demo/metadata/PointDescriptor.java",
             "demo/metadata/ShapeDescriptor.java"),
         sourcePaths(descriptorSources));
@@ -152,6 +166,14 @@ final class JavaDescriptorSourceGeneratorTest {
         allDescriptorSource,
         "new IdlTypeReference(IdlTypeKind.EXCEPTION, \"::Demo::Bad\", \"demo.Bad\", "
             + "Optional.of(RepositoryId.parse(\"IDL:Demo/Bad:1.0\")))");
+    assertContains(allDescriptorSource, "StaticInterfaceRepository.of");
+    assertContains(
+        allDescriptorSource,
+        """
+        List.of(demo.metadata.ColorDescriptor.DESCRIPTOR,
+                      demo.metadata.PointDescriptor.DESCRIPTOR,
+                      demo.metadata.BadDescriptor.DESCRIPTOR,
+                      demo.metadata.ShapeDescriptor.DESCRIPTOR)""");
     compile(compileSources);
   }
 
