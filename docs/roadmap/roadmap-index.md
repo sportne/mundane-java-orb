@@ -97,4 +97,4 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g6-d10-rmi-iiop-java-to-idl.md`
 - `tasks/g6-d20-optional-corba-services.md`
-- `tasks/g6-d30-legal-public-release.md`
+- `tasks/g6-d30-legal-public-release.md` - public release approval package prepared in `../release/public-release-approval.md`; remains human-gate-blocked.
