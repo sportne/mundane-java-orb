@@ -11,4 +11,6 @@ Candidate peer: `ACE+TAO-8.0.6` from the DOCGroup GitHub release source
 archive.
 
 Dry-run commands are available through `build-image.sh`, `launch.sh`, and
-`health.sh`. Real peer execution remains blocked until G6-830.
+`health.sh`. Real peer execution is enabled only when the approved external
+cache and configured peer image prerequisites are present. Logs, IORs, and
+structured reports are written under `build/interop/ace-tao/`.

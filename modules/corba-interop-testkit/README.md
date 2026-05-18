@@ -4,10 +4,11 @@ Reusable peer-ORB orchestration and interop assertions.
 
 ## Current status
 
-G6-820 adds process-level tests for the `interop/bin/interop-peer` artifact gate
-CLI. The tests cover manifest validation, approval record validation, external
-cache checksum validation, dry-run peer commands, and the rule that real peer
-execution remains blocked until G6-830.
+G6-830 adds immutable structured report models and process-level tests for the
+`interop/bin/interop-peer` artifact gate and report harness CLI. The tests cover
+manifest validation, approval record validation, external cache checksum
+validation, dry-run peer commands, fixture peer execution, deterministic
+prerequisite-failure reports, report summaries, and clean-room boundary checks.
 
 ## Documentation requirements
 

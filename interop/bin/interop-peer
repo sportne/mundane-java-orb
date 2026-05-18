@@ -14,12 +14,14 @@ Usage:
   interop-peer validate-manifests
   interop-peer validate-gates [--require-cache] [peer]
   interop-peer build-image [--dry-run] <peer>
-  interop-peer launch [--dry-run] <peer> <client|server|naming>
+  interop-peer launch [--dry-run] <peer> <client|server|naming> [scenario]
   interop-peer health [--dry-run] <peer>
   interop-peer report [--dry-run] <peer>
+  interop-peer run-scenario [--dry-run] [--require-live] <scenario> <peer|all>
 
-G6-820 approves artifact and license gates. Dry-run commands do not download
-peer artifacts, build images, start ORBs, or run interop assertions.
+G6-830 runs approved peer containers when external artifacts and images are
+present. Dry-run commands do not download peer artifacts, build images, start
+ORBs, or run interop assertions.
 EOF
 }
 
@@ -97,6 +99,14 @@ required_launch = {
     "readinessCheck",
 }
 
+required_container_commands = {
+    "client",
+    "server",
+    "naming",
+    "health",
+    "report",
+}
+
 failed = False
 for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
     with open(path, encoding="utf-8") as handle:
@@ -105,7 +115,8 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
     missing = sorted(required_top_level - set(manifest))
     missing_container = sorted(required_container - set(manifest.get("container", {})))
     missing_launch = sorted(required_launch - set(manifest.get("launch", {})))
-    if missing or missing_container or missing_launch:
+    missing_container_commands = sorted(required_container_commands - set(manifest.get("containerCommands", {})))
+    if missing or missing_container or missing_launch or missing_container_commands:
         failed = True
         print(f"{path}: invalid manifest", file=sys.stderr)
         if missing:
@@ -114,6 +125,8 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
             print(f"  missing container fields: {', '.join(missing_container)}", file=sys.stderr)
         if missing_launch:
             print(f"  missing launch fields: {', '.join(missing_launch)}", file=sys.stderr)
+        if missing_container_commands:
+            print(f"  missing container command fields: {', '.join(missing_container_commands)}", file=sys.stderr)
         continue
 
     if manifest["container"]["vendoredPeerArtifacts"] is not False:
@@ -337,15 +350,22 @@ resolve_runtime() {
 
 require_digest_pinned_base_image() {
   local peer_type="$1"
-  local env_name="INTEROP_JAVA_BASE_IMAGE"
-  if [[ "${peer_type}" == "native" ]]; then
-    env_name="INTEROP_NATIVE_BASE_IMAGE"
-  fi
+  local env_name
+  env_name="$(base_image_env_name "${peer_type}")"
   local value="${!env_name:-}"
   if [[ -z "${value}" || "${value}" != *@sha256:* ]]; then
     fail "${env_name} must be set to a digest-pinned image before a real build"
   fi
   printf '%s\n' "${value}"
+}
+
+base_image_env_name() {
+  local peer_type="$1"
+  if [[ "${peer_type}" == "native" ]]; then
+    printf 'INTEROP_NATIVE_BASE_IMAGE\n'
+  else
+    printf 'INTEROP_JAVA_BASE_IMAGE\n'
+  fi
 }
 
 require_external_artifact_cache() {
@@ -356,6 +376,236 @@ require_external_artifact_cache() {
   if [[ ! -d "${cache}" ]]; then
     fail "INTEROP_ARTIFACT_CACHE does not exist: ${cache}"
   fi
+}
+
+scenario_idl() {
+  local scenario="$1"
+  case "${scenario}" in
+    basic-idl) printf 'interop/idl/basic/BasicTypes.idl\n' ;;
+    hello) printf 'interop/idl/hello/hello.idl\n' ;;
+    *) printf 'interop/idl/%s.idl\n' "${scenario}" ;;
+  esac
+}
+
+peer_runtime_name() {
+  local peer_type="$1"
+  if [[ "${peer_type}" == "native" ]]; then
+    printf 'peer-native\n'
+  else
+    printf 'peer-jvm\n'
+  fi
+}
+
+report_label() {
+  local scenario="$1"
+  local role="$2"
+  case "${scenario}-${role}" in
+    *[!A-Za-z0-9._-]*|'') fail "scenario and role must contain only letters, digits, dot, underscore, or dash" ;;
+    *) printf '%s-%s\n' "${scenario}" "${role}" ;;
+  esac
+}
+
+write_interop_report() {
+  python3 - "$@" <<'PY'
+import json
+import os
+import sys
+
+(
+    report_file,
+    peer,
+    peer_version,
+    scenario,
+    idl,
+    client_runtime,
+    server_runtime,
+    role,
+    image,
+    command,
+    status,
+    classification,
+    exit_code,
+    stdout_path,
+    stderr_path,
+    report_path,
+    started_at,
+    ended_at,
+    notes,
+) = sys.argv[1:]
+
+data = {
+    "peer": peer,
+    "peerVersion": peer_version,
+    "scenario": scenario,
+    "idl": idl,
+    "clientRuntime": client_runtime,
+    "serverRuntime": server_runtime,
+    "role": role,
+    "image": image,
+    "command": command,
+    "status": status,
+    "classification": classification,
+    "exitCode": int(exit_code),
+    "stdoutPath": stdout_path,
+    "stderrPath": stderr_path,
+    "reportPath": report_path,
+    "startedAt": started_at,
+    "endedAt": ended_at,
+    "notes": notes,
+}
+os.makedirs(os.path.dirname(report_file), exist_ok=True)
+with open(report_file, "w", encoding="utf-8") as handle:
+    json.dump(data, handle, indent=2)
+    handle.write("\n")
+print(report_file)
+PY
+}
+
+run_container_role() {
+  local peer="$1"
+  local role="$2"
+  local scenario="$3"
+  local manifest image peer_type peer_version container_command logs_dir iors_dir reports_dir
+  manifest="$(manifest_path "${peer}")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+  peer_version="$(manifest_value "${manifest}" "candidateOrigin.version")"
+  container_command="$(manifest_value "${manifest}" "containerCommands.${role}")"
+  logs_dir="$(manifest_value "${manifest}" "reports.logs")"
+  iors_dir="$(manifest_value "${manifest}" "reports.iors")"
+  reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
+
+  local label logs_abs iors_abs reports_abs stdout_abs stderr_abs report_abs
+  label="$(report_label "${scenario}" "${role}")"
+  logs_abs="${ROOT_DIR}/${logs_dir}"
+  iors_abs="${ROOT_DIR}/${iors_dir}"
+  reports_abs="${ROOT_DIR}/${reports_dir}"
+  stdout_abs="${logs_abs}/${label}.stdout.log"
+  stderr_abs="${logs_abs}/${label}.stderr.log"
+  report_abs="${reports_abs}/${label}.json"
+  mkdir -p "${logs_abs}" "${iors_abs}" "${reports_abs}"
+
+  local stdout_rel stderr_rel report_rel idl peer_runtime client_runtime server_runtime started ended
+  stdout_rel="${logs_dir}/${label}.stdout.log"
+  stderr_rel="${logs_dir}/${label}.stderr.log"
+  report_rel="${reports_dir}/${label}.json"
+  idl="$(scenario_idl "${scenario}")"
+  peer_runtime="$(peer_runtime_name "${peer_type}")"
+  if [[ "${role}" == "client" ]]; then
+    client_runtime="${peer_runtime}"
+    server_runtime="our-jvm-jdk21"
+  else
+    client_runtime="our-jvm-jdk21"
+    server_runtime="${peer_runtime}"
+  fi
+
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local gate_output runtime_output runtime
+  if ! gate_output="$(validate_gates --require-cache "${peer}" 2>&1)"; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '%s\n' "${gate_output}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G6-830 prerequisite validation failed"
+    return 1
+  fi
+
+  local base_image_env base_image_value
+  base_image_env="$(base_image_env_name "${peer_type}")"
+  base_image_value="${!base_image_env:-}"
+  if [[ -z "${base_image_value}" || "${base_image_value}" != *@sha256:* ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '%s must be set to a digest-pinned image before live peer execution\n' \
+      "${base_image_env}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G6-830 base image validation failed"
+    return 1
+  fi
+
+  if [[ -n "${DEFAULT_RUNTIME}" ]]; then
+    runtime="${DEFAULT_RUNTIME}"
+  elif command -v docker >/dev/null 2>&1; then
+    runtime="docker"
+  elif command -v podman >/dev/null 2>&1; then
+    runtime="podman"
+  else
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'CONTAINER_RUNTIME is unset and neither docker nor podman was found\n' >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G6-830 container runtime resolution failed"
+    return 1
+  fi
+
+  set +e
+  "${runtime}" run --rm \
+    -e "INTEROP_PEER=${peer}" \
+    -e "INTEROP_ROLE=${role}" \
+    -e "INTEROP_SCENARIO=${scenario}" \
+    -v "${logs_abs}:/interop/logs" \
+    -v "${iors_abs}:/interop/iors" \
+    -v "${reports_abs}:/interop/reports" \
+    -v "${INTEROP_ARTIFACT_CACHE}:/interop/artifacts:ro" \
+    "${image}" "${container_command}" >"${stdout_abs}" 2>"${stderr_abs}"
+  local exit_code=$?
+  set -e
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  local status classification notes
+  if [[ "${exit_code}" -eq 0 ]]; then
+    status="passed"
+    classification="expected-deferral"
+    notes="G6-830 container command completed"
+  else
+    status="failed"
+    classification="infrastructure-failure"
+    notes="G6-830 container command failed"
+  fi
+  write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+    "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+    "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+    "${started}" "${ended}" "${notes}"
+  return "${exit_code}"
+}
+
+summarize_reports() {
+  local peer="$1"
+  local manifest reports_dir reports_abs summary_abs
+  manifest="$(manifest_path "${peer}")"
+  reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
+  reports_abs="${ROOT_DIR}/${reports_dir}"
+  summary_abs="${reports_abs}/summary.json"
+  mkdir -p "${reports_abs}"
+  python3 - "${reports_abs}" "${summary_abs}" "${peer}" <<'PY'
+import glob
+import json
+import os
+import sys
+
+reports_dir, summary_path, peer = sys.argv[1:]
+reports = []
+for path in sorted(glob.glob(os.path.join(reports_dir, "*.json"))):
+    if os.path.basename(path) == "summary.json":
+        continue
+    with open(path, encoding="utf-8") as handle:
+        reports.append(json.load(handle))
+summary = {
+    "peer": peer,
+    "reportCount": len(reports),
+    "reports": [item.get("reportPath", "") for item in reports],
+}
+with open(summary_path, "w", encoding="utf-8") as handle:
+    json.dump(summary, handle, indent=2)
+    handle.write("\n")
+print(summary_path)
+PY
 }
 
 parse_dry_run() {
@@ -408,6 +658,7 @@ launch_peer() {
   fi
   local peer="${1:-}"
   local role="${2:-}"
+  local scenario="${3:-manual}"
   [[ -n "${peer}" ]] || fail "launch requires a peer"
   case "${role}" in
     client|server|naming) ;;
@@ -429,7 +680,7 @@ launch_peer() {
     return
   fi
 
-  fail "real peer launch is reserved for G6-830 after approved peer artifacts are built"
+  run_container_role "${peer}" "${role}" "${scenario}"
 }
 
 health_peer() {
@@ -449,7 +700,7 @@ health_peer() {
     return
   fi
 
-  fail "real peer health checks are reserved for G6-830 with running peer containers"
+  run_container_role "${peer}" "health" "health"
 }
 
 report_peer() {
@@ -469,7 +720,49 @@ report_peer() {
     return
   fi
 
-  fail "real peer report generation is reserved for G6-830 with captured interop output"
+  run_container_role "${peer}" "report" "report" || return 1
+  summarize_reports "${peer}"
+}
+
+run_scenario() {
+  local dry_run="false"
+  local require_live="false"
+  while [[ "${1:-}" == "--dry-run" || "${1:-}" == "--require-live" ]]; do
+    case "${1}" in
+      --dry-run) dry_run="true" ;;
+      --require-live) require_live="true" ;;
+    esac
+    shift
+  done
+  local scenario="${1:-}"
+  local target="${2:-}"
+  [[ -n "${scenario}" && -n "${target}" ]] || fail "run-scenario requires a scenario and peer|all"
+
+  local peers=()
+  if [[ "${target}" == "all" ]]; then
+    local manifest
+    for manifest in "${PEERS_DIR}"/*/peer.yaml; do
+      peers+=("$(basename "$(dirname "${manifest}")")")
+    done
+  else
+    manifest_path "${target}" >/dev/null
+    peers=("${target}")
+  fi
+
+  local failures=0
+  local peer role
+  for peer in "${peers[@]}"; do
+    for role in server client; do
+      if [[ "${dry_run}" == "true" ]]; then
+        echo "dry-run: would run scenario ${scenario} role ${role} for ${peer}"
+      elif ! run_container_role "${peer}" "${role}" "${scenario}"; then
+        failures=$((failures + 1))
+      fi
+    done
+  done
+  if [[ "${require_live}" == "true" && "${failures}" -gt 0 ]]; then
+    return 1
+  fi
 }
 
 main() {
@@ -486,6 +779,7 @@ main() {
     launch) launch_peer "$@" ;;
     health) health_peer "$@" ;;
     report) report_peer "$@" ;;
+    run-scenario) run_scenario "$@" ;;
     *) fail "unknown command '${command}'" ;;
   esac
 }

@@ -66,6 +66,12 @@ launch:
   serverCommand: "interop/peers/glassfish-orb/launch.sh server"
   namingCommand: "interop/peers/glassfish-orb/launch.sh naming"
   readinessCheck: interop/peers/glassfish-orb/health.sh
+containerCommands:
+  client: client
+  server: server
+  naming: naming
+  health: health
+  report: report
 reports:
   logs: "build/interop/glassfish-orb/logs"
   iors: "build/interop/glassfish-orb/iors"

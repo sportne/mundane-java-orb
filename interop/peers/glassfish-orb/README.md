@@ -12,4 +12,6 @@ The corresponding source repository and reference-design identity is
 `eclipse-ee4j/orb`.
 
 Dry-run commands are available through `build-image.sh`, `launch.sh`, and
-`health.sh`. Real peer execution remains blocked until G6-830.
+`health.sh`. Real peer execution is enabled only when the approved external
+cache and configured peer image prerequisites are present. Logs, IORs, and
+structured reports are written under `build/interop/glassfish-orb/`.

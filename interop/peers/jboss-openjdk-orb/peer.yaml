@@ -65,6 +65,12 @@ launch:
   serverCommand: "interop/peers/jboss-openjdk-orb/launch.sh server"
   namingCommand: "interop/peers/jboss-openjdk-orb/launch.sh naming"
   readinessCheck: interop/peers/jboss-openjdk-orb/health.sh
+containerCommands:
+  client: client
+  server: server
+  naming: naming
+  health: health
+  report: report
 reports:
   logs: "build/interop/jboss-openjdk-orb/logs"
   iors: "build/interop/jboss-openjdk-orb/iors"

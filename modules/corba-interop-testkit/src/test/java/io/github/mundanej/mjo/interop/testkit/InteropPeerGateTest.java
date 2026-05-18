@@ -24,6 +24,8 @@ final class InteropPeerGateTest {
   private static final String FIXTURE_PEER = "fixture-peer";
   private static final String FIXTURE_CACHE_ENTRY = "maven/example/fixture/1.0/fixture-1.0.jar";
   private static final String FIXTURE_CONTENT = "approved artifact\n";
+  private static final String DIGEST_PINNED_BASE_IMAGE =
+      "example@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
   @TempDir private Path temporaryDirectory;
 
@@ -148,7 +150,7 @@ final class InteropPeerGateTest {
                     "CONTAINER_RUNTIME",
                     "/bin/true",
                     "INTEROP_JAVA_BASE_IMAGE",
-                    "example@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef")));
+                    DIGEST_PINNED_BASE_IMAGE)));
 
     assertSuccess(result);
   }
@@ -164,10 +166,133 @@ final class InteropPeerGateTest {
   }
 
   @Test
-  void realPeerExecutionCommandsRemainBlockedUntilG6_830() throws Exception {
-    assertFailure(run(command("launch", "jacorb", "server"), Map.of()), "reserved for G6-830");
-    assertFailure(run(command("health", "jacorb"), Map.of()), "reserved for G6-830");
-    assertFailure(run(command("report", "jacorb"), Map.of()), "reserved for G6-830");
+  void launchWritesPrerequisiteFailureReportWhenCacheIsMissing() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("launch", FIXTURE_PEER, "server", "basic-idl"), fixture.environment());
+
+    assertFailure(result, "basic-idl-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"status\": \"failed\""), report);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
+    assertTrue(
+        report.contains(
+            "\"stderrPath\": \"build/interop/fixture/logs/basic-idl-server.stderr.log\""),
+        report);
+  }
+
+  @Test
+  void launchRunsConfiguredContainerCommandWhenPrerequisitesExist() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    "/bin/true",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertSuccess(result);
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"status\": \"passed\""), report);
+    assertTrue(report.contains("\"classification\": \"expected-deferral\""), report);
+    assertTrue(report.contains("\"command\": \"server\""), report);
+  }
+
+  @Test
+  void launchWritesPrerequisiteFailureReportWhenBaseImageIsMissing() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(Map.of("CONTAINER_RUNTIME", "/bin/true")));
+
+    assertFailure(result, "basic-idl-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    String stderr =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/logs/basic-idl-server.stderr.log"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
+    assertTrue(report.contains("G6-830 base image validation failed"), report);
+    assertTrue(stderr.contains("INTEROP_JAVA_BASE_IMAGE must be set to a digest-pinned image"));
+  }
+
+  @Test
+  void launchWritesPrerequisiteFailureReportWhenBaseImageIsNotDigestPinned() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME", "/bin/true", "INTEROP_JAVA_BASE_IMAGE", "ubuntu:22.04")));
+
+    assertFailure(result, "basic-idl-server.json");
+    String stderr =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/logs/basic-idl-server.stderr.log"),
+            StandardCharsets.UTF_8);
+    assertTrue(stderr.contains("INTEROP_JAVA_BASE_IMAGE must be set to a digest-pinned image"));
+  }
+
+  @Test
+  void reportSummarizesCapturedStructuredReports() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Map<String, String> environment =
+        fixture.environmentWithCache(
+            Map.of(
+                "CONTAINER_RUNTIME",
+                "/bin/true",
+                "INTEROP_JAVA_BASE_IMAGE",
+                DIGEST_PINNED_BASE_IMAGE));
+    run(command("launch", FIXTURE_PEER, "server", "basic-idl"), environment);
+
+    CommandResult result = run(command("report", FIXTURE_PEER), environment);
+
+    assertSuccess(result);
+    String summary =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/summary.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(summary.contains("\"peer\": \"fixture-peer\""), summary);
+    assertTrue(summary.contains("\"reportCount\": 2"), summary);
+    assertTrue(summary.contains("basic-idl-server.json"), summary);
+    assertTrue(summary.contains("report-report.json"), summary);
+  }
+
+  @Test
+  void runScenarioDryRunRemainsNonMutating() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("run-scenario", "--dry-run", "basic-idl", FIXTURE_PEER), fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains("dry-run: would run scenario basic-idl role server for fixture-peer"));
+    assertTrue(
+        result
+            .output()
+            .contains("dry-run: would run scenario basic-idl role client for fixture-peer"));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
   }
 
   @Test
@@ -179,6 +304,35 @@ final class InteropPeerGateTest {
     }
     assertTrue(script.contains("INTEROP_ARTIFACT_CACHE"));
     assertTrue(script.contains("vendoredPeerArtifacts must be false"));
+  }
+
+  @Test
+  void reportHarnessKeepsCleanRoomBoundary() throws Exception {
+    List<Path> files = new ArrayList<>();
+    files.add(repoRoot().resolve("interop/bin/interop-peer"));
+    try (var stream =
+        Files.walk(repoRoot().resolve("modules/corba-interop-testkit/src/main/java"))) {
+      stream.filter(Files::isRegularFile).forEach(files::add);
+    }
+
+    List<String> forbiddenTokens =
+        List.of(
+            "java.lang.reflect",
+            "Proxy.newProxyInstance",
+            "ClassLoader",
+            "ServiceLoader",
+            "ObjectInputStream",
+            "ObjectOutputStream",
+            "java.io.Serializable",
+            "net.bytebuddy",
+            "cglib",
+            "classpath scan");
+    for (Path file : files) {
+      String content = Files.readString(file);
+      for (String token : forbiddenTokens) {
+        assertFalse(content.contains(token), file + " must not contain " + token);
+      }
+    }
   }
 
   private Fixture createFixture(FixtureOptions options)
@@ -250,6 +404,12 @@ final class InteropPeerGateTest {
                   serverCommand: "interop/peers/fixture-peer/launch.sh server"
                   namingCommand: "interop/peers/fixture-peer/launch.sh naming"
                   readinessCheck: interop/peers/fixture-peer/health.sh
+                containerCommands:
+                  client: client
+                  server: server
+                  naming: naming
+                  health: health
+                  report: report
                 reports:
                   logs: "build/interop/fixture/logs"
                   iors: "build/interop/fixture/iors"

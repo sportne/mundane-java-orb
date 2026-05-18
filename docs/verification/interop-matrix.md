@@ -9,20 +9,45 @@
 | JBoss OpenJDK ORB | `interop/peers/jboss-openjdk-orb/peer.yaml` | yes | no | `org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final` | G6-820 approved | Legacy Java/OpenJDK ORB. External cache entry pinned in `interop/approvals/jboss-openjdk-orb.approval.yaml`. |
 | ACE/TAO | `interop/peers/ace-tao/peer.yaml` | no | yes | `ACE+TAO-8.0.6` | G6-820 approved | C++ native ORB. External cache entry pinned in `interop/approvals/ace-tao.approval.yaml`. |
 
-The G6-820 peer gates are dry-run executable and cache-verifiable. They define
-the container contract for later real peer execution: digest-pinned base images,
-external artifact/cache inputs only, no vendored peer source or binaries, test
-port `2809`, and logs, IORs, and structured reports as outputs.
+The G6-820 peer gates are dry-run executable and cache-verifiable. G6-830 adds
+an environment-gated report harness on top of those gates: digest-pinned base
+images, external artifact/cache inputs only, no vendored peer source or
+binaries, test port `2809`, and logs, IORs, and structured reports as outputs.
 
 ## Gate validation
 
 `interop/bin/interop-peer validate-manifests` checks the structural peer
-manifests. `interop/bin/interop-peer validate-gates` checks approval records,
-manifest-to-approval consistency, clean-room controls, external cache layout,
-SHA-256 pins, and G6-830 execution deferral. Add `--require-cache` with an
-absolute `INTEROP_ARTIFACT_CACHE` to verify cached artifacts before real peer
-image preparation. Supplying a peer name validates only that peer's approval and
-cache entries; `build-image <peer>` uses that scoped validation.
+manifests and their container command contract. `interop/bin/interop-peer
+validate-gates` checks approval records, manifest-to-approval consistency,
+clean-room controls, external cache layout, and SHA-256 pins. Add
+`--require-cache` with an absolute `INTEROP_ARTIFACT_CACHE` to verify cached
+artifacts before real peer image preparation or live container execution.
+Supplying a peer name validates only that peer's approval and cache entries;
+`build-image <peer>` and live run commands use that scoped validation.
+
+## G6-830 report lane
+
+The selected automated scenario for G6-830 is `basic-idl`. It exercises the
+approved container command contract and proves that missing prerequisites and
+peer command failures become structured reports instead of silent skips. The
+initial live command shape is:
+
+```bash
+INTEROP_ARTIFACT_CACHE=/absolute/cache \
+INTEROP_JAVA_BASE_IMAGE=example@sha256:... \
+INTEROP_NATIVE_BASE_IMAGE=example@sha256:... \
+interop/bin/interop-peer run-scenario --require-live basic-idl all
+```
+
+Reports are written to each peer manifest's `reports.structuredReports` path,
+with command logs under `reports.logs` and IOR outputs under `reports.iors`.
+Dry-run commands remain available for all peers and do not create outputs.
+
+Real peer launch, health, and report commands are no longer blocked by roadmap
+state alone. They validate gates first and then either run the configured
+Docker/Podman container command or write a deterministic infrastructure-failure
+report when required external cache, base image, image, or runtime prerequisites
+are missing.
 
 ## Required directions
 

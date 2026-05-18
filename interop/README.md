@@ -13,10 +13,10 @@ notes, clean-room restrictions, external cache inputs, launch expectations, and
 report outputs. The files under `interop/approvals/*` are the reviewed approval
 records that pin artifact origin, version, SHA-256, cache path, and allowed use.
 
-G6-820 still does not download peer binaries, vendor peer source, run real ORB
-interop, generate CORBA code, or add interop assertions. Real peer execution is
-reserved for G6-830 after the approved artifacts are present in an external
-cache.
+G6-830 adds environment-gated peer execution and structured report capture. The
+repository still does not download peer binaries, vendor peer source, commit
+peer outputs, generate peer-derived code, or add source-derived reference
+implementation logic.
 
 ## Shared container contract
 
@@ -27,9 +27,10 @@ cache.
 - Approval records must match peer manifests and each cached artifact must match
   its source-controlled SHA-256 before real image builds are prepared.
 - Peer server and naming endpoints reserve test port `2809`.
-- Launch scripts must write logs, IOR files, and structured reports to paths
+- Launch commands write logs, IOR files, and structured reports to paths
   declared by the manifest.
-- Health and readiness checks are scaffolded as dry-run commands.
+- Real commands validate gates first. Missing cache, runtime, image, or base
+  image prerequisites produce deterministic infrastructure-failure reports.
 
 ## Commands
 
@@ -40,8 +41,11 @@ cache.
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer validate-gates --require-cache jacorb`
 - `interop/bin/interop-peer build-image --dry-run jacorb`
 - `interop/bin/interop-peer launch --dry-run jacorb server`
+- `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache CONTAINER_RUNTIME=docker interop/bin/interop-peer launch jacorb server basic-idl`
 - `interop/bin/interop-peer health --dry-run jacorb`
 - `interop/bin/interop-peer report --dry-run jacorb`
+- `interop/bin/interop-peer run-scenario --dry-run basic-idl all`
+- `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-scenario --require-live basic-idl all`
 
 Each peer directory also contains `build-image.sh`, `launch.sh`, and
 `health.sh` wrappers that delegate to the canonical CLI.

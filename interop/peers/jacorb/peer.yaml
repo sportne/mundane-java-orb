@@ -65,6 +65,12 @@ launch:
   serverCommand: "interop/peers/jacorb/launch.sh server"
   namingCommand: "interop/peers/jacorb/launch.sh naming"
   readinessCheck: interop/peers/jacorb/health.sh
+containerCommands:
+  client: client
+  server: server
+  naming: naming
+  health: health
+  report: report
 reports:
   logs: "build/interop/jacorb/logs"
   iors: "build/interop/jacorb/iors"

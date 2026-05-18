@@ -65,6 +65,12 @@ launch:
   serverCommand: "interop/peers/ace-tao/launch.sh server"
   namingCommand: "interop/peers/ace-tao/launch.sh naming"
   readinessCheck: interop/peers/ace-tao/health.sh
+containerCommands:
+  client: client
+  server: server
+  naming: naming
+  health: health
+  report: report
 reports:
   logs: "build/interop/ace-tao/logs"
   iors: "build/interop/ace-tao/iors"
