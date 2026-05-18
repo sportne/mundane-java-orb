@@ -17,6 +17,7 @@ public final class LocalOrb {
 
   private final long ownerToken = NEXT_OWNER_TOKEN.getAndIncrement();
   private final Map<String, Binding> bindings = new LinkedHashMap<>();
+  private final Map<String, InitialReference> initialReferences = new LinkedHashMap<>();
   private long nextObjectNumber = 1L;
   private boolean shutdown;
 
@@ -63,6 +64,48 @@ public final class LocalOrb {
     bindings.remove(requireNonBlank(objectId, "objectId"));
   }
 
+  /** Registers a typed local initial reference. */
+  public synchronized <T> void registerInitialReference(
+      String name, Class<T> javaType, T reference) {
+    requireActive();
+    String checkedName = requireNonBlank(name, "name");
+    LocalExceptionMapper.requireNonNull(javaType, "javaType");
+    LocalExceptionMapper.requireNonNull(reference, "reference");
+    if (!javaType.isInstance(reference)) {
+      throw LocalExceptionMapper.badParam(
+          "Initial reference does not implement " + javaType.getName() + ": " + checkedName);
+    }
+    if (initialReferences.containsKey(checkedName)) {
+      throw LocalExceptionMapper.badParam("Initial reference already registered: " + checkedName);
+    }
+    initialReferences.put(checkedName, new InitialReference(javaType, reference));
+  }
+
+  /** Resolves a typed local initial reference. */
+  public synchronized <T> T resolveInitialReference(String name, Class<T> javaType) {
+    requireActive();
+    String checkedName = requireNonBlank(name, "name");
+    LocalExceptionMapper.requireNonNull(javaType, "javaType");
+    InitialReference reference = initialReferences.get(checkedName);
+    if (reference == null) {
+      throw LocalExceptionMapper.badParam("Initial reference is not registered: " + checkedName);
+    }
+    if (!javaType.isInstance(reference.value())) {
+      throw LocalExceptionMapper.badParam(
+          "Initial reference " + checkedName + " is not assignable to " + javaType.getName());
+    }
+    return javaType.cast(reference.value());
+  }
+
+  /** Removes a typed local initial reference. */
+  public synchronized void removeInitialReference(String name) {
+    requireActive();
+    String checkedName = requireNonBlank(name, "name");
+    if (initialReferences.remove(checkedName) == null) {
+      throw LocalExceptionMapper.badParam("Initial reference is not registered: " + checkedName);
+    }
+  }
+
   private <T> LocalObjectReference<T> bindWithCheckedId(
       Class<T> javaType,
       IdlGeneratedTypeDescriptor descriptor,
@@ -98,6 +141,7 @@ public final class LocalOrb {
   public synchronized void shutdown() {
     shutdown = true;
     bindings.clear();
+    initialReferences.clear();
   }
 
   /** Returns whether this local ORB has been shut down. */
@@ -153,4 +197,6 @@ public final class LocalOrb {
 
   private record Binding(
       IdlGeneratedTypeDescriptor descriptor, LocalInvocationDispatcher dispatcher) {}
+
+  private record InitialReference(Class<?> javaType, Object value) {}
 }

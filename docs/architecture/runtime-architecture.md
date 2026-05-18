@@ -62,9 +62,24 @@ generated client
 
 `corba-modern-api` owns the generated-code-facing request and dispatcher
 contracts. `corba-orb-core` owns local object references, local object identity,
-dispatcher registration, lifecycle checks, exception mapping, and shutdown
-coordination. `corba-omg-api` owns the minimal `org.omg.CORBA` exception
-compatibility surface used by this local slice.
+dispatcher registration, typed local initial references, lifecycle checks,
+exception mapping, and shutdown coordination. `corba-omg-api` owns the minimal
+`org.omg.CORBA` exception compatibility surface used by this local slice.
+
+## Local Naming Service Path
+
+G6-810 adds a local Naming Service path over in-process initial references:
+
+```text
+LocalNamingService.install
+  -> LocalOrb.registerInitialReference("NameService")
+  -> NamingContext bind / resolve / list / destroy
+  -> CorbanameResolver for corbaname:rir:#name
+```
+
+This path is an in-memory local JVM slice. It does not contact remote IIOP
+addresses, open a Naming Service transport endpoint, persist naming databases,
+discover services dynamically, or expose legacy CosNaming compatibility APIs.
 
 This path does not open sockets, construct GIOP messages, use IIOP transport,
 invoke POA policy behavior, create dynamic proxies, generate runtime bytecode,

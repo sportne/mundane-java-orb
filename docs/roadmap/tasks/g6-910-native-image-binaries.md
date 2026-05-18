@@ -1,7 +1,7 @@
 # G6-910 Native Image Binaries
 
 Task ID: G6-910-NATIVE-IMAGE-BINARIES
-Status: draft
+Status: ready-for-implementation
 Gate: G6 native-image hardening
 Requirement IDs: REQ-NATIVE-001, REQ-NATIVE-002, REQ-NATIVE-003, REQ-NATIVE-004, REQ-NATIVE-005, REQ-BUILD-005
 ADR IDs: ADR-0010

@@ -8,3 +8,11 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'CosNaming API/generated-compatible support.'
+
+dependencies {
+    // Naming diagnostics use the shared stable DiagnosticCode value type.
+    api project(':modules:corba-common')
+
+    // Local object bindings expose in-process ORB object references in this G6 slice.
+    api project(':modules:corba-orb-core')
+}

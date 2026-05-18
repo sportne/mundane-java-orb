@@ -242,6 +242,54 @@ final class LocalOrbTest {
   }
 
   @Test
+  void localInitialReferencesCanBeRegisteredResolvedRemovedAndReused() {
+    LocalOrb orb = LocalOrb.create();
+    GreeterServant first = new GreeterServant();
+    GreeterServant second = new GreeterServant();
+
+    orb.registerInitialReference("NameService", GreeterServant.class, first);
+
+    assertSame(first, orb.resolveInitialReference("NameService", GreeterServant.class));
+    assertSame(first, orb.resolveInitialReference("NameService", Object.class));
+
+    BAD_PARAM duplicate =
+        assertThrows(
+            BAD_PARAM.class,
+            () -> orb.registerInitialReference("NameService", GreeterServant.class, second));
+
+    assertEquals(CompletionStatus.COMPLETED_NO, duplicate.completed);
+
+    orb.removeInitialReference("NameService");
+    orb.registerInitialReference("NameService", GreeterServant.class, second);
+
+    assertSame(second, orb.resolveInitialReference("NameService", GreeterServant.class));
+  }
+
+  @Test
+  void localInitialReferencesRejectInvalidInputsMissingEntriesWrongTypesAndShutdown() {
+    LocalOrb orb = LocalOrb.create();
+    GreeterServant servant = new GreeterServant();
+
+    assertThrows(BAD_PARAM.class, () -> orb.registerInitialReference(null, Object.class, servant));
+    assertThrows(BAD_PARAM.class, () -> orb.registerInitialReference(" ", Object.class, servant));
+    assertThrows(BAD_PARAM.class, () -> orb.registerInitialReference("x", null, servant));
+    assertThrows(BAD_PARAM.class, () -> orb.registerInitialReference("x", Object.class, null));
+    assertThrows(BAD_PARAM.class, () -> orb.resolveInitialReference("missing", Object.class));
+    assertThrows(BAD_PARAM.class, () -> orb.removeInitialReference("missing"));
+
+    orb.registerInitialReference("x", GreeterServant.class, servant);
+
+    assertThrows(BAD_PARAM.class, () -> orb.resolveInitialReference("x", RiskyGreeter.class));
+
+    orb.shutdown();
+
+    assertThrows(BAD_INV_ORDER.class, () -> orb.resolveInitialReference("x", Object.class));
+    assertThrows(BAD_INV_ORDER.class, () -> orb.removeInitialReference("x"));
+    assertThrows(
+        BAD_INV_ORDER.class, () -> orb.registerInitialReference("y", Object.class, servant));
+  }
+
+  @Test
   void localInvocationDoesNotRequireNetworkTransportClasses() {
     LocalOrb orb = LocalOrb.create();
     LocalObjectReference<Greeter> reference =

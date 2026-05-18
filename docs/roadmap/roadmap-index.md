@@ -83,13 +83,13 @@ values, task-type markers, and the rule that at least one task is active as
 
 ### G6.9 Naming and Interop Slice
 
-- `tasks/g6-810-cosnaming-vertical-slice.md` - ready-for-implementation
+- `tasks/g6-810-cosnaming-vertical-slice.md` - complete
 - `tasks/g6-820-real-peer-artifact-gates.md` - human-gate-blocked
 - `tasks/g6-830-real-peer-interop-reports.md`
 
 ### G6.10 Native and Release Hardening
 
-- `tasks/g6-910-native-image-binaries.md`
+- `tasks/g6-910-native-image-binaries.md` - ready-for-implementation
 - `tasks/g6-920-offline-release-validation.md`
 - `tasks/g6-930-compatibility-security-performance-closure.md`
 
