@@ -19,6 +19,19 @@ compile-only codec surfaces. A narrow Native Image smoke check validates that
 descriptor construction and unsupported codec failures work without reflection,
 service loading, or dynamic class discovery.
 
+G6-910 adds the central `corba-native-image` verification harness. It discovers
+Native Image toolchains deterministically, models the approved smoke binaries as
+stable targets, and builds each executable with `--no-fallback` and
+`-H:+ReportExceptionStackTraces`. The target set covers IDL validation,
+generated-style local client and server dispatch, local naming, IOR diagnostics,
+and structured interop report serialization.
+
+The G6-910 harness is verification-only. Production runtime modules still do not
+spawn processes, scan classpaths, use service loading, generate bytecode at
+runtime, or require reflection/proxy/serialization metadata for the covered
+paths. Unit tests audit the harness and smoke sources for those forbidden
+tokens, and the native matrix records the empty metadata policy.
+
 ## Native test targets
 
 - `idlj` CLI.

@@ -8,3 +8,142 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Native Image metadata, features, tests, and diagnostics.'
+
+sourceSets {
+    nativeSmoke {
+        java.srcDir 'src/nativeSmoke/java'
+        compileClasspath += sourceSets.main.output + configurations.compileClasspath
+        runtimeClasspath += output + compileClasspath + sourceSets.main.output + configurations.runtimeClasspath
+    }
+    test {
+        runtimeClasspath += sourceSets.nativeSmoke.runtimeClasspath
+    }
+}
+
+dependencies {
+    // Native smoke entry points validate representative G6 runtime surfaces.
+    nativeSmokeImplementation project(':modules:corba-idlj-cli')
+    nativeSmokeImplementation project(':modules:corba-ior')
+    nativeSmokeImplementation project(':modules:corba-naming-server')
+    nativeSmokeImplementation project(':modules:corba-orb-core')
+    nativeSmokeImplementation project(':modules:corba-interop-testkit')
+    nativeSmokeImplementation project(':modules:corba-typecode')
+
+    // Unit tests execute the smoke entry points on the JVM before native compilation.
+    testImplementation sourceSets.nativeSmoke.output
+}
+
+def javaHomeNativeImage = providers.provider {
+    def javaHome = System.getenv('JAVA_HOME')
+    if (!javaHome) {
+        return null
+    }
+    def candidate = new File(javaHome, 'bin/native-image')
+    candidate.isFile() ? candidate.absolutePath : null
+}
+def sdkmanNativeImage = providers.provider {
+    def candidatesRoot = System.getenv('SDKMAN_CANDIDATES_DIR')
+    if (!candidatesRoot) {
+        def home = System.getenv('HOME')
+        if (!home) {
+            return null
+        }
+        candidatesRoot = new File(home, '.sdkman/candidates').absolutePath
+    }
+    def javaCandidates = new File(candidatesRoot, 'java')
+    def current = new File(javaCandidates, 'current/bin/native-image')
+    if (current.isFile()) {
+        return current.absolutePath
+    }
+    def candidates = javaCandidates.listFiles()
+            ?.collect { candidate -> new File(candidate, 'bin/native-image') }
+            ?.findAll { nativeImage -> nativeImage.isFile() }
+            ?.sort { left, right -> left.absolutePath <=> right.absolutePath }
+    candidates ? candidates.last().absolutePath : null
+}
+def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
+        .orElse(javaHomeNativeImage)
+        .orElse(sdkmanNativeImage)
+        .orElse('native-image')
+
+def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
+def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/g6-910')
+def nativeSmokeTargets = [
+    [
+        name: 'idljValidate',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.IdljValidateNativeSmoke',
+        binaryName: 'idlj-validate-native-smoke'
+    ],
+    [
+        name: 'generatedClient',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.GeneratedClientNativeSmoke',
+        binaryName: 'generated-client-native-smoke'
+    ],
+    [
+        name: 'generatedServer',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.GeneratedServerNativeSmoke',
+        binaryName: 'generated-server-native-smoke'
+    ],
+    [
+        name: 'namingServer',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke',
+        binaryName: 'naming-server-native-smoke'
+    ],
+    [
+        name: 'iorDiagnostics',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.IorDiagnosticsNativeSmoke',
+        binaryName: 'ior-diagnostics-native-smoke'
+    ],
+    [
+        name: 'interopReport',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.InteropReportNativeSmoke',
+        binaryName: 'interop-report-native-smoke'
+    ]
+]
+
+nativeSmokeTargets.each { target ->
+    def binary = nativeSmokeOutputDirectory.map { directory ->
+        directory.file(target.binaryName).asFile
+    }
+    def compileTaskName = "native${target.name.capitalize()}Compile"
+    def runTaskName = "native${target.name.capitalize()}Smoke"
+
+    tasks.register(compileTaskName, Exec) {
+        group = 'verification'
+        description = "Builds the G6-910 ${target.name} Native Image smoke executable."
+        dependsOn tasks.named('nativeSmokeClasses')
+        inputs.files(nativeSmokeRuntimeClasspath)
+        outputs.file(binary)
+
+        doFirst {
+            nativeSmokeOutputDirectory.get().asFile.mkdirs()
+            executable = nativeImageExecutable.get()
+            args = [
+                '--no-fallback',
+                '-H:+ReportExceptionStackTraces',
+                '-o',
+                binary.get().absolutePath,
+                '-cp',
+                nativeSmokeRuntimeClasspath.asPath,
+                target.mainClass
+            ]
+        }
+    }
+
+    tasks.register(runTaskName, Exec) {
+        group = 'verification'
+        description = "Runs the G6-910 ${target.name} Native Image smoke executable."
+        dependsOn tasks.named(compileTaskName)
+
+        doFirst {
+            executable = binary.get().absolutePath
+            args = []
+        }
+    }
+}
+
+tasks.register('nativeImageBinariesSmoke') {
+    group = 'verification'
+    description = 'Builds and runs all G6-910 Native Image smoke executables.'
+    dependsOn nativeSmokeTargets.collect { target -> "native${target.name.capitalize()}Smoke" }
+}

@@ -33,6 +33,18 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 
 ## Current G6 native checks
 
+- `:modules:corba-native-image:nativeImageBinariesSmoke` builds and executes
+  the G6-910 aggregate Native Image smoke suite:
+  - `idljValidate` validates compact valid and invalid IDL through `IdljCli`;
+  - `generatedClient` exercises generated-style local client invocation through
+    `LocalOrb`;
+  - `generatedServer` exercises generated-style servant/dispatcher invocation
+    through `LocalOrb`;
+  - `namingServer` installs local `NameService`, binds and resolves names, and
+    resolves `corbaname:rir:`;
+  - `iorDiagnostics` parses deterministic `corbaloc`, `corbaname`, and
+    stringified IOR/profile values;
+  - `interopReport` serializes and parses structured G6 interop reports.
 - `:modules:corba-cdr:nativeCdrSmoke` builds and executes a GraalVM Native
   Image smoke executable for the CDR primitive, string, sequence, and
   encapsulation reader/writer API.
@@ -45,3 +57,20 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 - `:modules:corba-typecode:nativeTypecodeDescriptorSmoke` builds and executes a
   GraalVM Native Image smoke executable for static descriptor construction and
   compile-only codec failure behavior.
+
+## G6-910 class-initialization and metadata policy
+
+G6-910 uses default GraalVM class-initialization behavior for the smoke binaries.
+No runtime class-initialization override is required by the local descriptor,
+ORB, naming, IOR, IDL validation, or interop-report paths covered here.
+
+The accepted metadata set is empty for:
+
+- reflection configuration;
+- dynamic proxy configuration;
+- Java serialization configuration;
+- service-loader discovery;
+- runtime bytecode generation.
+
+Any future metadata file must be committed as reviewed source and added to this
+matrix with the owning task and test evidence.
