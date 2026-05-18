@@ -1,13 +1,13 @@
 # G6-710 TypeCode and Any
 
 Task ID: G6-710-TYPECODE-ANY
-Status: ready-for-implementation
+Status: complete
 Gate: G6 dynamic and metadata vertical slice
 Requirement IDs: REQ-DYN-001, REQ-CDR-001, REQ-NATIVE-002, REQ-DOC-003
 ADR IDs: ADR-0002, ADR-0005, ADR-0010
 Specification references: CORBA-IF-TYPECODE, CORBA-IF-DYNANY, CORBA-IOP-CDR
 Target module: modules/corba-typecode, modules/corba-any
-Allowed files: modules/corba-typecode/src/**, modules/corba-any/src/**, modules/corba-cdr/src/**, docs/architecture/dynamic-corba-design.md
+Allowed files: modules/corba-typecode/src/**, modules/corba-any/src/**, modules/corba-cdr/src/**, modules/corba-any/build.gradle, modules/corba-typecode/README.md, modules/corba-any/README.md, docs/architecture/dynamic-corba-design.md, docs/conformance/corba-3.4-matrix.md, README.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g6-710-typecode-any.md, docs/roadmap/tasks/g6-720-dynamicany-dii-dsi.md
 Forbidden files: DII/DSI behavior, reflection-based marshaling, ORB transport
 Expected behavior: Task type: implementation. Implement generated-descriptor-backed TypeCode and Any support for the current IDL/CDR subset.
 Tests to add/update: Unit and CDR round-trip tests for primitive, struct, enum, sequence, and exception Any values.

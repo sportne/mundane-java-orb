@@ -8,3 +8,12 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Any implementation and Any/TypeCode integration.'
+
+dependencies {
+    // Any values expose TypeCode metadata and encode local payloads through CDR.
+    api project(':modules:corba-typecode')
+    api project(':modules:corba-cdr')
+
+    // Any tests use shared architecture and source-boundary helpers.
+    testImplementation project(':modules:corba-testkit')
+}

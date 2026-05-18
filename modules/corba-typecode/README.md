@@ -5,22 +5,25 @@ TypeCode model, descriptors, and static metadata foundations.
 ## Current status
 
 G6-220 implements the first static descriptor foundation for generated IDL
-artifacts. The module provides immutable descriptor values for generated IDL
-types, fields, operations, parameters, repository IDs, and compile-only codec
-surfaces.
+artifacts. G6-710 adds immutable local TypeCode metadata backed by those
+descriptors for the supported Any slice.
 
 Implemented behavior:
 
 - deterministic descriptor records for generated IDL declarations;
 - IDL type and parameter-mode enums;
+- `IdlTypeCodeKind`, `IdlTypeCode`, and `IdlTypeCodeMember` for local
+  descriptor-backed TypeCode metadata;
+- primitive, generated descriptor, generated type-reference, and sequence
+  TypeCode factories;
 - `IdlCodec<T>` as the generated codec surface;
 - `UnsupportedIdlCodec<T>` for predictable compile-only read/write failures;
 - `./gradlew :modules:corba-typecode:nativeTypecodeDescriptorSmoke` for a
   narrow GraalVM Native Image descriptor smoke check.
 
-Full TypeCode, Any, DynamicAny, Interface Repository integration, runtime
-registries, and functional string/sequence CDR codecs remain future roadmap
-work.
+Full CORBA wire TypeCode marshaling, DynamicAny, Interface Repository
+integration, runtime registries, object-reference Any values, and dynamic
+invocation remain future roadmap work.
 
 ## Documentation requirements
 

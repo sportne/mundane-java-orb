@@ -35,6 +35,12 @@ public final class TypecodeDescriptorNativeSmoke {
     require("IDL:hello/Greeter:1.0".equals(descriptor.repositoryId().value()));
     require(
         descriptor.operations().getFirst().parameters().getFirst().mode() == IdlParameterMode.IN);
+    require(IdlTypeCode.fromDescriptor(descriptor).kind() == IdlTypeCodeKind.INTERFACE);
+    require(
+        IdlTypeCode.STRING.equals(
+            IdlTypeCode.sequenceOf(IdlTypeCode.STRING, "sequence<string>", "java.util.List")
+                .elementType()
+                .orElseThrow()));
 
     UnsupportedIdlCodec<Object> codec =
         new UnsupportedIdlCodec<>(
