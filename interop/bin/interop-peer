@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PEERS_DIR="${ROOT_DIR}/interop/peers"
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT_DIR="${INTEROP_ROOT:-${SCRIPT_ROOT}}"
+PEERS_DIR="${INTEROP_PEERS_DIR:-${ROOT_DIR}/interop/peers}"
+APPROVALS_DIR="${INTEROP_APPROVALS_DIR:-${ROOT_DIR}/interop/approvals}"
 DEFAULT_RUNTIME="${CONTAINER_RUNTIME:-}"
 
 usage() {
@@ -10,13 +12,14 @@ usage() {
 Usage:
   interop-peer help
   interop-peer validate-manifests
+  interop-peer validate-gates [--require-cache] [peer]
   interop-peer build-image [--dry-run] <peer>
   interop-peer launch [--dry-run] <peer> <client|server|naming>
   interop-peer health [--dry-run] <peer>
   interop-peer report [--dry-run] <peer>
 
-G4 only scaffolds peer infrastructure. Dry-run commands do not download peer
-artifacts, build images, start ORBs, or run interop assertions.
+G6-820 approves artifact and license gates. Dry-run commands do not download
+peer artifacts, build images, start ORBs, or run interop assertions.
 EOF
 }
 
@@ -68,6 +71,7 @@ required_top_level = {
     "roles",
     "candidateOrigin",
     "license",
+    "approval",
     "cleanRoom",
     "container",
     "launch",
@@ -118,6 +122,197 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
         continue
 
     print(path)
+
+if failed:
+    sys.exit(1)
+PY
+}
+
+validate_gates() {
+  local require_cache="false"
+  if [[ "${1:-}" == "--require-cache" ]]; then
+    require_cache="true"
+    shift
+  fi
+  local requested_peer="${1:-}"
+  if [[ $# -gt 1 ]]; then
+    fail "validate-gates accepts only --require-cache and an optional peer"
+  fi
+
+  python3 - "${ROOT_DIR}" "${PEERS_DIR}" "${APPROVALS_DIR}" "${INTEROP_ARTIFACT_CACHE:-}" "${require_cache}" "${requested_peer}" <<'PY'
+import glob
+import hashlib
+import os
+import re
+import sys
+import yaml
+
+root_dir = os.path.abspath(sys.argv[1])
+peers_dir = os.path.abspath(sys.argv[2])
+approvals_dir = os.path.abspath(sys.argv[3])
+artifact_cache = sys.argv[4]
+require_cache = sys.argv[5] == "true"
+requested_peer = sys.argv[6]
+
+approved_status = "approved-for-black-box-interop"
+hex_sha256 = re.compile(r"^[0-9a-f]{64}$")
+failed = False
+
+
+def error(path, message):
+    global failed
+    failed = True
+    print(f"{path}: {message}", file=sys.stderr)
+
+
+def load_yaml(path):
+    with open(path, encoding="utf-8") as handle:
+        return yaml.safe_load(handle)
+
+
+def relative_path(value):
+    return value and not os.path.isabs(value) and ".." not in value.split("/")
+
+
+def require_false(path, value, field_name):
+    if value is not False:
+        error(path, f"{field_name} must be false")
+
+
+def require_contains(path, values, expected, field_name):
+    if expected not in values:
+        error(path, f"{field_name} must include {expected}")
+
+
+def validate_cache_entry(approval_path, entry, cache_root):
+    entry_path = entry.get("path")
+    sha256 = entry.get("sha256")
+    if not relative_path(entry_path):
+        error(approval_path, f"cache entry path must be relative and contained: {entry_path}")
+        return
+    if not sha256 or not hex_sha256.fullmatch(sha256):
+        error(approval_path, f"cache entry {entry_path} must declare a lowercase SHA-256")
+        return
+    if not entry.get("sourceUrl"):
+        error(approval_path, f"cache entry {entry_path} must declare sourceUrl")
+    if require_cache:
+        candidate = os.path.join(cache_root, entry_path)
+        if not os.path.isfile(candidate):
+            error(approval_path, f"cache entry is missing: {candidate}")
+            return
+        digest = hashlib.sha256()
+        with open(candidate, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        actual = digest.hexdigest()
+        if actual != sha256:
+            error(approval_path, f"cache entry checksum mismatch for {candidate}: expected {sha256}, got {actual}")
+
+
+if require_cache:
+    if not artifact_cache:
+        error("INTEROP_ARTIFACT_CACHE", "must be set when --require-cache is used")
+    elif not os.path.isabs(artifact_cache):
+        error("INTEROP_ARTIFACT_CACHE", "must be an absolute path")
+    elif not os.path.isdir(artifact_cache):
+        error("INTEROP_ARTIFACT_CACHE", f"does not exist: {artifact_cache}")
+
+cache_root = os.path.abspath(artifact_cache) if artifact_cache else ""
+manifest_paths = sorted(glob.glob(os.path.join(peers_dir, "*", "peer.yaml")))
+if requested_peer:
+    manifest_paths = [os.path.join(peers_dir, requested_peer, "peer.yaml")]
+    if not os.path.isfile(manifest_paths[0]):
+        error(requested_peer, "unknown peer")
+
+for manifest_path in manifest_paths:
+    if failed and requested_peer and not os.path.isfile(manifest_path):
+        continue
+    manifest = load_yaml(manifest_path)
+    peer = manifest.get("name")
+    approval_ref = manifest.get("approval")
+    if not peer:
+        error(manifest_path, "name is required")
+        continue
+    if manifest.get("status") != "g6-artifact-gate-approved":
+        error(manifest_path, f"{peer} status must be g6-artifact-gate-approved")
+    if manifest.get("gate") != "G6-820":
+        error(manifest_path, f"{peer} gate must be G6-820")
+    if not relative_path(approval_ref):
+        error(manifest_path, f"{peer} approval path must be relative and contained")
+        continue
+
+    approval_path = os.path.abspath(os.path.join(root_dir, approval_ref))
+    if not approval_path.startswith(os.path.abspath(approvals_dir) + os.sep):
+        error(manifest_path, f"{peer} approval path must stay under {approvals_dir}")
+        continue
+    if not os.path.isfile(approval_path):
+        error(manifest_path, f"{peer} approval file is missing: {approval_path}")
+        continue
+
+    approval = load_yaml(approval_path)
+    if approval.get("peer") != peer:
+        error(approval_path, f"approval peer must be {peer}")
+    if approval.get("taskId") != "G6-820-REAL-PEER-ARTIFACT-GATES":
+        error(approval_path, "taskId must be G6-820-REAL-PEER-ARTIFACT-GATES")
+    if approval.get("approvalStatus") != approved_status:
+        error(approval_path, f"approvalStatus must be {approved_status}")
+    evidence = approval.get("approvalEvidence", {})
+    if not approval.get("reviewer") or not approval.get("reviewDate"):
+        error(approval_path, "reviewer and reviewDate are required")
+    if not evidence.get("decisionRecord") or not evidence.get("scope"):
+        error(approval_path, "approvalEvidence.decisionRecord and approvalEvidence.scope are required")
+
+    manifest_license = manifest.get("license", {})
+    approval_license = approval.get("license", {})
+    if manifest_license.get("approvalStatus") != approved_status:
+        error(manifest_path, f"{peer} license approvalStatus must be {approved_status}")
+    if approval_license.get("approvalStatus") != approved_status:
+        error(approval_path, f"license approvalStatus must be {approved_status}")
+    if approval_license.get("redistributionAllowed") is not False:
+        error(approval_path, "license redistributionAllowed must be false")
+    if approval_license.get("containerPublicationAllowed") is not False:
+        error(approval_path, "license containerPublicationAllowed must be false")
+
+    clean_room = manifest.get("cleanRoom", {})
+    approval_clean_room = approval.get("cleanRoom", {})
+    for source, source_path in ((clean_room, manifest_path), (approval_clean_room, approval_path)):
+        require_false(source_path, source.get("sourceCopyingAllowed"), "cleanRoom.sourceCopyingAllowed")
+        require_false(source_path, source.get("sourceVendoringAllowed"), "cleanRoom.sourceVendoringAllowed")
+        require_false(source_path, source.get("binaryVendoringAllowed"), "cleanRoom.binaryVendoringAllowed")
+        require_contains(source_path, source.get("allowedUses", []), "black-box-interop", "cleanRoom.allowedUses")
+        require_contains(source_path, source.get("prohibitedUses", []), "source-copying", "cleanRoom.prohibitedUses")
+
+    container = manifest.get("container", {})
+    if container.get("artifactCache") != "external-only":
+        error(manifest_path, f"{peer} container.artifactCache must be external-only")
+    if container.get("baseImagePolicy") != "digest-pinned-required":
+        error(manifest_path, f"{peer} container.baseImagePolicy must be digest-pinned-required")
+    require_false(manifest_path, container.get("vendoredPeerArtifacts"), "container.vendoredPeerArtifacts")
+
+    artifact = approval.get("artifact", {})
+    origin = manifest.get("candidateOrigin", {})
+    if artifact.get("coordinate") != origin.get("coordinate"):
+        error(approval_path, "artifact coordinate must match candidateOrigin.coordinate")
+    if artifact.get("version") != origin.get("version"):
+        error(approval_path, "artifact version must match candidateOrigin.version")
+
+    cache = approval.get("cache", {})
+    if cache.get("layout") != "external-only":
+        error(approval_path, "cache.layout must be external-only")
+    if cache.get("baseImagePolicy") != "digest-pinned-required":
+        error(approval_path, "cache.baseImagePolicy must be digest-pinned-required")
+    entries = cache.get("entries")
+    if not entries:
+        error(approval_path, "cache.entries must not be empty")
+    else:
+        for entry in entries:
+            validate_cache_entry(approval_path, entry, cache_root)
+
+    execution = approval.get("realPeerExecution", {})
+    if execution.get("status") != "blocked-until-g6-830":
+        error(approval_path, "realPeerExecution.status must be blocked-until-g6-830")
+
+    print(f"{peer}: {approval_ref}")
 
 if failed:
     sys.exit(1)
@@ -193,9 +388,10 @@ build_image() {
   fi
 
   local runtime
-  runtime="$(resolve_runtime)"
   base_image="$(require_digest_pinned_base_image "${peer_type}")"
   require_external_artifact_cache
+  validate_gates --require-cache "${peer}" >/dev/null
+  runtime="$(resolve_runtime)"
   "${runtime}" build \
     --build-arg "INTEROP_BASE_IMAGE=${base_image}" \
     --build-arg "INTEROP_PEER=${peer}" \
@@ -233,7 +429,7 @@ launch_peer() {
     return
   fi
 
-  fail "real peer launch is reserved for a later task with approved peer artifacts"
+  fail "real peer launch is reserved for G6-830 after approved peer artifacts are built"
 }
 
 health_peer() {
@@ -253,7 +449,7 @@ health_peer() {
     return
   fi
 
-  fail "real peer health checks are reserved for a later task with running peer containers"
+  fail "real peer health checks are reserved for G6-830 with running peer containers"
 }
 
 report_peer() {
@@ -273,7 +469,7 @@ report_peer() {
     return
   fi
 
-  fail "real peer report generation is reserved for a later task with captured interop output"
+  fail "real peer report generation is reserved for G6-830 with captured interop output"
 }
 
 main() {
@@ -285,6 +481,7 @@ main() {
   case "${command}" in
     help|-h|--help) usage ;;
     validate-manifests) validate_manifests ;;
+    validate-gates) validate_gates "$@" ;;
     build-image) build_image "$@" ;;
     launch) launch_peer "$@" ;;
     health) health_peer "$@" ;;

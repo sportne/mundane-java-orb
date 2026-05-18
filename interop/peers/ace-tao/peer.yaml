@@ -1,8 +1,8 @@
 name: ace-tao
 displayName: ACE/TAO
-status: g4-script-scaffolded
-gate: G4
-asOfDate: "2026-05-16"
+status: g6-artifact-gate-approved
+gate: G6-820
+asOfDate: "2026-05-18"
 peerType: native
 requirementIds:
   - REQ-INTEROP-001
@@ -32,8 +32,9 @@ candidateOrigin:
 license:
   observed: DOCGroup-ACE-TAO-license-review-required
   reviewRequired: true
-  approvalStatus: pending-human-review
-  notes: "ACE/TAO source archive license must be reviewed before any redistribution or container publication."
+  approvalStatus: approved-for-black-box-interop
+  notes: "Approved for local black-box interop only; redistribution and container publication remain disallowed."
+approval: interop/approvals/ace-tao.approval.yaml
 cleanRoom:
   sourceCopyingAllowed: false
   sourceVendoringAllowed: false
@@ -51,7 +52,7 @@ container:
   buildStatus: script-scaffolded
   buildFile: interop/container/Containerfile.native.template
   buildScript: interop/peers/ace-tao/build-image.sh
-  baseImagePolicy: pin-by-digest-in-g4
+  baseImagePolicy: digest-pinned-required
   artifactInputs:
     - "ACE+TAO-8.0.6 source archive"
   artifactCache: external-only
@@ -68,7 +69,6 @@ reports:
   logs: "build/interop/ace-tao/logs"
   iors: "build/interop/ace-tao/iors"
   structuredReports: "build/interop/ace-tao/reports"
-g4FollowUp:
-  - add-real-peer-artifact-resolution
-  - add-real-peer-process-launch
-  - add-clean-room-report-template
+g6FollowUp:
+  - run-real-peer-process-launch-in-g6-830
+  - capture-clean-room-interop-reports-in-g6-830

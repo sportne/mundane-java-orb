@@ -1,8 +1,8 @@
 name: jboss-openjdk-orb
 displayName: JBoss OpenJDK ORB
-status: g4-script-scaffolded
-gate: G4
-asOfDate: "2026-05-16"
+status: g6-artifact-gate-approved
+gate: G6-820
+asOfDate: "2026-05-18"
 peerType: jvm
 requirementIds:
   - REQ-INTEROP-001
@@ -32,8 +32,9 @@ candidateOrigin:
 license:
   observed: GPL-2.0-with-Classpath-exception
   reviewRequired: true
-  approvalStatus: pending-human-review
-  notes: "Maven metadata and OpenJDK licensing identify GPLv2 with the Classpath Exception; human review remains required."
+  approvalStatus: approved-for-black-box-interop
+  notes: "Approved for local black-box interop only; redistribution and container publication remain disallowed."
+approval: interop/approvals/jboss-openjdk-orb.approval.yaml
 cleanRoom:
   sourceCopyingAllowed: false
   sourceVendoringAllowed: false
@@ -51,7 +52,7 @@ container:
   buildStatus: script-scaffolded
   buildFile: interop/container/Containerfile.jvm.template
   buildScript: interop/peers/jboss-openjdk-orb/build-image.sh
-  baseImagePolicy: pin-by-digest-in-g4
+  baseImagePolicy: digest-pinned-required
   artifactInputs:
     - "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"
   artifactCache: external-only
@@ -68,7 +69,6 @@ reports:
   logs: "build/interop/jboss-openjdk-orb/logs"
   iors: "build/interop/jboss-openjdk-orb/iors"
   structuredReports: "build/interop/jboss-openjdk-orb/reports"
-g4FollowUp:
-  - add-real-peer-artifact-resolution
-  - add-real-peer-process-launch
-  - add-clean-room-report-template
+g6FollowUp:
+  - run-real-peer-process-launch-in-g6-830
+  - capture-clean-room-interop-reports-in-g6-830

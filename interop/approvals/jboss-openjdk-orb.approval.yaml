@@ -1,0 +1,44 @@
+peer: jboss-openjdk-orb
+taskId: G6-820-REAL-PEER-ARTIFACT-GATES
+approvalStatus: approved-for-black-box-interop
+reviewer: user-supplied-approval
+reviewDate: "2026-05-18"
+approvalEvidence:
+  decisionRecord: G6-820-user-request-2026-05-18
+  scope: local black-box interop artifact gates only
+  notes: User explicitly supplied approval assumptions for G6-820; redistribution and container publication remain disallowed.
+artifact:
+  originKind: maven
+  coordinate: "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"
+  version: "10.1.1.Final"
+  sourceUrl: "https://repo.maven.apache.org/maven2/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar"
+license:
+  observed: GPL-2.0-with-Classpath-exception
+  reviewRequired: true
+  approvalStatus: approved-for-black-box-interop
+  allowedUse: black-box-interop-only
+  redistributionAllowed: false
+  containerPublicationAllowed: false
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+cache:
+  layout: external-only
+  baseImagePolicy: digest-pinned-required
+  entries:
+    - path: maven/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar
+      sha256: aa2a8dcde0fa2607553cee0a527bced5558df5fb3606f92f440cfea796171ca3
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar"
+      packaging: jar
+realPeerExecution:
+  status: blocked-until-g6-830
+  notes: G6-820 approves artifact gates only; real peer scenario execution belongs to G6-830.

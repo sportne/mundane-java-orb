@@ -1,8 +1,8 @@
 name: jacorb
 displayName: JacORB
-status: g4-script-scaffolded
-gate: G4
-asOfDate: "2026-05-16"
+status: g6-artifact-gate-approved
+gate: G6-820
+asOfDate: "2026-05-18"
 peerType: jvm
 requirementIds:
   - REQ-INTEROP-001
@@ -32,8 +32,9 @@ candidateOrigin:
 license:
   observed: LGPL
   reviewRequired: true
-  approvalStatus: pending-human-review
-  notes: "JacORB project license note identifies JacORB as GNU Library/Lesser General Public License."
+  approvalStatus: approved-for-black-box-interop
+  notes: "Approved for local black-box interop only; redistribution and container publication remain disallowed."
+approval: interop/approvals/jacorb.approval.yaml
 cleanRoom:
   sourceCopyingAllowed: false
   sourceVendoringAllowed: false
@@ -51,7 +52,7 @@ container:
   buildStatus: script-scaffolded
   buildFile: interop/container/Containerfile.jvm.template
   buildScript: interop/peers/jacorb/build-image.sh
-  baseImagePolicy: pin-by-digest-in-g4
+  baseImagePolicy: digest-pinned-required
   artifactInputs:
     - "org.jacorb:jacorb:3.9"
   artifactCache: external-only
@@ -68,7 +69,6 @@ reports:
   logs: "build/interop/jacorb/logs"
   iors: "build/interop/jacorb/iors"
   structuredReports: "build/interop/jacorb/reports"
-g4FollowUp:
-  - add-real-peer-artifact-resolution
-  - add-real-peer-process-launch
-  - add-clean-room-report-template
+g6FollowUp:
+  - run-real-peer-process-launch-in-g6-830
+  - capture-clean-room-interop-reports-in-g6-830

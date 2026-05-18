@@ -1,0 +1,44 @@
+peer: ace-tao
+taskId: G6-820-REAL-PEER-ARTIFACT-GATES
+approvalStatus: approved-for-black-box-interop
+reviewer: user-supplied-approval
+reviewDate: "2026-05-18"
+approvalEvidence:
+  decisionRecord: G6-820-user-request-2026-05-18
+  scope: local black-box interop artifact gates only
+  notes: User explicitly supplied approval assumptions for G6-820; redistribution and container publication remain disallowed.
+artifact:
+  originKind: source-archive
+  coordinate: "ACE+TAO-8.0.6"
+  version: "8.0.6"
+  sourceUrl: "https://github.com/DOCGroup/ACE_TAO/releases/download/ACE%2BTAO-8_0_6/ACE%2BTAO-8.0.6.tar.bz2"
+license:
+  observed: DOCGroup-ACE-TAO-license-review-required
+  reviewRequired: true
+  approvalStatus: approved-for-black-box-interop
+  allowedUse: black-box-interop-only
+  redistributionAllowed: false
+  containerPublicationAllowed: false
+cleanRoom:
+  sourceCopyingAllowed: false
+  sourceVendoringAllowed: false
+  binaryVendoringAllowed: false
+  allowedUses:
+    - black-box-interop
+    - behavioral-observation
+    - logs-iors-wire-captures
+  prohibitedUses:
+    - source-copying
+    - implementation-transliteration
+    - agent-source-imitation
+cache:
+  layout: external-only
+  baseImagePolicy: digest-pinned-required
+  entries:
+    - path: source/DOCGroup/ACE_TAO/8.0.6/ACE+TAO-8.0.6.tar.bz2
+      sha256: 3e76a8ffcfdac916859222f8abbd6617b47d07e9f5e419b1df2e201dcd0a875b
+      sourceUrl: "https://github.com/DOCGroup/ACE_TAO/releases/download/ACE%2BTAO-8_0_6/ACE%2BTAO-8.0.6.tar.bz2"
+      packaging: tar.bz2
+realPeerExecution:
+  status: blocked-until-g6-830
+  notes: G6-820 approves artifact gates only; real peer scenario execution belongs to G6-830.
