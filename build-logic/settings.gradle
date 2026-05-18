@@ -5,10 +5,17 @@ pluginManagement {
     def offlineRepo = providers.gradleProperty('corba.offlineRepo')
         .orElse(providers.gradleProperty('corbaOfflineRepo'))
         .orNull
+    def offlineRepoFile = null
+    if (offlineRepo != null && !offlineRepo.isBlank()) {
+        offlineRepoFile = new File(offlineRepo)
+        if (!offlineRepoFile.isAbsolute()) {
+            offlineRepoFile = new File(settingsDir.parentFile, offlineRepo)
+        }
+    }
     repositories {
-        if (offlineRepo != null && !offlineRepo.isBlank()) {
+        if (offlineRepoFile != null) {
             // Offline mode for plugin dependencies.
-            maven { url = uri(offlineRepo) }
+            maven { url = offlineRepoFile.toURI() }
         } else {
             // Online mode for plugin dependencies.
             gradlePluginPortal()
@@ -23,13 +30,20 @@ dependencyResolutionManagement {
     def offlineRepo = providers.gradleProperty('corba.offlineRepo')
         .orElse(providers.gradleProperty('corbaOfflineRepo'))
         .orNull
+    def offlineRepoFile = null
+    if (offlineRepo != null && !offlineRepo.isBlank()) {
+        offlineRepoFile = new File(offlineRepo)
+        if (!offlineRepoFile.isAbsolute()) {
+            offlineRepoFile = new File(settingsDir.parentFile, offlineRepo)
+        }
+    }
 
     // Prevent build-logic projects from adding their own repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        if (offlineRepo != null && !offlineRepo.isBlank()) {
+        if (offlineRepoFile != null) {
             // Offline mode for libraries needed by convention plugins.
-            maven { url = uri(offlineRepo) }
+            maven { url = offlineRepoFile.toURI() }
         } else {
             // Online mode for libraries needed by convention plugins.
             gradlePluginPortal()

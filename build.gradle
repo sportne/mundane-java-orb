@@ -58,6 +58,48 @@ def checkedProjects = [
 
 // The BOM has no Java source code, so quality tools such as Spotless and JaCoCo do not run there.
 def qualityProjects = checkedProjects.findAll { it != ':modules:corba-bom' }
+def publishedProjects = checkedProjects.findAll {
+    it.startsWith(':modules:') && it != ':modules:corba-architecture-tests'
+}
+def publishedLibraryProjects = publishedProjects.findAll { it != ':modules:corba-bom' }
+def stagingRepositoryDirectory = layout.buildDirectory.dir('staging-repository')
+def rootDirectory = rootDir
+def relativeToRoot = { File candidate ->
+    rootDirectory.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+}
+def requiredOfflineReleaseFiles = [
+    file('gradle/verification-metadata.xml'),
+    file('gradle/wrapper/gradle-wrapper.jar'),
+    file('gradle/wrapper/gradle-wrapper.properties'),
+    file('gradle/libs.versions.toml'),
+    file('gradlew')
+]
+def offlineReleaseLockfiles = checkedProjects.findAll { it != ':modules:corba-bom' }.collect { path ->
+    project(path).file('gradle.lockfile')
+}
+def offlineReleaseScannedFiles = []
+offlineReleaseScannedFiles.add(file('settings.gradle'))
+offlineReleaseScannedFiles.add(file('build.gradle'))
+offlineReleaseScannedFiles.add(file('gradle/libs.versions.toml'))
+offlineReleaseScannedFiles.addAll(fileTree('build-logic') { include '**/*.gradle' }.files)
+offlineReleaseScannedFiles.addAll(fileTree('modules') { include '**/build.gradle' }.files)
+offlineReleaseScannedFiles.addAll(fileTree('examples') {
+    include '**/build.gradle'
+    include '**/settings.gradle'
+}.files)
+offlineReleaseScannedFiles = offlineReleaseScannedFiles.sort { left, right -> left.path <=> right.path }
+def dependencyVerificationMode = providers.gradleProperty('org.gradle.dependency.verification').orNull
+def offlineRepositoryProperty = providers.gradleProperty('corba.offlineRepo')
+        .orElse(providers.gradleProperty('corbaOfflineRepo'))
+        .orNull
+def offlineInvocation = gradle.startParameter.offline
+def releaseVersion = project.version.toString()
+def bomBuildFile = file('modules/corba-bom/build.gradle')
+def expectedBomConstraints = publishedLibraryProjects.toSet()
+def stagedPublications = publishedProjects.collect { path ->
+    [path: path, artifactId: project(path).name, library: path != ':modules:corba-bom']
+}
+def stagedLibraryArtifactIds = publishedLibraryProjects.collect { project(it).name }.sort()
 
 // checkAll is a contributor-friendly shortcut for running each included project's check task.
 tasks.register('checkAll') {
@@ -74,6 +116,182 @@ tasks.register('qualityGate') {
     dependsOn 'validateDesignControlPack', 'checkAll'
     dependsOn qualityProjects.collect { "${it}:spotlessCheck" }
     dependsOn qualityProjects.collect { "${it}:jacocoTestCoverageVerification" }
+}
+
+tasks.named('clean', Delete) {
+    // G6-920 acceptance intentionally allows build/local-maven-repo as the prepared offline repo.
+    // Preserve it so `./gradlew --offline -Pcorba.offlineRepo=build/local-maven-repo clean qualityGate`
+    // does not delete its own dependency source during execution.
+    setDelete(files {
+        def buildDirectory = layout.buildDirectory.get().asFile
+        buildDirectory.isDirectory()
+                ? buildDirectory.listFiles().findAll { child -> child.name != 'local-maven-repo' }
+                : []
+    })
+}
+
+tasks.register('validateOfflineReleaseInputs') {
+    description = 'Validates G6-920 offline release policy inputs.'
+    group = 'verification'
+    inputs.files(requiredOfflineReleaseFiles)
+    inputs.files(offlineReleaseLockfiles)
+    inputs.files(offlineReleaseScannedFiles)
+
+    doLast {
+        def failures = []
+        requiredOfflineReleaseFiles.findAll { !it.isFile() }.each { failures.add("Missing release input: ${relativeToRoot(it)}") }
+        def gradlewFile = requiredOfflineReleaseFiles.find { it.name == 'gradlew' }
+        if (gradlewFile.isFile() && !gradlewFile.canExecute()) {
+            failures.add('Gradle wrapper script must be executable: gradlew')
+        }
+
+        if (dependencyVerificationMode != 'strict') {
+            failures.add("org.gradle.dependency.verification must be strict, found: ${dependencyVerificationMode ?: '<unset>'}")
+        }
+
+        offlineReleaseLockfiles.each { lockfile ->
+            if (!lockfile.isFile()) {
+                failures.add("Missing dependency lockfile: ${relativeToRoot(lockfile)}")
+            }
+        }
+
+        offlineReleaseScannedFiles.each { source ->
+            def text = source.text
+            if (text =~ /latest\.(release|integration)/ || text =~ /['"][^'"]*:\+['"]/ || text =~ /version\s*=\s*['"]\+['"]/) {
+                failures.add("Dynamic dependency version is not allowed: ${relativeToRoot(source)}")
+            }
+            def snapshotDependency = text =~ /['"][A-Za-z0-9_.-]+:[A-Za-z0-9_.-]+:[^'"]*-SNAPSHOT['"]/
+            if (snapshotDependency.find()) {
+                failures.add("External SNAPSHOT dependency is not allowed: ${relativeToRoot(source)}")
+            }
+        }
+
+        if (offlineInvocation) {
+            if (offlineRepositoryProperty == null || offlineRepositoryProperty.isBlank()) {
+                failures.add('Offline Gradle runs must set -Pcorba.offlineRepo=/path/to/local-maven-repo')
+            } else if (!new File(offlineRepositoryProperty).isDirectory()) {
+                failures.add("Offline repository does not exist: ${offlineRepositoryProperty}")
+            }
+        }
+
+        if (!failures.isEmpty()) {
+            throw new GradleException("Offline release input validation failed:\n - ${failures.join('\n - ')}")
+        }
+    }
+}
+
+tasks.register('validateBomAlignment') {
+    description = 'Verifies the BOM aligns every published module and no stale project constraints.'
+    group = 'verification'
+    inputs.file('modules/corba-bom/build.gradle')
+    doLast {
+        def bomText = bomBuildFile.text
+        def matcher = bomText =~ /api\s+project\(['"]([^'"]+)['"]\)/
+        def actual = matcher.collect { it[1] }.toSet()
+        def missing = (expectedBomConstraints - actual).sort()
+        def extra = (actual - expectedBomConstraints).sort()
+        if (!missing.isEmpty() || !extra.isEmpty()) {
+            def details = []
+            if (!missing.isEmpty()) {
+                details.add("missing constraints: ${missing.join(', ')}")
+            }
+            if (!extra.isEmpty()) {
+                details.add("stale constraints: ${extra.join(', ')}")
+            }
+            throw new GradleException("BOM alignment validation failed: ${details.join('; ')}")
+        }
+    }
+}
+
+tasks.register('stageReleasePublications') {
+    description = 'Publishes all G6 artifacts to the local staging Maven repository.'
+    group = 'publishing'
+    dependsOn publishedProjects.collect { "${it}:publishAllPublicationsToLocalStagingRepository" }
+}
+
+tasks.register('validatePublicationDryRun') {
+    description = 'Validates the staged Maven publication layout for release dry runs.'
+    group = 'verification'
+    dependsOn tasks.named('stageReleasePublications')
+    inputs.dir(stagingRepositoryDirectory)
+    doLast {
+        def failures = []
+        def versionText = releaseVersion
+        stagedPublications.each { publication ->
+            def path = publication.path
+            def artifactId = publication.artifactId
+            def artifactDir = stagingRepositoryDirectory.get().file("io/github/mundanej/${artifactId}/${versionText}").asFile
+            if (!artifactDir.isDirectory()) {
+                failures.add("Missing staged artifact directory for ${path}: ${artifactDir}")
+                return
+            }
+            def files = artifactDir.listFiles()?.findAll { it.isFile() } ?: []
+            if (!files.any { it.name.startsWith("${artifactId}-") && it.name.endsWith('.pom') }) {
+                failures.add("Missing staged POM for ${path}")
+            }
+            if (!files.any { it.name.startsWith("${artifactId}-") && it.name.endsWith('.module') }) {
+                failures.add("Missing staged Gradle module metadata for ${path}")
+            }
+            if (publication.library) {
+                if (!files.any { it.name.startsWith("${artifactId}-") && it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar') }) {
+                    failures.add("Missing staged main JAR for ${path}")
+                }
+                if (!files.any { it.name.startsWith("${artifactId}-") && it.name.endsWith('-sources.jar') }) {
+                    failures.add("Missing staged sources JAR for ${path}")
+                }
+                if (!files.any { it.name.startsWith("${artifactId}-") && it.name.endsWith('-javadoc.jar') }) {
+                    failures.add("Missing staged Javadoc JAR for ${path}")
+                }
+            }
+        }
+
+        def bomDirectory = stagingRepositoryDirectory.get()
+                .file("io/github/mundanej/corba-bom/${versionText}")
+                .asFile
+        def bomPom = bomDirectory.listFiles()?.find { it.isFile() && it.name.startsWith('corba-bom-') && it.name.endsWith('.pom') }
+        if (bomPom != null) {
+            def bomText = bomPom.text
+            stagedLibraryArtifactIds.each { artifactId ->
+                if (!bomText.contains("<artifactId>${artifactId}</artifactId>")) {
+                    failures.add("Staged BOM POM does not constrain ${artifactId}")
+                }
+            }
+        }
+
+        if (!failures.isEmpty()) {
+            throw new GradleException("Publication dry-run validation failed:\n - ${failures.join('\n - ')}")
+        }
+    }
+}
+
+tasks.register('validateDownstreamSampleConsumer', Exec) {
+    description = 'Builds the standalone downstream sample consumer from the staged Maven repository.'
+    group = 'verification'
+    dependsOn tasks.named('validatePublicationDryRun')
+    inputs.dir('examples/offline-release-consumer')
+    inputs.dir(stagingRepositoryDirectory)
+
+    doFirst {
+        executable = './gradlew'
+        args = [
+                '-p',
+                'examples/offline-release-consumer',
+                '--offline',
+                "-Pcorba.offlineRepo=${stagingRepositoryDirectory.get().asFile.absolutePath}",
+                "-Pcorba.version=${releaseVersion}",
+                'clean',
+                'check'
+        ]
+    }
+}
+
+tasks.register('offlineReleaseValidation') {
+    description = 'Runs the G6-920 offline release validation aggregate.'
+    group = 'verification'
+    dependsOn tasks.named('validateOfflineReleaseInputs')
+    dependsOn tasks.named('validateBomAlignment')
+    dependsOn tasks.named('validatePublicationDryRun')
+    dependsOn tasks.named('validateDownstreamSampleConsumer')
 }
 
 // This help task prints the artifacts that publishToMavenLocal or a real publish will create.

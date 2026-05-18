@@ -46,6 +46,8 @@ the requested `JAVA_HOME`.
 - `./gradlew validateDesignControlPack` checks required governance and design docs.
 - `./gradlew checkAll` runs each included project's `check` task.
 - `./gradlew qualityGate` runs the normal local and CI gate.
+- `./gradlew offlineReleaseValidation` validates release inputs, BOM alignment,
+  staged Maven publications, and the standalone downstream consumer.
 - `./gradlew printPublishedArtifacts` prints the planned Maven coordinates.
 - `./gradlew printOfflineBuildInstructions` prints the offline build command pattern.
 
@@ -84,4 +86,8 @@ Dependabot updates are grouped into monthly batch PRs on the 15th with a 90-day 
 
 ## Offline builds
 
-Use `tools/prepare-offline-repository.sh` to prepare a local Maven repository, then verify it with `tools/verify-offline-build.sh`. See `docs/build/offline-build.md` for the contributor workflow.
+Use `tools/prepare-offline-repository.sh` to prepare a local Maven repository,
+then verify it with `tools/verify-offline-build.sh`. The prepared repository
+contains external dependencies, staged project publications, and
+`MANIFEST.sha256`. See `docs/build/offline-build.md` for the contributor
+workflow.

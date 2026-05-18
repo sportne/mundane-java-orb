@@ -4,10 +4,14 @@ Java platform BOM for aligning all mundane Java ORB artifacts.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+G6 release validation checks this BOM against the set of published modules. The
+BOM is also used by the standalone offline release consumer to prove downstream
+builds can resolve aligned artifacts from a Maven repository.
 
-## Documentation requirements
+## Validation
 
-- Add package documentation for every public package.
-- Update relevant architecture and conformance docs before implementing behavior.
-- Link implementation tasks to requirement IDs.
+- `validateBomAlignment` rejects missing or stale project constraints.
+- `validatePublicationDryRun` checks the staged BOM POM and Gradle module
+  metadata.
+- `validateDownstreamSampleConsumer` imports the BOM from the staged repository
+  without project substitution.

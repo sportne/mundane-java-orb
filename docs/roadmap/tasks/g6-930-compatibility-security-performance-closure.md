@@ -1,7 +1,7 @@
 # G6-930 Compatibility, Security, and Performance Closure
 
 Task ID: G6-930-COMPATIBILITY-SECURITY-PERFORMANCE-CLOSURE
-Status: draft
+Status: ready-for-implementation
 Gate: G6 release hardening
 Requirement IDs: REQ-NFR-004, REQ-NFR-005, REQ-NFR-007, REQ-SEC-001, REQ-SEC-002, REQ-SEC-003, REQ-INTEROP-009
 ADR IDs: ADR-0002, ADR-0003, ADR-0004, ADR-0006, ADR-0010, ADR-0011

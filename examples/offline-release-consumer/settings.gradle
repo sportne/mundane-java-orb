@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        def offlineRepo = providers.gradleProperty('corba.offlineRepo').orNull
+        if (offlineRepo != null && !offlineRepo.isBlank()) {
+            maven { url = new File(offlineRepo).toURI() }
+        }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        def offlineRepo = providers.gradleProperty('corba.offlineRepo').orNull
+        if (offlineRepo == null || offlineRepo.isBlank()) {
+            throw new GradleException('Set -Pcorba.offlineRepo to the staged or prepared Maven repository.')
+        }
+        maven { url = new File(offlineRepo).toURI() }
+    }
+}
+
+rootProject.name = 'offline-release-consumer'

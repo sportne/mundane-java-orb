@@ -1,0 +1,53 @@
+plugins {
+    id 'java'
+}
+
+group = 'io.github.mundanej.samples'
+version = '0.1.0'
+
+def corbaVersion = providers.gradleProperty('corba.version').getOrElse('0.1.0-SNAPSHOT')
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+dependencies {
+    implementation platform("io.github.mundanej:corba-bom:${corbaVersion}")
+    implementation 'io.github.mundanej:corba-common'
+    implementation 'io.github.mundanej:corba-ior'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 21
+    options.compilerArgs.addAll(['-Xlint:all', '-Werror'])
+}
+
+tasks.register('runOfflineConsumerSmoke', JavaExec) {
+    group = 'verification'
+    description = 'Runs the offline release sample consumer against resolved published artifacts.'
+    dependsOn tasks.named('classes')
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'io.github.mundanej.samples.offline.OfflineConsumerSmoke'
+}
+
+tasks.register('validateNoProjectSubstitution') {
+    group = 'verification'
+    description = 'Fails if the sample consumer resolved any dependency as a Gradle project.'
+    doLast {
+        configurations.runtimeClasspath.incoming.resolutionResult.allComponents { component ->
+            if (component.id instanceof org.gradle.api.artifacts.component.ProjectComponentIdentifier) {
+                if (component.id.projectPath != ':') {
+                    throw new GradleException("Project substitution is not allowed: ${component.id}")
+                }
+            }
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('runOfflineConsumerSmoke')
+    dependsOn tasks.named('validateNoProjectSubstitution')
+}

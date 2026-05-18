@@ -4,15 +4,19 @@ pluginManagement {
     def offlineRepo = providers.gradleProperty('corba.offlineRepo')
         .orElse(providers.gradleProperty('corbaOfflineRepo'))
         .orNull
+    def offlineRepoFile = null
+    if (offlineRepo != null && !offlineRepo.isBlank()) {
+        offlineRepoFile = file(offlineRepo)
+    }
 
     // build-logic is an included build that contains our custom convention plugins.
     includeBuild 'build-logic'
 
     // These repositories are used only for resolving Gradle plugins.
     repositories {
-        if (offlineRepo != null && !offlineRepo.isBlank()) {
+        if (offlineRepoFile != null) {
             // Offline mode: read plugins from the local repository path supplied by the user or CI.
-            maven { url = uri(offlineRepo) }
+            maven { url = offlineRepoFile.toURI() }
         } else {
             // Online mode: use the standard plugin repository plus Maven Central for plugin markers.
             gradlePluginPortal()
@@ -27,15 +31,19 @@ dependencyResolutionManagement {
     def offlineRepo = providers.gradleProperty('corba.offlineRepo')
         .orElse(providers.gradleProperty('corbaOfflineRepo'))
         .orNull
+    def offlineRepoFile = null
+    if (offlineRepo != null && !offlineRepo.isBlank()) {
+        offlineRepoFile = file(offlineRepo)
+    }
 
     // Keep repository declarations centralized here so subprojects cannot quietly add new repositories.
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
 
     // These repositories are used for resolving normal libraries.
     repositories {
-        if (offlineRepo != null && !offlineRepo.isBlank()) {
+        if (offlineRepoFile != null) {
             // Offline mode: all dependencies must already be in this local repository.
-            maven { url = uri(offlineRepo) }
+            maven { url = offlineRepoFile.toURI() }
         } else {
             // Online mode: Maven Central is the only allowed dependency repository.
             mavenCentral()

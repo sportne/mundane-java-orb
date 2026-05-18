@@ -68,6 +68,9 @@ This repository is in **Gate G6 foundation implementation state**:
 - centralized GraalVM Native Image smoke binaries for IDL validation,
   generated-style local invocation, naming, IOR diagnostics, and interop report
   parsing have started under approved roadmap tasks;
+- offline release validation now stages publications, validates BOM alignment,
+  prepares checksum-manifested Maven repositories, and builds a standalone
+  downstream consumer under approved roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -118,6 +121,7 @@ This repository includes Gradle build files and wrapper metadata targeting Gradl
 ./gradlew projects
 ./gradlew validateDesignControlPack
 ./gradlew qualityGate
+./gradlew offlineReleaseValidation
 ./gradlew printPublishedArtifacts
 ```
 
@@ -130,7 +134,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The currently ready roadmap tasks are:
 
-- `docs/roadmap/tasks/g6-920-offline-release-validation.md`.
+- `docs/roadmap/tasks/g6-930-compatibility-security-performance-closure.md`.
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

@@ -29,6 +29,8 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 - `qualityGate` is the local and CI quality gate.
 - `printPublishedArtifacts` prints planned Maven coordinates.
 - `printOfflineBuildInstructions` explains the offline build path.
+- `offlineReleaseValidation` validates release inputs, BOM alignment, staged
+  publications, and a standalone downstream consumer.
 - `prepareOfflineRepository` remains as a compatibility alias for older docs and scripts.
 
 ## Build properties
@@ -62,5 +64,10 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
 ## Dependency and update policy
 
 Dependency verification runs in strict mode. Dependency lockfiles and `gradle/verification-metadata.xml` must be updated together when build dependencies change.
+
+G6-920 adds offline release validation around this policy: dynamic dependency
+versions and external SNAPSHOT dependencies are rejected, every non-BOM checked
+project must keep a lockfile, and offline invocations must provide
+`corba.offlineRepo`.
 
 Dependabot updates are grouped into monthly batch PRs on the 15th with a 90-day cooldown.

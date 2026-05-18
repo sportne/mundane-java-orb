@@ -90,8 +90,8 @@ values, task-type markers, and the rule that at least one task is active as
 ### G6.10 Native and Release Hardening
 
 - `tasks/g6-910-native-image-binaries.md` - complete
-- `tasks/g6-920-offline-release-validation.md` - ready-for-implementation
-- `tasks/g6-930-compatibility-security-performance-closure.md`
+- `tasks/g6-920-offline-release-validation.md` - complete
+- `tasks/g6-930-compatibility-security-performance-closure.md` - ready-for-implementation
 
 ### Deferred gated tasks
 

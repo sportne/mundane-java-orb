@@ -20,3 +20,10 @@ what they need.
 
 Every artifact must have a clear standalone reason to exist and a documented
 public API or explicit internal/test-only status.
+
+## Release validation
+
+`corba-bom` is validated against the published-module list during
+`offlineReleaseValidation`. The release dry run stages every publication to a
+local Maven repository and builds a standalone downstream consumer from the BOM
+without Gradle project substitution.
