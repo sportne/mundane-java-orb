@@ -97,8 +97,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g7-000-rmi-iiop-task-set.md` - complete
 - `tasks/g7-010-rmi-java-eligibility-diagnostics.md` - complete
-- `tasks/g7-020-java-to-idl-model.md` - ready-for-implementation
-- `tasks/g7-030-rmi-repository-id-hashes.md` - blocked
+- `tasks/g7-020-java-to-idl-model.md` - complete
+- `tasks/g7-030-rmi-repository-id-hashes.md` - ready-for-implementation
 - `tasks/g7-040-generated-idl-fixtures.md` - blocked
 - `tasks/g7-050-rmi-binding-generation.md` - blocked
 - `tasks/g7-060-rmi-value-exception-marshaling.md` - blocked

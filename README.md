@@ -78,6 +78,8 @@ This repository is in **Gate G7 RMI-IIOP implementation state**:
   implementation roadmap;
 - explicit RMI Java eligibility diagnostics have started under approved roadmap
   tasks;
+- in-memory Java-to-IDL mapping models for eligible RMI Java declarations have
+  started under approved roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -141,7 +143,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g7-020-java-to-idl-model.md`
+- `docs/roadmap/tasks/g7-030-rmi-repository-id-hashes.md`
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

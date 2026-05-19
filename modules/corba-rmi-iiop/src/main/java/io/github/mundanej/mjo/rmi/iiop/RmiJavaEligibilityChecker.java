@@ -210,6 +210,18 @@ public final class RmiJavaEligibilityChecker {
       }
       return;
     }
+    if (type.kind() == RmiJavaTypeKind.ARRAY) {
+      if (type.componentType().isEmpty()) {
+        emit(
+            diagnostics,
+            RmiJavaDiagnosticCodes.UNSUPPORTED_TYPE_REFERENCE,
+            "Array type requires explicit component metadata: " + type.displayName());
+        return;
+      }
+      validateType(
+          type.componentType().orElseThrow(), TypePosition.PARAMETER, operationName, diagnostics);
+      return;
+    }
     emit(
         diagnostics,
         RmiJavaDiagnosticCodes.UNSUPPORTED_TYPE_REFERENCE,

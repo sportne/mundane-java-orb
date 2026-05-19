@@ -38,5 +38,23 @@ public final class RmiJavaDiagnosticCodes {
   /** An exception type reference is outside the approved explicit-name slice. */
   public static final DiagnosticCode INVALID_EXCEPTION_TYPE = new DiagnosticCode("RMI-0110");
 
+  /** A Java type shape cannot be mapped by the approved Java-to-IDL model slice. */
+  public static final DiagnosticCode UNSUPPORTED_IDL_TYPE_MAPPING = new DiagnosticCode("RMI-0200");
+
+  /** A Java package segment cannot be used as an IDL module identifier. */
+  public static final DiagnosticCode INVALID_IDL_MODULE_NAME = new DiagnosticCode("RMI-0201");
+
+  /** A Java interface simple name cannot be used as an IDL interface identifier. */
+  public static final DiagnosticCode INVALID_IDL_INTERFACE_NAME = new DiagnosticCode("RMI-0202");
+
+  /** A Java method name cannot be used as an IDL operation identifier. */
+  public static final DiagnosticCode INVALID_IDL_OPERATION_NAME = new DiagnosticCode("RMI-0203");
+
+  /** A Java parameter name cannot be used as an IDL parameter identifier. */
+  public static final DiagnosticCode INVALID_IDL_PARAMETER_NAME = new DiagnosticCode("RMI-0204");
+
+  /** A Java checked exception name cannot be used as an IDL exception scoped name. */
+  public static final DiagnosticCode INVALID_IDL_EXCEPTION_NAME = new DiagnosticCode("RMI-0205");
+
   private RmiJavaDiagnosticCodes() {}
 }
