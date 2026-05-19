@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **Gate G6 foundation implementation state**:
+This repository is in **Gate G7 RMI-IIOP implementation state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -76,6 +76,8 @@ This repository is in **Gate G6 foundation implementation state**:
   recorded under approved roadmap tasks;
 - the RMI-IIOP and Java-to-IDL design gate has an accepted ADR and a G7
   implementation roadmap;
+- explicit RMI Java eligibility diagnostics have started under approved roadmap
+  tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -139,8 +141,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g7-010-rmi-java-eligibility-diagnostics.md`
+- `docs/roadmap/tasks/g7-020-java-to-idl-model.md`
 
-Remaining human gates, including final license approval and dependency-policy
-approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
-record the relevant decisions.
+Remaining human gates, including optional CORBA service approval, stay tracked
+as `human-gate-blocked` roadmap tasks until maintainers record the relevant
+decisions.

@@ -11,8 +11,9 @@ Approved: 2026-05-18 by maintainer approval in the project thread.
 `REQ-RMI-001` keeps RMI-IIOP and Java-to-IDL out of implementation until a
 dedicated compatibility design is approved. The G6 foundation now has IDL,
 repository ID, generated-code, local ORB, CDR, GIOP, IIOP, POA, dynamic, naming,
-interop, native-image, and release-hardening slices, but `modules/corba-rmi-iiop`
-is still scaffold-only.
+interop, native-image, and release-hardening slices. At acceptance time,
+`modules/corba-rmi-iiop` was scaffold-only; later G7 tasks may add scoped
+implementation slices under this ADR.
 
 RMI-IIOP sits on the legacy Java/CORBA compatibility boundary. It can affect
 repository IDs, Java type mapping, generated bindings, ORB invocation, value and

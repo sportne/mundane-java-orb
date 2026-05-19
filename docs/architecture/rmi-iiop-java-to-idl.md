@@ -30,7 +30,7 @@ The design gate does not cover:
 public compatibility APIs. It must not become a second ORB, transport, CDR
 engine, or IDL compiler.
 
-Future tasks should keep responsibilities split this way:
+Implementation tasks should keep responsibilities split this way:
 
 - Java type eligibility and Java-to-IDL planning belong in `corba-rmi-iiop`.
 - Repository ID parsing and validation stay in `corba-repository-id`.
@@ -47,7 +47,7 @@ Future implementation should use an explicit, generated-data flow:
 
 ```text
 Java remote interface declaration
-  -> eligibility and signature model
+  -> eligibility and signature model (G7-010)
   -> Java-to-IDL model
   -> IDL semantic model or generated IDL fixture
   -> generated bindings, descriptors, and codecs
@@ -65,9 +65,10 @@ RMI-IIOP behavior is controlled by the `LEGACY_JAVA_CORBA` profile. Future tasks
 must name the exact JAV2I-14 section and the affected compatibility profile row
 before adding behavior.
 
-The initial implementation slices should prefer observable, low-risk behavior:
+The implementation slices should prefer observable, low-risk behavior:
 
-- classify supported and unsupported Java remote interface shapes;
+- classify supported and unsupported Java remote interface shapes (started by
+  G7-010);
 - produce deterministic diagnostics for unsupported Java-to-IDL inputs;
 - generate small IDL golden fixtures from approved Java inputs;
 - preserve and validate RMI repository ID forms;
@@ -99,5 +100,8 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-Until G7 follow-on roadmap tasks implement and verify behavior, this module
-remains scaffold-only.
+After G7-010, this module contains only explicit declaration models and
+deterministic eligibility diagnostics. Follow-on G7 tasks must still implement
+and verify Java-to-IDL mapping, repository IDs, generated fixtures, adapters,
+wire behavior, peer interop, and Native Image closure before runtime
+compatibility claims are made.

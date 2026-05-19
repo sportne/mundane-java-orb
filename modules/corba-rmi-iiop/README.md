@@ -4,9 +4,15 @@ RMI-IIOP and Java-to-IDL support, staged behind dedicated ADR.
 
 ## Current status
 
-Scaffold only. ADR-0013 accepts the RMI-IIOP and Java-to-IDL design gate, but
-implementation behavior belongs here only when a scoped G7 roadmap task permits
-it.
+G7-010 adds explicit Java remote-interface declaration models and deterministic
+eligibility diagnostics for the first Java-to-IDL input slice. The module still
+does not generate IDL or Java bindings, invoke an ORB, marshal values, perform
+wire IIOP behavior, scan classpaths, or inspect application classes through
+runtime reflection.
+
+Follow-on G7 tasks own Java-to-IDL mapping, repository IDs, generated fixtures,
+binding generation, local adapters, wire integration, peer interop, and Native
+Image closure.
 
 ## Documentation requirements
 

@@ -13,5 +13,5 @@ Expected behavior: Task type: design-only. Create the G7 roadmap task set for th
 Tests to add/update: No product tests; run documentation and quality gates.
 Documentation to update: Roadmap index and G7 roadmap task files.
 Commands to run: ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: Every G7 roadmap task uses the implementation task template fields, exactly G7-010 is ready for implementation, later G7 tasks are blocked, and no product behavior is implemented.
+Acceptance criteria: Every G7 roadmap task uses the implementation task template fields, G7-010 is the first task ready for implementation when the task set is created, later G7 tasks are blocked, and no product behavior is implemented by G7-000.
 Rollback notes: Revert G7 roadmap task files and roadmap-index changes together.
