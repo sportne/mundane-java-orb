@@ -1,8 +1,8 @@
-# G6 Roadmap Index
+# Roadmap Index
 
-This roadmap is the G6 implementation task set. It favors functional, testable
-vertical slices while preserving the dependency order needed for a large CORBA
-implementation.
+This roadmap is the source of truth for implementation task sets. It favors
+functional, testable vertical slices while preserving the dependency order
+needed for a large CORBA implementation.
 
 Each task file under `docs/roadmap/tasks/` uses the fields from
 `docs/roadmap/implementation-task-template.md`. After G0-G5 approval, these task
@@ -93,8 +93,21 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g6-920-offline-release-validation.md` - complete
 - `tasks/g6-930-compatibility-security-performance-closure.md` - complete
 
+## G7 RMI-IIOP and Java-to-IDL
+
+- `tasks/g7-000-rmi-iiop-task-set.md` - complete
+- `tasks/g7-010-rmi-java-eligibility-diagnostics.md` - ready-for-implementation
+- `tasks/g7-020-java-to-idl-model.md` - blocked
+- `tasks/g7-030-rmi-repository-id-hashes.md` - blocked
+- `tasks/g7-040-generated-idl-fixtures.md` - blocked
+- `tasks/g7-050-rmi-binding-generation.md` - blocked
+- `tasks/g7-060-rmi-value-exception-marshaling.md` - blocked
+- `tasks/g7-070-local-rmi-iiop-adapters.md` - blocked
+- `tasks/g7-080-rmi-iiop-wire-integration.md` - blocked
+- `tasks/g7-090-rmi-iiop-peer-interop.md` - blocked
+- `tasks/g7-100-rmi-iiop-native-security-closure.md` - blocked
+
 ### Deferred gated tasks
 
-- `tasks/g6-d10-rmi-iiop-java-to-idl.md`
 - `tasks/g6-d20-optional-corba-services.md`
 - `tasks/g6-d30-legal-public-release.md` - public release approval package prepared in `../release/public-release-approval.md`; remains human-gate-blocked.

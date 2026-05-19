@@ -74,8 +74,8 @@ This repository is in **Gate G6 foundation implementation state**:
 - compatibility, security/fuzz-style hostile-input, structured interop failure,
   Native Image boundary, and bounded performance/soak closure evidence has been
   recorded under approved roadmap tasks;
-- the RMI-IIOP and Java-to-IDL design gate has a proposed ADR and architecture
-  package, but implementation remains human-gated;
+- the RMI-IIOP and Java-to-IDL design gate has an accepted ADR and a G7
+  implementation roadmap;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -137,7 +137,9 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-There are currently no non-human-gated roadmap tasks ready for implementation.
+The next non-human-gated roadmap task ready for implementation is:
+
+- `docs/roadmap/tasks/g7-010-rmi-java-eligibility-diagnostics.md`
 
 Remaining human gates, including final license approval and dependency-policy
 approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers

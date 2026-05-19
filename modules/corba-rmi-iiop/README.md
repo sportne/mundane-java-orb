@@ -4,9 +4,9 @@ RMI-IIOP and Java-to-IDL support, staged behind dedicated ADR.
 
 ## Current status
 
-Scaffold only. No RMI-IIOP or Java-to-IDL implementation behavior belongs here
-until maintainers accept the dedicated design ADR and promote follow-on roadmap
-tasks.
+Scaffold only. ADR-0013 accepts the RMI-IIOP and Java-to-IDL design gate, but
+implementation behavior belongs here only when a scoped G7 roadmap task permits
+it.
 
 ## Documentation requirements
 

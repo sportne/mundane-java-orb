@@ -2,7 +2,7 @@
 
 RMI-IIOP is a legacy compatibility feature for exposing eligible Java remote
 interfaces through IDL and IIOP. It belongs to the `LEGACY_JAVA_CORBA`
-compatibility profile and is blocked until ADR-0013 is accepted.
+compatibility profile and is governed by accepted ADR-0013.
 
 ## Scope
 
@@ -99,5 +99,5 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-Until ADR-0013 is accepted and follow-on roadmap tasks are promoted, this module
+Until G7 follow-on roadmap tasks implement and verify behavior, this module
 remains scaffold-only.

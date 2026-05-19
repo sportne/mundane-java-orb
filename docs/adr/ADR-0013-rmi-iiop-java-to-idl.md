@@ -1,8 +1,10 @@
 # ADR-0013: RMI-IIOP and Java-to-IDL Design Gate
 
-Status: proposed
+Status: accepted
 Date: 2026-05-18
 Decision owner: Maintainers
+
+Approved: 2026-05-18 by maintainer approval in the project thread.
 
 ## Context
 
@@ -20,8 +22,8 @@ the compatibility target is clear.
 
 ## Decision
 
-Keep RMI-IIOP and Java-to-IDL blocked from implementation until maintainers
-accept this or a superseding ADR. The approved design scope shall be:
+Accept the RMI-IIOP and Java-to-IDL design gate. Implementation remains limited
+to scoped roadmap tasks. The approved design scope is:
 
 - Java-to-IDL mapping and RMI-IIOP behavior are part of the
   `LEGACY_JAVA_CORBA` compatibility profile.
@@ -37,13 +39,12 @@ accept this or a superseding ADR. The approved design scope shall be:
   specification clauses, allowed files, tests, documentation updates, Native
   Image impact, interop impact, and exact acceptance commands.
 
-This ADR does not approve implementation. It approves only the design shape that
-future maintainers may use when promoting RMI-IIOP work out of
-`human-gate-blocked`.
+This ADR does not approve immediate implementation. It approves the design shape
+used by the G7 RMI-IIOP roadmap tasks.
 
 ## Consequences
 
-- RMI-IIOP remains explicitly deferred until this ADR is accepted.
+- RMI-IIOP implementation remains deferred to scoped G7 roadmap tasks.
 - The first implementation tasks must be design-to-test vertical slices, such as
   repository ID/hash behavior, Java-to-IDL signature classification, generated
   IDL fixtures, or local-only invocation adapters.
