@@ -67,6 +67,38 @@ final class CdrCollectionTest {
   }
 
   @Test
+  void writesAndReadsBigEndianWideStringsWithGoldenWire() {
+    CdrWriter writer = CdrWriter.bigEndian().writeWString("").writeWString("A\u03A9");
+
+    byte[] expected =
+        bytes(
+            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x41,
+            0x03, 0xA9, 0x00, 0x00);
+
+    GoldenAssertions.assertBytesEquals("cdr-big-endian-wstrings", expected, writer.toByteArray());
+
+    CdrReader reader = CdrReader.bigEndian(expected);
+    assertEquals("", reader.readWString());
+    assertEquals("A\u03A9", reader.readWString());
+    assertEquals(0, reader.remaining());
+  }
+
+  @Test
+  void writesAndReadsLittleEndianWideStringsWithGoldenWire() {
+    CdrWriter writer = CdrWriter.littleEndian().writeOctet(0xAA).writeWString("AZ");
+
+    byte[] expected =
+        bytes(0xAA, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x41, 0x00, 0x5A, 0x00, 0x00, 0x00);
+
+    GoldenAssertions.assertBytesEquals("cdr-little-endian-wstring", expected, writer.toByteArray());
+
+    CdrReader reader = CdrReader.littleEndian(expected);
+    assertEquals(0xAA, reader.readOctet());
+    assertEquals("AZ", reader.readWString());
+    assertEquals(0, reader.remaining());
+  }
+
+  @Test
   void writesAndReadsEncapsulationWithNestedAlignment() {
     CdrEncapsulation encapsulation =
         CdrEncapsulation.of(
@@ -179,6 +211,28 @@ final class CdrCollectionTest {
   }
 
   @Test
+  void reportsMalformedWideStringsAndInvalidSurrogates() {
+    assertCdrCode(
+        CdrDiagnosticCodes.INVALID_LENGTH,
+        () -> CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x00)).readWString());
+    assertCdrCode(
+        CdrDiagnosticCodes.MALFORMED_WSTRING,
+        () ->
+            CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x02, 0x00, 0x41, 0x00, 0x42))
+                .readWString());
+    assertCdrCode(
+        CdrDiagnosticCodes.TRUNCATED_INPUT,
+        () -> CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x02, 0x00, 0x41)).readWString());
+    assertCdrCode(
+        CdrDiagnosticCodes.MALFORMED_WSTRING,
+        () ->
+            CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x02, 0xD8, 0x00, 0x00, 0x00))
+                .readWString());
+    assertCdrCode(
+        CdrDiagnosticCodes.MALFORMED_WSTRING, () -> CdrWriter.bigEndian().writeWString("\uD800"));
+  }
+
+  @Test
   void reportsLengthLimitsBeforeAllocatingCollections() {
     CdrLimits limits =
         new CdrLimits(
@@ -191,9 +245,18 @@ final class CdrCollectionTest {
         () -> CdrWriter.bigEndian(limits).writeString("ab"));
     assertCdrCode(
         CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () -> CdrWriter.bigEndian(limits).writeWString("ab"));
+    assertCdrCode(
+        CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
         () ->
             CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x03, 0x41, 0x42, 0x00), limits)
                 .readString());
+    assertCdrCode(
+        CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+        () ->
+            CdrReader.bigEndian(
+                    bytes(0x00, 0x00, 0x00, 0x03, 0x00, 0x41, 0x00, 0x42, 0x00, 0x00), limits)
+                .readWString());
     assertCdrCode(
         CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
         () -> CdrWriter.bigEndian(limits).writeSequenceLength(2));

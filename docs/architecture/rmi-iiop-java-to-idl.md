@@ -20,7 +20,7 @@ The design gate does not cover:
 - public runtime APIs;
 - generated source output;
 - functional stub, tie, skeleton, or helper implementation;
-- value or exception wire marshaling;
+- ORB invocation or IIOP wire behavior;
 - peer interop execution;
 - automatic classpath scanning or reflective adaptation of arbitrary classes.
 
@@ -52,7 +52,7 @@ Java remote interface declaration
   -> explicit RMI repository ID planning (G7-030)
   -> generated IDL fixture and IDL validation (G7-040)
   -> generated binding source surfaces and string-only descriptors (G7-050)
-  -> generated value and exception codecs
+  -> bounded local value and empty user-exception CDR codecs (G7-060)
   -> ORB/POA invocation adapters
   -> CDR/GIOP/IIOP transport
 ```
@@ -79,6 +79,9 @@ The implementation slices should prefer observable, low-risk behavior:
   G7-040);
 - generate compile-safe Java binding surfaces and string-only descriptors
   without runtime invocation behavior (started by G7-050);
+- marshal approved primitive/String values and empty declared user exceptions
+  through bounded local CDR payloads without Java serialization (started by
+  G7-060);
 - preserve and validate RMI repository ID forms;
 - prove local adapter invocation before external peer claims.
 
@@ -108,10 +111,11 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-After G7-050, this module contains explicit Java declaration models,
+After G7-060, this module contains explicit Java declaration models,
 deterministic eligibility diagnostics, an in-memory Java-to-IDL mapping model,
 metadata-based RMI repository ID planning, generated IDL fixtures for the
-parser-supported subset, and compile-safe Java binding surfaces. Follow-on G7
-tasks must still implement and verify value/exception marshaling, adapters,
+parser-supported subset, compile-safe Java binding surfaces, and bounded local
+CDR codecs for approved primitive/String values and empty declared user
+exceptions. Follow-on G7 tasks must still implement and verify local adapters,
 wire behavior, peer interop, and Native Image closure before runtime
 compatibility claims are made.

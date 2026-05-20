@@ -165,6 +165,25 @@ public final class CdrReader {
     return new String(characters);
   }
 
+  /** Reads a bounded CDR wide string encoded as UTF-16 code units plus a null terminator. */
+  public String readWString() {
+    int codeUnits = readWStringLength();
+    if (codeUnits == 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH, "CDR wstring length must include a null terminator");
+    }
+    char[] characters = new char[codeUnits - 1];
+    for (int index = 0; index < characters.length; index++) {
+      characters[index] = (char) readUnsignedShort();
+    }
+    if (readUnsignedShort() != 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.MALFORMED_WSTRING, "CDR wstring must end with a null code unit");
+    }
+    validateUtf16(characters);
+    return new String(characters);
+  }
+
   /** Reads and validates a bounded CDR sequence length. */
   public int readSequenceLength() {
     return readRequiredLength("sequence", limits.sequenceElements());
@@ -247,6 +266,18 @@ public final class CdrReader {
     return (int) length;
   }
 
+  private int readWStringLength() {
+    long codeUnits = readUnsignedLong();
+    if (codeUnits > Integer.MAX_VALUE) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH,
+          "CDR wstring length exceeds Java array limits: " + codeUnits);
+    }
+    long octets = Math.multiplyExact(codeUnits, 2L);
+    limits.stringOctets().check(octets).ifPresent(CdrReader::throwLengthLimitExceeded);
+    return (int) codeUnits;
+  }
+
   private byte[] readRawBytes(int byteCount, String label) {
     requireRemaining(byteCount, label);
     byte[] value = Arrays.copyOfRange(input, position, position + byteCount);
@@ -280,6 +311,24 @@ public final class CdrReader {
       byte temporary = bytes[left];
       bytes[left] = bytes[right];
       bytes[right] = temporary;
+    }
+  }
+
+  private static void validateUtf16(char[] characters) {
+    for (int index = 0; index < characters.length; index++) {
+      char character = characters[index];
+      if (Character.isHighSurrogate(character)) {
+        if (index + 1 >= characters.length || !Character.isLowSurrogate(characters[index + 1])) {
+          throw new CdrException(
+              CdrDiagnosticCodes.MALFORMED_WSTRING,
+              "CDR wstring contains an unmatched high surrogate");
+        }
+        index++;
+      } else if (Character.isLowSurrogate(character)) {
+        throw new CdrException(
+            CdrDiagnosticCodes.MALFORMED_WSTRING,
+            "CDR wstring contains an unmatched low surrogate");
+      }
     }
   }
 

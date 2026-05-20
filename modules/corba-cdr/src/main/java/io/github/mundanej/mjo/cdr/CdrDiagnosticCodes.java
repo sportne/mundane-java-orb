@@ -39,5 +39,8 @@ public final class CdrDiagnosticCodes {
   /** Sequence or fixed-array size was invalid for generated-code loops. */
   public static final DiagnosticCode INVALID_COLLECTION_SIZE = new DiagnosticCode("CDR-0011");
 
+  /** Wide string payload was not valid terminated UTF-16 code units. */
+  public static final DiagnosticCode MALFORMED_WSTRING = new DiagnosticCode("CDR-0012");
+
   private CdrDiagnosticCodes() {}
 }

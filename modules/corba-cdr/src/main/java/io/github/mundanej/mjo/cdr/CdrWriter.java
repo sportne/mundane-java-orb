@@ -187,6 +187,20 @@ public final class CdrWriter {
     return this;
   }
 
+  /** Writes a bounded CDR wide string as UTF-16 code units plus a null terminator. */
+  public CdrWriter writeWString(String value) {
+    Objects.requireNonNull(value, "value");
+    validateUtf16(value);
+    long codeUnits = (long) value.length() + 1L;
+    requireBoundedLength(Math.multiplyExact(codeUnits, 2L), limits.stringOctets());
+    writeUnsignedLong(codeUnits);
+    for (int index = 0; index < value.length(); index++) {
+      writeUnsignedShort(value.charAt(index));
+    }
+    writeUnsignedShort(0);
+    return this;
+  }
+
   /** Writes a bounded CDR sequence length. */
   public CdrWriter writeSequenceLength(int elementCount) {
     validateSequenceLength(elementCount);
@@ -300,6 +314,24 @@ public final class CdrWriter {
     }
     requireBoundedLength(elementCount, limits.sequenceElements());
     return elementCount;
+  }
+
+  private static void validateUtf16(String value) {
+    for (int index = 0; index < value.length(); index++) {
+      char character = value.charAt(index);
+      if (Character.isHighSurrogate(character)) {
+        if (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(index + 1))) {
+          throw new CdrException(
+              CdrDiagnosticCodes.MALFORMED_WSTRING,
+              "CDR wstring contains an unmatched high surrogate");
+        }
+        index++;
+      } else if (Character.isLowSurrogate(character)) {
+        throw new CdrException(
+            CdrDiagnosticCodes.MALFORMED_WSTRING,
+            "CDR wstring contains an unmatched low surrogate");
+      }
+    }
   }
 
   private static void requireBoundedLength(long length, BoundedLimit limit) {

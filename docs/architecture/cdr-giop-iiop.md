@@ -24,23 +24,30 @@ the 16-octet payload.
 
 Length-bearing CDR coverage includes narrow strings, sequence lengths,
 fixed-array element-count validation for generated-code loops, raw octet
-sequences, and length-prefixed encapsulations. Narrow strings use one-octet
-Latin-1 mapping in this CDR slice because code-set negotiation is GIOP-level
-behavior. Encapsulations validate byte-order markers and create nested readers
-whose alignment starts at the encapsulation stream, after the marker has been
-consumed.
+sequences, length-prefixed encapsulations, and bounded wide strings for the
+approved RMI-IIOP value slice. Narrow strings use one-octet Latin-1 mapping in
+this CDR slice because code-set negotiation is GIOP-level behavior. Wide
+strings are encoded as deterministic UTF-16 code units with a terminating null
+code unit and reuse the configured string-octet bound. Encapsulations validate
+byte-order markers and create nested readers whose alignment starts at the
+encapsulation stream, after the marker has been consumed.
 
 G6-510 adds caller-sized raw octet helpers for protocol layers that already know
 the byte count from an enclosing syntax. These helpers do not add length
 prefixes and do not introduce GIOP concepts into `corba-cdr`.
 
-Wstring, negotiated code sets, TypeCode, Any, object-reference, GIOP, IIOP, and
-ORB invocation behavior remain outside the current CDR slice.
+Negotiated code sets, TypeCode, object-reference, GIOP, IIOP, and ORB invocation
+behavior remain outside the current CDR slice.
 
 The primitive reader/writer package participates in the Native Image validation
 lane. Its native smoke executable exercises deterministic CDR primitive,
 string, sequence, and encapsulation behavior without reflection, dynamic
 proxies, runtime code generation, or native-image metadata.
+
+G7-060 uses these CDR primitives from `corba-rmi-iiop` to prove local
+primitive/String value payloads and empty user-exception repository ID payloads.
+That RMI slice deliberately stops before ORB dispatch, POA adapters, GIOP reply
+body ownership, IIOP sockets, or peer interoperability claims.
 
 ## GIOP rules
 

@@ -12,4 +12,7 @@ description = 'RMI-IIOP and Java-to-IDL support, staged behind dedicated ADR.'
 dependencies {
     // Eligibility diagnostics reuse the shared stable diagnostic contract.
     api project(':modules:corba-common')
+
+    // G7-060 owns bounded local RMI-IIOP payload encoding through CDR readers/writers.
+    api project(':modules:corba-cdr')
 }

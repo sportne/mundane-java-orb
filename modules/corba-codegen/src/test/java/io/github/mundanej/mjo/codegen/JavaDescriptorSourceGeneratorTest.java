@@ -177,6 +177,34 @@ final class JavaDescriptorSourceGeneratorTest {
     compile(compileSources);
   }
 
+  @Test
+  void generatedRmiIdlFixtureMapsThroughDescriptorAndCodegenPaths() throws Exception {
+    String idl = Files.readString(rmiGeneratedIdlFixture(), StandardCharsets.UTF_8);
+    IdlSemanticModel semanticModel = semanticModel("rmi-generated-idl/calculator.idl", idl);
+
+    List<GeneratedJavaSource> descriptorSources =
+        generator.generate(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY);
+    List<GeneratedJavaSource> compileSources = new ArrayList<>(descriptorSources);
+    compileSources.addAll(
+        sourceGenerator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY)));
+
+    assertEquals(
+        List.of(
+            "example/calc/codec/CalculatorCodec.java",
+            "example/calc/codec/CalculatorProblemCodec.java",
+            "example/calc/metadata/CalculatorDescriptor.java",
+            "example/calc/metadata/CalculatorProblemDescriptor.java",
+            "example/calc/metadata/GeneratedInterfaceRepository.java"),
+        sourcePaths(descriptorSources));
+    String descriptorText =
+        descriptorSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat);
+    assertNoForbiddenGeneratedSourceTokens(descriptorText);
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:example/calc/Calculator:1.0\")");
+    assertContains(
+        descriptorText, "RepositoryId.parse(\"IDL:example/calc/CalculatorProblem:1.0\")");
+    compile(compileSources);
+  }
+
   private IdlSemanticModel semanticModel(String sourceName, String source) {
     IdlParseResult parseResult = parser.parse(sourceName, source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
@@ -241,6 +269,11 @@ final class JavaDescriptorSourceGeneratorTest {
       directory = directory.getParent();
     }
     throw new IllegalStateException("Could not locate repository root from test working directory");
+  }
+
+  private static Path rmiGeneratedIdlFixture() {
+    return findRepositoryRoot()
+        .resolve("modules/corba-rmi-iiop/src/test/resources/rmi-generated-idl/calculator.idl");
   }
 
   private void compile(List<GeneratedJavaSource> sources) throws Exception {

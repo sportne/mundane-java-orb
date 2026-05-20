@@ -40,7 +40,6 @@ final class RmiGeneratedJavaBindingGeneratorTest {
           "java.io.Serializable",
           "io.github.mundanej.mjo.orb",
           "io.github.mundanej.mjo.iiop",
-          "io.github.mundanej.mjo.cdr",
           "ServiceLoader",
           "ClassLoader");
 

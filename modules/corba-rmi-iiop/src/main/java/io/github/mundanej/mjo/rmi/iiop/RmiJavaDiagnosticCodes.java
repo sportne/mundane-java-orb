@@ -104,5 +104,27 @@ public final class RmiJavaDiagnosticCodes {
   /** Two generated Java binding sources resolved to the same source path. */
   public static final DiagnosticCode DUPLICATE_BINDING_SOURCE_PATH = new DiagnosticCode("RMI-0504");
 
+  /** An IDL type reference is outside the local RMI CDR marshaling slice. */
+  public static final DiagnosticCode UNSUPPORTED_CDR_MARSHALING_TYPE =
+      new DiagnosticCode("RMI-0600");
+
+  /** A supplied value does not match the expected RMI CDR value kind or Java type. */
+  public static final DiagnosticCode CDR_VALUE_TYPE_MISMATCH = new DiagnosticCode("RMI-0601");
+
+  /** Null values are outside the local RMI CDR marshaling slice. */
+  public static final DiagnosticCode CDR_NULL_VALUE = new DiagnosticCode("RMI-0602");
+
+  /** Operation arguments did not match the declared parameter count. */
+  public static final DiagnosticCode CDR_OPERATION_ARGUMENT_COUNT_MISMATCH =
+      new DiagnosticCode("RMI-0603");
+
+  /** A declared user exception is missing required repository ID metadata. */
+  public static final DiagnosticCode CDR_MISSING_EXCEPTION_REPOSITORY_ID =
+      new DiagnosticCode("RMI-0604");
+
+  /** A user exception repository ID was not declared for the operation. */
+  public static final DiagnosticCode CDR_UNDECLARED_EXCEPTION_REPOSITORY_ID =
+      new DiagnosticCode("RMI-0605");
+
   private RmiJavaDiagnosticCodes() {}
 }

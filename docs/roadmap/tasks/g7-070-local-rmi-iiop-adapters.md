@@ -1,7 +1,7 @@
 # G7-070 Local RMI-IIOP Adapters
 
 Task ID: G7-070-LOCAL-RMI-IIOP-ADAPTERS
-Status: blocked
+Status: ready-for-implementation
 Gate: G7 RMI-IIOP and Java-to-IDL
 Requirement IDs: REQ-RMI-001, REQ-ORB-001, REQ-POA-001, REQ-IDLJ-004, REQ-NFR-001
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010, ADR-0013
