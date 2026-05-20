@@ -9,14 +9,16 @@ string/value rules for CORBA RepositoryIds:
 
 - parses any syntactically valid `<format>:<string>` form;
 - validates and normalizes `IDL:<path>:<major>.<minor>` values;
-- preserves recognized `RMI:`, `DCE:`, and `LOCAL:` forms deterministically;
+- validates, normalizes, and constructs `RMI:<javaBinaryName>:<hash>[:<uid>]`
+  values from explicit metadata inputs;
+- preserves recognized `DCE:` and `LOCAL:` forms deterministically;
 - preserves unknown formats for future registered or implementation-specific
   repository ID schemes;
 - constructs common IDL-format values from paths and scoped-name segments.
 
 This module does not parse IOR binary profiles, integrate with TypeCode, process
-IDL pragmas, compute Java RMI hash values, generate source code, or start ORB
-runtime behavior.
+IDL pragmas, compute Java RMI hash or serialVersionUID values, generate source
+code, or start ORB runtime behavior.
 
 ## Documentation requirements
 

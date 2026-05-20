@@ -80,6 +80,8 @@ This repository is in **Gate G7 RMI-IIOP implementation state**:
   tasks;
 - in-memory Java-to-IDL mapping models for eligible RMI Java declarations have
   started under approved roadmap tasks;
+- explicit metadata-based RMI repository ID construction and planning have
+  started under approved roadmap tasks;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 

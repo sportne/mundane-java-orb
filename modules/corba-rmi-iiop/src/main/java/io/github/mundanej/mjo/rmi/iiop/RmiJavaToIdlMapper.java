@@ -193,7 +193,10 @@ public final class RmiJavaToIdlMapper {
     List<String> modulePath = binaryParts.subList(0, binaryParts.size() - 1);
     RmiIdlInterface idlInterface =
         new RmiIdlInterface(
-            interfaceName, scopedName(binaryParts), mapOperations(declaration.operations()));
+            interfaceName,
+            scopedName(binaryParts),
+            Optional.of(declaration.binaryName()),
+            mapOperations(declaration.operations()));
     if (modulePath.isEmpty()) {
       return new RmiIdlTranslationUnit(List.of(), List.of(idlInterface));
     }

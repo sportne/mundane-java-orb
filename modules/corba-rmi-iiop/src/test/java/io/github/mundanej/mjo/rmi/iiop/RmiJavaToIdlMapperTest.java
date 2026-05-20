@@ -72,6 +72,7 @@ final class RmiJavaToIdlMapperTest {
     assertEquals("::example::calc", calc.scopedName());
     assertEquals("Calculator", calculator.name());
     assertEquals("::example::calc::Calculator", calculator.scopedName());
+    assertEquals(Optional.of("example.calc.Calculator"), calculator.javaBinaryName());
 
     RmiIdlOperation add = calculator.operations().get(0);
     assertEquals("add", add.name());

@@ -18,6 +18,7 @@ public final class RepositoryId {
   private final String formatName;
   private final String body;
   private final Optional<RepositoryIdVersion> version;
+  private final Optional<RmiRepositoryIdComponents> rmiComponents;
   private final String value;
 
   private RepositoryId(
@@ -25,10 +26,23 @@ public final class RepositoryId {
       String formatName,
       String body,
       Optional<RepositoryIdVersion> version) {
+    this(format, formatName, body, version, Optional.empty());
+  }
+
+  private RepositoryId(
+      RepositoryIdFormat format,
+      String formatName,
+      String body,
+      Optional<RepositoryIdVersion> version,
+      Optional<RmiRepositoryIdComponents> rmiComponents) {
     this.format = Objects.requireNonNull(format, "format");
     this.formatName = requireFormatName(formatName);
     this.body = Objects.requireNonNull(body, "body");
     this.version = Objects.requireNonNull(version, "version");
+    this.rmiComponents = Objects.requireNonNull(rmiComponents, "rmiComponents");
+    if (format != RepositoryIdFormat.RMI && rmiComponents.isPresent()) {
+      throw new RepositoryIdException("RMI components are only valid for RMI repository IDs");
+    }
     this.value = this.formatName + ":" + this.body;
   }
 
@@ -80,6 +94,29 @@ public final class RepositoryId {
     return createIdl(String.join("/", pathSegments), version);
   }
 
+  /** Creates an RMI-format repository ID from explicit Java binary name and hash inputs. */
+  public static RepositoryId rmi(String javaBinaryName, String hash) {
+    return rmi(javaBinaryName, hash, Optional.empty());
+  }
+
+  /** Creates an RMI-format repository ID with an explicit serialVersionUID component. */
+  public static RepositoryId rmi(String javaBinaryName, String hash, String serialVersionUid) {
+    return rmi(javaBinaryName, hash, Optional.of(serialVersionUid));
+  }
+
+  /** Creates an RMI-format repository ID with optional explicit serialVersionUID input. */
+  public static RepositoryId rmi(
+      String javaBinaryName, String hash, Optional<String> serialVersionUid) {
+    RmiRepositoryIdComponents components =
+        RmiRepositoryIdComponents.create(javaBinaryName, hash, serialVersionUid);
+    return new RepositoryId(
+        RepositoryIdFormat.RMI,
+        "RMI",
+        components.body(),
+        Optional.empty(),
+        Optional.of(components));
+  }
+
   /** Creates a syntactically valid generic repository ID. */
   public static RepositoryId generic(String formatName, String body) {
     return parse(requireFormatName(formatName) + ":" + Objects.requireNonNull(body, "body"));
@@ -103,6 +140,11 @@ public final class RepositoryId {
   /** Returns the IDL version when this is an IDL-format repository ID. */
   public Optional<RepositoryIdVersion> version() {
     return version;
+  }
+
+  /** Returns parsed RMI components when this is an RMI-format repository ID. */
+  public Optional<RmiRepositoryIdComponents> rmiComponents() {
+    return rmiComponents;
   }
 
   /** Returns the deterministic repository ID string. */
@@ -140,12 +182,17 @@ public final class RepositoryId {
     if (components.length != 2 && components.length != 3) {
       throw new RepositoryIdException("RMI repository ID must have class, hash, and optional UID");
     }
-    for (String component : components) {
-      if (component.isBlank()) {
-        throw new RepositoryIdException("RMI repository ID components must not be blank");
-      }
-    }
-    return new RepositoryId(RepositoryIdFormat.RMI, formatName, body, Optional.empty());
+    RmiRepositoryIdComponents rmiComponents =
+        RmiRepositoryIdComponents.create(
+            components[0],
+            components[1],
+            components.length == 3 ? Optional.of(components[2]) : Optional.empty());
+    return new RepositoryId(
+        RepositoryIdFormat.RMI,
+        formatName,
+        rmiComponents.body(),
+        Optional.empty(),
+        Optional.of(rmiComponents));
   }
 
   private static RepositoryId parseDce(String formatName, String body) {

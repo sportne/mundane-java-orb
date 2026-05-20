@@ -80,9 +80,53 @@ final class RepositoryIdTest {
   }
 
   @Test
+  void parsesAndConstructsRmiRepositoryIdsFromExplicitInputs() {
+    RepositoryId parsed = RepositoryId.parse("RMI:example.Widget:0123456789abcdef");
+    RepositoryId constructed = RepositoryId.rmi("example.Widget", "0123456789abcdef");
+    RepositoryId withUid =
+        RepositoryId.rmi("example.Widget", "0123456789abcdef", "fedcba9876543210");
+
+    assertEquals(RepositoryIdFormat.RMI, parsed.format());
+    assertEquals("RMI", parsed.formatName());
+    assertEquals("example.Widget:0123456789ABCDEF", parsed.body());
+    assertEquals("RMI:example.Widget:0123456789ABCDEF", parsed.value());
+    assertEquals(constructed, parsed);
+    assertEquals(
+        Optional.of(
+            new RmiRepositoryIdComponents("example.Widget", "0123456789ABCDEF", Optional.empty())),
+        parsed.rmiComponents());
+    assertEquals("RMI:example.Widget:0123456789ABCDEF:FEDCBA9876543210", withUid.value());
+    assertEquals(
+        Optional.of(
+            new RmiRepositoryIdComponents(
+                "example.Widget", "0123456789ABCDEF", Optional.of("FEDCBA9876543210"))),
+        withUid.rmiComponents());
+  }
+
+  @Test
   void rejectsMalformedRecognizedNonIdlRepositoryIds() {
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.Widget"));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.Widget::hash"));
+    assertThrows(
+        RepositoryIdException.class,
+        () -> RepositoryId.parse("RMI:example.Widget:0123456789ABCDEF:0123456789ABCDEF:extra"));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.1Bad:0123456789ABCDEF"));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryId.parse("RMI:class.Widget:0123456789ABCDEF"));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.Widget:not-hex"));
+    assertThrows(
+        RepositoryIdException.class,
+        () -> RepositoryId.parse("RMI:example.Widget:0123456789ABCDEF:not-hex"));
+    assertThrows(RepositoryIdException.class, () -> RepositoryId.rmi("", "0123456789ABCDEF"));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryId.rmi("example.Widget", "0123456789ABCDE"));
+    assertThrows(
+        RepositoryIdException.class,
+        () -> RepositoryId.rmi("example.Widget", "0123456789ABCDEF", ""));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryId.rmi("a".repeat(1025), "0123456789ABCDEF"));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("DCE:not-a-uuid:1"));
   }
 

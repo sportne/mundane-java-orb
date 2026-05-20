@@ -56,5 +56,24 @@ public final class RmiJavaDiagnosticCodes {
   /** A Java checked exception name cannot be used as an IDL exception scoped name. */
   public static final DiagnosticCode INVALID_IDL_EXCEPTION_NAME = new DiagnosticCode("RMI-0205");
 
+  /** Repository ID hash metadata is missing for a Java binary name. */
+  public static final DiagnosticCode MISSING_REPOSITORY_ID_HASH = new DiagnosticCode("RMI-0300");
+
+  /** More than one repository ID hash metadata entry was provided for the same name. */
+  public static final DiagnosticCode DUPLICATE_REPOSITORY_ID_HASH = new DiagnosticCode("RMI-0301");
+
+  /** Repository ID hash metadata uses an invalid Java binary name. */
+  public static final DiagnosticCode INVALID_REPOSITORY_ID_NAME = new DiagnosticCode("RMI-0302");
+
+  /** Repository ID hash metadata uses an invalid 16-hex-digit hash. */
+  public static final DiagnosticCode INVALID_REPOSITORY_ID_HASH = new DiagnosticCode("RMI-0303");
+
+  /** Repository ID hash metadata uses an invalid 16-hex-digit serialVersionUID. */
+  public static final DiagnosticCode INVALID_REPOSITORY_ID_UID = new DiagnosticCode("RMI-0304");
+
+  /** Java-to-IDL model data does not contain the Java binary-name metadata needed for RMI IDs. */
+  public static final DiagnosticCode UNRESOLVED_REPOSITORY_ID_MODEL_NAME =
+      new DiagnosticCode("RMI-0305");
+
   private RmiJavaDiagnosticCodes() {}
 }
