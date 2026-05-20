@@ -121,6 +121,12 @@ compiles without `org.omg.*`, ORB runtime APIs, CDR codecs, repository IDs,
 helpers, holders, stubs, skeletons, POA classes, reflection, dynamic class
 loading, or Native Image metadata.
 
+G7-050 adds compatibility tests proving the approved RMI generated-IDL fixture
+continues to map through this IDL-to-Java model and compile through the existing
+source renderer. The RMI-specific helper, holder, stub, tie, skeleton
+placeholder, and binding-descriptor surfaces are generated in
+`corba-rmi-iiop`, not by the generic IDL compiler pipeline.
+
 ## Descriptor And Codec Boundary
 
 G6-220 adds a source-generation-only descriptor pass after Java mapping. It

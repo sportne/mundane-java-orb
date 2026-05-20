@@ -9,6 +9,9 @@ import io.github.mundanej.mjo.idl.parser.IdlParser;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticAnalyzer;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticModel;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticResult;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -177,6 +180,32 @@ final class IdlJavaMapperTest {
   }
 
   @Test
+  void mapsApprovedRmiGeneratedIdlFixture() {
+    JavaMappingModel model =
+        mapper.map(
+            semanticModel("rmi-generated.idl", rmiGeneratedIdlFixture()),
+            JavaMappingMode.LEGACY_COMPATIBILITY);
+
+    assertEquals("rmi-generated.idl", model.sourceName());
+    assertEquals(
+        List.of("example.calc.CalculatorProblem", "example.calc.Calculator"),
+        model.types().stream().map(type -> type.name().qualifiedName()).toList());
+
+    JavaMappedType problem = model.types().get(0);
+    JavaMappedType calculator = model.types().get(1);
+    assertEquals(JavaMappedTypeKind.EXCEPTION, problem.kind());
+    assertEquals(JavaMappedTypeKind.INTERFACE, calculator.kind());
+    assertEquals(
+        List.of("add", "describe", "clear"),
+        calculator.operations().stream().map(JavaMappedOperation::name).toList());
+    assertEquals(
+        List.of("int", "java.lang.String", "void"),
+        calculator.operations().stream().map(JavaMappedOperation::returnType).toList());
+    assertEquals(
+        List.of("example.calc.CalculatorProblem"), calculator.operations().get(1).thrownTypes());
+  }
+
+  @Test
   void avoidsConstantHolderNameCollisionsWithGeneratedTypes() {
     JavaMappingModel model =
         mapper.map(
@@ -199,7 +228,11 @@ final class IdlJavaMapperTest {
   }
 
   private IdlSemanticModel semanticModel(String source) {
-    IdlParseResult parseResult = parser.parse("mapping-test.idl", source);
+    return semanticModel("mapping-test.idl", source);
+  }
+
+  private IdlSemanticModel semanticModel(String sourceName, String source) {
+    IdlParseResult parseResult = parser.parse(sourceName, source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
     IdlSemanticResult semanticResult =
         analyzer.analyze(parseResult.translationUnit().orElseThrow());
@@ -213,5 +246,28 @@ final class IdlJavaMapperTest {
         .filter(scope -> scope.name().qualifiedName().equals(qualifiedName))
         .findFirst()
         .orElseThrow();
+  }
+
+  private static String rmiGeneratedIdlFixture() {
+    try {
+      return Files.readString(
+          findRepositoryRoot()
+              .resolve(
+                  "modules/corba-rmi-iiop/src/test/resources/rmi-generated-idl/calculator.idl"));
+    } catch (IOException exception) {
+      throw new IllegalStateException("Unable to read RMI generated IDL fixture", exception);
+    }
+  }
+
+  private static Path findRepositoryRoot() {
+    Path directory = Path.of("").toAbsolutePath().normalize();
+    while (directory != null) {
+      if (Files.isRegularFile(directory.resolve("AGENT.md"))
+          && Files.isDirectory(directory.resolve("modules"))) {
+        return directory;
+      }
+      directory = directory.getParent();
+    }
+    throw new IllegalStateException("Could not locate repository root from test working directory");
   }
 }

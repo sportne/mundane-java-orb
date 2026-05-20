@@ -19,6 +19,11 @@ exceptions, and constants. It does not generate source text directly and does
 not define ORB runtime APIs, CDR codecs, repository IDs, `org.omg.*` APIs,
 reflection metadata, or Native Image configuration.
 
+G7-050 adds compatibility coverage for the approved RMI generated-IDL fixture so
+the Java-to-IDL path remains aligned with the existing IDL-to-Java mapping model.
+RMI-specific helper, holder, stub, tie, skeleton placeholder, and descriptor
+surfaces remain owned by `corba-rmi-iiop`.
+
 ## Documentation requirements
 
 - Add package documentation for every public package.

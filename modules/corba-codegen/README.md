@@ -25,6 +25,12 @@ exception type kind for local invocation exception mapping.
 G6-730 adds generated `GeneratedInterfaceRepository` sources that explicitly
 assemble descriptor constants into a closed-world static metadata repository.
 
+G7-050 adds compatibility coverage proving the approved RMI generated-IDL
+fixture still maps and compiles through the generic source generator. The
+RMI-specific helper, holder, stub, tie, skeleton placeholder, and binding
+descriptor surfaces are generated in `corba-rmi-iiop`, not by this generic IDL
+source renderer.
+
 The renderer emits compile-safe Java source for:
 
 - Java interfaces from IDL interfaces;

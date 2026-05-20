@@ -19,7 +19,7 @@ The design gate does not cover:
 
 - public runtime APIs;
 - generated source output;
-- stub, tie, skeleton, or helper implementation;
+- functional stub, tie, skeleton, or helper implementation;
 - value or exception wire marshaling;
 - peer interop execution;
 - automatic classpath scanning or reflective adaptation of arbitrary classes.
@@ -51,7 +51,8 @@ Java remote interface declaration
   -> Java-to-IDL model (G7-020)
   -> explicit RMI repository ID planning (G7-030)
   -> generated IDL fixture and IDL validation (G7-040)
-  -> generated bindings, descriptors, and codecs
+  -> generated binding source surfaces and string-only descriptors (G7-050)
+  -> generated value and exception codecs
   -> ORB/POA invocation adapters
   -> CDR/GIOP/IIOP transport
 ```
@@ -76,6 +77,8 @@ The implementation slices should prefer observable, low-risk behavior:
   without Java serialization or class loading (started by G7-030);
 - generate small IDL golden fixtures from approved Java inputs (started by
   G7-040);
+- generate compile-safe Java binding surfaces and string-only descriptors
+  without runtime invocation behavior (started by G7-050);
 - preserve and validate RMI repository ID forms;
 - prove local adapter invocation before external peer claims.
 
@@ -105,9 +108,10 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-After G7-040, this module contains explicit Java declaration models,
+After G7-050, this module contains explicit Java declaration models,
 deterministic eligibility diagnostics, an in-memory Java-to-IDL mapping model,
-metadata-based RMI repository ID planning, and generated IDL fixtures for the
-parser-supported subset. Follow-on G7 tasks must still implement and verify
-Java binding generation, adapters, wire behavior, peer interop, and Native Image
-closure before runtime compatibility claims are made.
+metadata-based RMI repository ID planning, generated IDL fixtures for the
+parser-supported subset, and compile-safe Java binding surfaces. Follow-on G7
+tasks must still implement and verify value/exception marshaling, adapters,
+wire behavior, peer interop, and Native Image closure before runtime
+compatibility claims are made.

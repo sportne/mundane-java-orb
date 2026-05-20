@@ -121,9 +121,6 @@ final class RmiGeneratedIdlFixtureGeneratorTest {
       assertFalse(sources.contains("java.io.Serializable"));
       assertFalse(sources.contains("io.github.mundanej.mjo.orb"));
       assertFalse(sources.contains("io.github.mundanej.mjo.iiop"));
-      assertFalse(sources.contains("Stub"));
-      assertFalse(sources.contains("Tie"));
-      assertFalse(sources.contains("Skeleton"));
     }
   }
 

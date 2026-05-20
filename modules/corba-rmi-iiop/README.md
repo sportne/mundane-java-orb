@@ -12,12 +12,15 @@ references, and sequence-shaped Java arrays. G7-030 adds deterministic planning
 of RMI repository ID strings from explicit hash and serialVersionUID metadata.
 G7-040 adds deterministic generated IDL fixtures for the parser-supported subset
 and validates the approved fixture through existing IDL parser and semantic
-tests. The module still does not generate Java bindings, invoke an ORB, marshal
-values, perform wire IIOP behavior, scan classpaths, compute Java serialization
-hashes, or inspect application classes through runtime reflection.
+tests. G7-050 adds deterministic compile-safe Java binding source surfaces,
+including RMI remote interfaces, checked user exceptions, helpers, holders,
+stub/tie/skeleton placeholders, and string-only binding descriptors. The module
+still does not invoke an ORB, marshal values, perform wire IIOP behavior, scan
+classpaths, compute Java serialization hashes, or inspect application classes
+through runtime reflection.
 
-Follow-on G7 tasks own binding generation, local adapters, wire integration,
-peer interop, and Native Image closure.
+Follow-on G7 tasks own value/exception marshaling, local adapters, wire
+integration, peer interop, and Native Image closure.
 
 ## Documentation requirements
 

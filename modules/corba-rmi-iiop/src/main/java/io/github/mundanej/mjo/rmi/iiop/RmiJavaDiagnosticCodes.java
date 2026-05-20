@@ -87,5 +87,22 @@ public final class RmiJavaDiagnosticCodes {
   public static final DiagnosticCode UNSUPPORTED_GENERATED_IDL_EXCEPTION_SCOPE =
       new DiagnosticCode("RMI-0402");
 
+  /** A generated Java binding surface is missing required repository ID metadata. */
+  public static final DiagnosticCode MISSING_BINDING_REPOSITORY_ID = new DiagnosticCode("RMI-0500");
+
+  /** A sequence type is outside the generated Java binding slice. */
+  public static final DiagnosticCode UNSUPPORTED_BINDING_SEQUENCE = new DiagnosticCode("RMI-0501");
+
+  /** A declared value/reference type is outside the generated Java binding slice. */
+  public static final DiagnosticCode UNSUPPORTED_BINDING_DECLARED_TYPE =
+      new DiagnosticCode("RMI-0502");
+
+  /** An exception reference cannot be emitted in the generated Java binding slice. */
+  public static final DiagnosticCode UNSUPPORTED_BINDING_EXCEPTION_SCOPE =
+      new DiagnosticCode("RMI-0503");
+
+  /** Two generated Java binding sources resolved to the same source path. */
+  public static final DiagnosticCode DUPLICATE_BINDING_SOURCE_PATH = new DiagnosticCode("RMI-0504");
+
   private RmiJavaDiagnosticCodes() {}
 }

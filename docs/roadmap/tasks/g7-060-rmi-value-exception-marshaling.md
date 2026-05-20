@@ -1,7 +1,7 @@
 # G7-060 RMI Value and Exception Marshaling
 
 Task ID: G7-060-RMI-VALUE-EXCEPTION-MARSHALING
-Status: blocked
+Status: ready-for-implementation
 Gate: G7 RMI-IIOP and Java-to-IDL
 Requirement IDs: REQ-RMI-001, REQ-CDR-001, REQ-IDLJ-004, REQ-SEC-001, REQ-SEC-002, REQ-SEC-004
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010, ADR-0013
