@@ -75,5 +75,17 @@ public final class RmiJavaDiagnosticCodes {
   public static final DiagnosticCode UNRESOLVED_REPOSITORY_ID_MODEL_NAME =
       new DiagnosticCode("RMI-0305");
 
+  /** A sequence type is outside the generated IDL fixture slice. */
+  public static final DiagnosticCode UNSUPPORTED_GENERATED_IDL_SEQUENCE =
+      new DiagnosticCode("RMI-0400");
+
+  /** A declared value/reference type is outside the generated IDL fixture slice. */
+  public static final DiagnosticCode UNSUPPORTED_GENERATED_IDL_DECLARED_TYPE =
+      new DiagnosticCode("RMI-0401");
+
+  /** An exception reference cannot be declared in the fixture slice. */
+  public static final DiagnosticCode UNSUPPORTED_GENERATED_IDL_EXCEPTION_SCOPE =
+      new DiagnosticCode("RMI-0402");
+
   private RmiJavaDiagnosticCodes() {}
 }

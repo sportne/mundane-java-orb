@@ -1,7 +1,7 @@
 # G7-050 RMI Binding Generation
 
 Task ID: G7-050-RMI-BINDING-GENERATION
-Status: blocked
+Status: ready-for-implementation
 Gate: G7 RMI-IIOP and Java-to-IDL
 Requirement IDs: REQ-RMI-001, REQ-IDLJ-002, REQ-IDLJ-004, REQ-NATIVE-002, REQ-DOC-005
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010, ADR-0013

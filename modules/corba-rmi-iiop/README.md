@@ -10,12 +10,14 @@ in-memory Java-to-IDL model for eligible declarations, including modules,
 interfaces, operations, parameters, declared value references, checked exception
 references, and sequence-shaped Java arrays. G7-030 adds deterministic planning
 of RMI repository ID strings from explicit hash and serialVersionUID metadata.
-The module still does not generate IDL or Java bindings, invoke an ORB, marshal
+G7-040 adds deterministic generated IDL fixtures for the parser-supported subset
+and validates the approved fixture through existing IDL parser and semantic
+tests. The module still does not generate Java bindings, invoke an ORB, marshal
 values, perform wire IIOP behavior, scan classpaths, compute Java serialization
 hashes, or inspect application classes through runtime reflection.
 
-Follow-on G7 tasks own generated fixtures, binding generation, local adapters,
-wire integration, peer interop, and Native Image closure.
+Follow-on G7 tasks own binding generation, local adapters, wire integration,
+peer interop, and Native Image closure.
 
 ## Documentation requirements
 

@@ -107,6 +107,44 @@ final class IdlSemanticAnalyzerTest {
   }
 
   @Test
+  void analyzesGeneratedRmiIdlFixtureSubset() {
+    IdlSemanticResult result = analyze(generatedRmiFixture());
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlSemanticModel model = result.model().orElseThrow();
+    assertEquals(
+        List.of(
+            "::example",
+            "::example::calc",
+            "::example::calc::CalculatorProblem",
+            "::example::calc::Calculator",
+            "::example::calc::Calculator::add",
+            "::example::calc::Calculator::add::left",
+            "::example::calc::Calculator::add::right",
+            "::example::calc::Calculator::describe",
+            "::example::calc::Calculator::describe::name",
+            "::example::calc::Calculator::clear"),
+        model.symbols().stream().map(IdlSymbol::qualifiedName).toList());
+    assertEquals(
+        IdlSymbolKind.EXCEPTION,
+        model.findSymbol("::example::calc::CalculatorProblem").orElseThrow().kind());
+    assertEquals(
+        "wstring",
+        model
+            .findSymbol("::example::calc::Calculator::describe")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+    assertEquals(
+        "long",
+        model
+            .findSymbol("::example::calc::Calculator::add::left")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+  }
+
+  @Test
   void semanticResultsAndModelsAreImmutableValues() {
     IdlSemanticResult result = analyze("module Demo { const long VALUE = 42; };");
     IdlSemanticModel model = result.model().orElseThrow();
@@ -263,6 +301,22 @@ final class IdlSemanticAnalyzerTest {
     IdlParseResult parseResult = parser.parse("semantic-test.idl", source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
     return analyzer.analyze(parseResult.translationUnit().orElseThrow());
+  }
+
+  private static String generatedRmiFixture() {
+    return """
+        module example {
+          module calc {
+            exception CalculatorProblem {
+            };
+            interface Calculator {
+              long add(in long left, in long right);
+              wstring describe(in wstring name) raises (CalculatorProblem);
+              void clear();
+            };
+          };
+        };
+        """;
   }
 
   private static IdlConstantValue value(IdlSemanticModel model, String qualifiedName) {

@@ -102,6 +102,28 @@ final class IdlParserTest {
   }
 
   @Test
+  void parsesGeneratedRmiIdlFixtureSubset() {
+    IdlParseResult result = parser.parse("rmi-generated.idl", generatedRmiFixture());
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlModule example =
+        (IdlModule) result.translationUnit().orElseThrow().declarations().getFirst();
+    IdlModule calc = (IdlModule) example.declarations().getFirst();
+    IdlExceptionDeclaration problem = (IdlExceptionDeclaration) calc.declarations().get(0);
+    IdlInterface calculator = (IdlInterface) calc.declarations().get(1);
+
+    assertEquals("example", example.name());
+    assertEquals("calc", calc.name());
+    assertEquals("CalculatorProblem", problem.name());
+    assertEquals(List.of(), problem.fields());
+    assertEquals("Calculator", calculator.name());
+    assertEquals(List.of("add", "describe", "clear"), operationNames(calculator));
+    IdlOperation describe = (IdlOperation) calculator.members().get(1);
+    assertEquals("wstring", describe.returnType().name());
+    assertEquals(List.of("CalculatorProblem"), describe.raises());
+  }
+
+  @Test
   void parsesNestedModulesEscapedNamesAndPrimitiveTypes() {
     IdlParseResult result =
         parser.parse(
@@ -236,6 +258,29 @@ final class IdlParserTest {
 
   private static List<String> fieldTypes(IdlStruct struct) {
     return struct.fields().stream().map(field -> field.type().name()).toList();
+  }
+
+  private static List<String> operationNames(IdlInterface idlInterface) {
+    return idlInterface.members().stream()
+        .map(IdlOperation.class::cast)
+        .map(IdlOperation::name)
+        .toList();
+  }
+
+  private static String generatedRmiFixture() {
+    return """
+        module example {
+          module calc {
+            exception CalculatorProblem {
+            };
+            interface Calculator {
+              long add(in long left, in long right);
+              wstring describe(in wstring name) raises (CalculatorProblem);
+              void clear();
+            };
+          };
+        };
+        """;
   }
 
   private static List<DiagnosticCode> diagnosticCodes(IdlParseResult result) {

@@ -1,7 +1,7 @@
 # G7-040 Generated IDL Fixtures
 
 Task ID: G7-040-GENERATED-IDL-FIXTURES
-Status: ready-for-implementation
+Status: complete
 Gate: G7 RMI-IIOP and Java-to-IDL
 Requirement IDs: REQ-RMI-001, REQ-IDL-001, REQ-IDLJ-002, REQ-DOC-005
 ADR IDs: ADR-0002, ADR-0003, ADR-0005, ADR-0010, ADR-0013

@@ -50,7 +50,7 @@ Java remote interface declaration
   -> eligibility and signature model (G7-010)
   -> Java-to-IDL model (G7-020)
   -> explicit RMI repository ID planning (G7-030)
-  -> IDL semantic model or generated IDL fixture
+  -> generated IDL fixture and IDL validation (G7-040)
   -> generated bindings, descriptors, and codecs
   -> ORB/POA invocation adapters
   -> CDR/GIOP/IIOP transport
@@ -74,7 +74,8 @@ The implementation slices should prefer observable, low-risk behavior:
   by G7-020);
 - plan RMI repository IDs from explicit hash and serialVersionUID metadata
   without Java serialization or class loading (started by G7-030);
-- generate small IDL golden fixtures from approved Java inputs;
+- generate small IDL golden fixtures from approved Java inputs (started by
+  G7-040);
 - preserve and validate RMI repository ID forms;
 - prove local adapter invocation before external peer claims.
 
@@ -104,8 +105,9 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-After G7-030, this module contains explicit Java declaration models,
+After G7-040, this module contains explicit Java declaration models,
 deterministic eligibility diagnostics, an in-memory Java-to-IDL mapping model,
-and metadata-based RMI repository ID planning. Follow-on G7 tasks must still
-implement and verify generated fixtures, adapters, wire behavior, peer interop,
-and Native Image closure before runtime compatibility claims are made.
+metadata-based RMI repository ID planning, and generated IDL fixtures for the
+parser-supported subset. Follow-on G7 tasks must still implement and verify
+Java binding generation, adapters, wire behavior, peer interop, and Native Image
+closure before runtime compatibility claims are made.
