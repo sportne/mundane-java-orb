@@ -30,7 +30,6 @@ final class RmiCdrOperationCodecTest {
           "ObjectOutputStream",
           "java.io.Serializable",
           "ObjectStreamClass",
-          "io.github.mundanej.mjo.iiop",
           "ServiceLoader",
           "ClassLoader");
 

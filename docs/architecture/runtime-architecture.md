@@ -102,6 +102,30 @@ generated RMI stub
 
 This path exposes generated static binding descriptors, operation descriptors,
 local stubs, ties, and skeleton activation helpers for the approved RMI-IIOP
-slice. It does not open sockets, construct GIOP request/reply frames, use IIOP
-transport, discover classes dynamically, create proxies, invoke through
+slice. It does not discover classes dynamically, create proxies, invoke through
 reflection, or marshal values through Java serialization.
+
+## Local JVM RMI-IIOP Wire Path
+
+G7-080 adds a bounded local JVM wire path for the approved RMI-IIOP binding
+slice:
+
+```text
+generated RMI wire stub
+  -> RmiIiopWireClient
+  -> IiopClient
+  -> GIOP request with KeyAddr object key
+  -> IiopServer
+  -> RmiIiopWireServerHandler
+  -> LocalOrb.invoke
+  -> Poa dispatch
+  -> generated RMI tie or skeleton
+  -> GIOP reply
+  -> generated RMI wire stub
+```
+
+The wire path supports approved primitive/String/void operation payloads and
+empty declared user exceptions by repository ID. It uses existing GIOP/IIOP
+transport entrypoints and does not open sockets directly from `corba-rmi-iiop`,
+run external peers, claim peer interoperability, scan classpaths, create dynamic
+proxies, generate runtime bytecode, or use Java serialization marshaling.

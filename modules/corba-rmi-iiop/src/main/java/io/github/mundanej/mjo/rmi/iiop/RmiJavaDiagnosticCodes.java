@@ -126,5 +126,27 @@ public final class RmiJavaDiagnosticCodes {
   public static final DiagnosticCode CDR_UNDECLARED_EXCEPTION_REPOSITORY_ID =
       new DiagnosticCode("RMI-0605");
 
+  /** A wire object key is blank, malformed, or exceeds the approved bound. */
+  public static final DiagnosticCode INVALID_WIRE_OBJECT_KEY = new DiagnosticCode("RMI-0800");
+
+  /** No wire binding exists for the requested object key. */
+  public static final DiagnosticCode UNKNOWN_WIRE_OBJECT_KEY = new DiagnosticCode("RMI-0801");
+
+  /** No operation is declared for the requested wire operation name. */
+  public static final DiagnosticCode UNKNOWN_WIRE_OPERATION = new DiagnosticCode("RMI-0802");
+
+  /** A wire request or reply body is malformed for the approved RMI-IIOP slice. */
+  public static final DiagnosticCode MALFORMED_WIRE_BODY = new DiagnosticCode("RMI-0803");
+
+  /** A GIOP reply status is outside the approved RMI-IIOP wire slice. */
+  public static final DiagnosticCode UNSUPPORTED_WIRE_REPLY_STATUS = new DiagnosticCode("RMI-0804");
+
+  /** A remote system-exception reply was received. */
+  public static final DiagnosticCode REMOTE_SYSTEM_EXCEPTION_REPLY = new DiagnosticCode("RMI-0805");
+
+  /** A wire user-exception repository ID was not declared for the operation. */
+  public static final DiagnosticCode UNDECLARED_WIRE_USER_EXCEPTION =
+      new DiagnosticCode("RMI-0806");
+
   private RmiJavaDiagnosticCodes() {}
 }

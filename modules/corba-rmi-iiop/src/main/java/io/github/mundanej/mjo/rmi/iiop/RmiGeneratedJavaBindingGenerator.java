@@ -353,10 +353,27 @@ public final class RmiGeneratedJavaBindingGenerator {
       renderExceptionTypeReferenceConstant(source, exception, context);
     }
     for (RmiIdlOperation operation : idlInterface.operations()) {
+      renderRmiOperationConstant(source, operation);
       renderOperationDescriptorConstant(source, operation);
     }
     source
         .append("\n")
+        .append(
+            "  public static final io.github.mundanej.mjo.rmi.iiop.RmiIdlInterface RMI_INTERFACE =\n")
+        .append("      new io.github.mundanej.mjo.rmi.iiop.RmiIdlInterface(\n")
+        .append("          \"")
+        .append(idlInterface.name())
+        .append("\",\n")
+        .append("          \"")
+        .append(idlInterface.scopedName())
+        .append("\",\n")
+        .append("          java.util.Optional.of(JAVA_BINARY_NAME),\n")
+        .append("          java.util.List.of(")
+        .append(
+            idlInterface.operations().stream()
+                .map(operation -> operationConstantName(operation) + "_RMI_MODEL")
+                .collect(Collectors.joining(", ")))
+        .append("));\n\n")
         .append(
             "  public static final io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor DESCRIPTOR =\n")
         .append("      new io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor(\n")
@@ -398,7 +415,9 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append("  private final io.github.mundanej.mjo.orb.LocalOrb orb;\n")
         .append("  private final io.github.mundanej.mjo.orb.LocalObjectReference<")
         .append(idlInterface.name())
-        .append("> reference;\n\n")
+        .append("> reference;\n")
+        .append("  private final io.github.mundanej.mjo.rmi.iiop.RmiIiopWireClient wireClient;\n")
+        .append("  private final io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey objectKey;\n\n")
         .append("  public ")
         .append(simpleName)
         .append("(io.github.mundanej.mjo.orb.LocalOrb orb,\n")
@@ -408,6 +427,19 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append("    this.orb = java.util.Objects.requireNonNull(orb, \"orb\");\n")
         .append(
             "    this.reference = java.util.Objects.requireNonNull(reference, \"reference\");\n")
+        .append("    this.wireClient = null;\n")
+        .append("    this.objectKey = null;\n")
+        .append("  }\n\n")
+        .append("  public ")
+        .append(simpleName)
+        .append("(io.github.mundanej.mjo.rmi.iiop.RmiIiopWireClient wireClient,\n")
+        .append("      io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey objectKey) {\n")
+        .append("    this.orb = null;\n")
+        .append("    this.reference = null;\n")
+        .append(
+            "    this.wireClient = java.util.Objects.requireNonNull(wireClient, \"wireClient\");\n")
+        .append(
+            "    this.objectKey = java.util.Objects.requireNonNull(objectKey, \"objectKey\");\n")
         .append("  }\n");
     for (RmiIdlOperation operation : idlInterface.operations()) {
       renderMethodSignature(source, operation, " {\n", true);
@@ -415,10 +447,9 @@ public final class RmiGeneratedJavaBindingGenerator {
     }
     source
         .append("\n")
+        .append("  private static java.rmi.RemoteException remoteFailure(Exception exception) {\n")
         .append(
-            "  private static java.rmi.RemoteException remoteFailure(RuntimeException exception) {\n")
-        .append(
-            "    return new java.rmi.RemoteException(\"Local RMI-IIOP invocation failed\", exception);\n")
+            "    return new java.rmi.RemoteException(\"RMI-IIOP invocation failed\", exception);\n")
         .append("  }\n");
     source.append("}\n");
     return new RmiGeneratedJavaBindingSource(packageName, simpleName, source.toString());
@@ -503,6 +534,9 @@ public final class RmiGeneratedJavaBindingGenerator {
 
   private static void renderStubMethodBody(
       StringBuilder source, RmiIdlInterface idlInterface, RmiIdlOperation operation) {
+    source.append("    if (wireClient != null) {\n");
+    renderWireStubMethodBody(source, idlInterface, operation);
+    source.append("    }\n");
     source.append("    try {\n");
     String invocation =
         "orb.invoke(reference, "
@@ -540,6 +574,51 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append("      throw remoteFailure(exception);\n")
         .append("    }\n")
         .append("  }\n");
+  }
+
+  private static void renderWireStubMethodBody(
+      StringBuilder source, RmiIdlInterface idlInterface, RmiIdlOperation operation) {
+    String invocation =
+        "wireClient.invoke(objectKey, "
+            + idlInterface.name()
+            + "BindingDescriptor."
+            + operationConstantName(operation)
+            + "_RMI_MODEL, "
+            + wireArgumentList(operation)
+            + ")";
+    source.append("      try {\n");
+    if (operation.returnType().kind() == RmiIdlTypeKind.VOID) {
+      source.append("        ").append(invocation).append(";\n");
+      source.append("        return;\n");
+    } else {
+      source
+          .append("        io.github.mundanej.mjo.rmi.iiop.RmiCdrValue result = ")
+          .append(invocation)
+          .append(";\n");
+      source
+          .append("        return ")
+          .append(returnExpression(operation.returnType(), "result.value()"))
+          .append(";\n");
+    }
+    source.append(
+        "      } catch (io.github.mundanej.mjo.rmi.iiop.RmiIiopWireUserException exception) {\n");
+    for (RmiIdlExceptionReference exception : operation.exceptions()) {
+      String simpleName = simpleName(exception.scopedName());
+      source
+          .append("        if (")
+          .append(simpleName)
+          .append(".REPOSITORY_ID.equals(exception.repositoryId())) {\n")
+          .append("          throw new ")
+          .append(simpleName)
+          .append("(exception.getMessage());\n")
+          .append("        }\n");
+    }
+    source
+        .append("        throw remoteFailure(exception);\n")
+        .append(
+            "      } catch (io.github.mundanej.mjo.rmi.iiop.RmiIiopWireException exception) {\n")
+        .append("        throw remoteFailure(exception);\n")
+        .append("      }\n");
   }
 
   private static void renderTieDispatch(
@@ -620,6 +699,33 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append("\")));\n");
   }
 
+  private static void renderRmiOperationConstant(StringBuilder source, RmiIdlOperation operation) {
+    source
+        .append("\n")
+        .append("  public static final io.github.mundanej.mjo.rmi.iiop.RmiIdlOperation ")
+        .append(operationConstantName(operation))
+        .append("_RMI_MODEL =\n")
+        .append("      new io.github.mundanej.mjo.rmi.iiop.RmiIdlOperation(\n")
+        .append("          \"")
+        .append(operation.name())
+        .append("\",\n")
+        .append("          ")
+        .append(rmiTypeReferenceExpression(operation.returnType()))
+        .append(",\n")
+        .append("          java.util.List.of(")
+        .append(
+            operation.parameters().stream()
+                .map(RmiGeneratedJavaBindingGenerator::rmiParameterExpression)
+                .collect(Collectors.joining(", ")))
+        .append("),\n")
+        .append("          java.util.List.of(")
+        .append(
+            operation.exceptions().stream()
+                .map(RmiGeneratedJavaBindingGenerator::rmiExceptionExpression)
+                .collect(Collectors.joining(", ")))
+        .append("));\n");
+  }
+
   private static void renderOperationDescriptorConstant(
       StringBuilder source, RmiIdlOperation operation) {
     source
@@ -651,8 +757,8 @@ public final class RmiGeneratedJavaBindingGenerator {
   private static StringBuilder header(String packageName) {
     StringBuilder source = new StringBuilder();
     source
-        .append("// Generated by mundane-java-orb G7-070.\n")
-        .append("// Compatibility profile: local RMI-IIOP binding surface.\n\n");
+        .append("// Generated by mundane-java-orb G7-080.\n")
+        .append("// Compatibility profile: local and wire RMI-IIOP binding surface.\n\n");
     if (!packageName.isEmpty()) {
       source.append("package ").append(packageName).append(";\n\n");
     }
@@ -708,6 +814,51 @@ public final class RmiGeneratedJavaBindingGenerator {
     return operation.parameters().stream()
         .map(RmiIdlParameter::name)
         .collect(Collectors.joining(", ", "java.util.List.of(", ")"));
+  }
+
+  private static String wireArgumentList(RmiIdlOperation operation) {
+    if (operation.parameters().isEmpty()) {
+      return "java.util.List.of()";
+    }
+    return operation.parameters().stream()
+        .map(parameter -> wireValueExpression(parameter.type(), parameter.name()))
+        .collect(Collectors.joining(", ", "java.util.List.of(", ")"));
+  }
+
+  private static String wireValueExpression(RmiIdlTypeReference type, String valueExpression) {
+    if (type.kind() == RmiIdlTypeKind.BUILTIN) {
+      return switch (type.name()) {
+        case "boolean" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.booleanValue(" + valueExpression + ")";
+        case "octet" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.octetValue(" + valueExpression + ")";
+        case "wchar" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.wcharValue(" + valueExpression + ")";
+        case "double" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.doubleValue(" + valueExpression + ")";
+        case "float" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.floatValue(" + valueExpression + ")";
+        case "long" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.longValue(" + valueExpression + ")";
+        case "long long" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.longLongValue(" + valueExpression + ")";
+        case "short" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.shortValue(" + valueExpression + ")";
+        case "wstring" ->
+            "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.stringValue(" + valueExpression + ")";
+        default ->
+            "new io.github.mundanej.mjo.rmi.iiop.RmiCdrValue("
+                + rmiTypeReferenceExpression(type)
+                + ", "
+                + valueExpression
+                + ")";
+      };
+    }
+    return "new io.github.mundanej.mjo.rmi.iiop.RmiCdrValue("
+        + rmiTypeReferenceExpression(type)
+        + ", "
+        + valueExpression
+        + ")";
   }
 
   private static String requestArguments(RmiIdlOperation operation) {
@@ -783,6 +934,37 @@ public final class RmiGeneratedJavaBindingGenerator {
       case VOID -> "void";
       case BUILTIN -> javaType(type);
       case DECLARED_VALUE -> javaName(type.name());
+      case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
+    };
+  }
+
+  private static String rmiParameterExpression(RmiIdlParameter parameter) {
+    return "new io.github.mundanej.mjo.rmi.iiop.RmiIdlParameter(\""
+        + parameter.name()
+        + "\", "
+        + rmiTypeReferenceExpression(parameter.type())
+        + ")";
+  }
+
+  private static String rmiExceptionExpression(RmiIdlExceptionReference exception) {
+    return "new io.github.mundanej.mjo.rmi.iiop.RmiIdlExceptionReference(\""
+        + exception.javaBinaryName()
+        + "\", \""
+        + exception.scopedName()
+        + "\")";
+  }
+
+  private static String rmiTypeReferenceExpression(RmiIdlTypeReference type) {
+    return switch (type.kind()) {
+      case VOID -> "io.github.mundanej.mjo.rmi.iiop.RmiIdlTypeReference.voidType()";
+      case BUILTIN ->
+          "io.github.mundanej.mjo.rmi.iiop.RmiIdlTypeReference.builtin(\"" + type.name() + "\")";
+      case DECLARED_VALUE ->
+          "io.github.mundanej.mjo.rmi.iiop.RmiIdlTypeReference.declaredValue(\""
+              + type.name()
+              + "\", \""
+              + type.javaBinaryName().orElseThrow()
+              + "\")";
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
   }

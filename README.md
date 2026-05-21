@@ -154,7 +154,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g7-080-rmi-iiop-wire-integration.md`
+- `docs/roadmap/tasks/g7-090-rmi-iiop-peer-interop.md`
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

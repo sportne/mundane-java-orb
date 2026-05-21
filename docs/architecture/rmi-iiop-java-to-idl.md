@@ -20,7 +20,6 @@ The design gate does not cover:
 - public runtime APIs;
 - generated source output;
 - functional stub, tie, skeleton, or helper implementation;
-- ORB invocation or IIOP wire behavior;
 - peer interop execution;
 - automatic classpath scanning or reflective adaptation of arbitrary classes.
 
@@ -54,7 +53,7 @@ Java remote interface declaration
   -> generated binding source surfaces and local descriptors (G7-050/G7-070)
   -> bounded local value and empty user-exception CDR codecs (G7-060)
   -> local ORB/POA invocation adapters (G7-070)
-  -> CDR/GIOP/IIOP transport
+  -> bounded local JVM CDR/GIOP/IIOP transport (G7-080)
 ```
 
 No step should depend on runtime classpath scanning. If a later implementation
@@ -83,10 +82,12 @@ The implementation slices should prefer observable, low-risk behavior:
   through bounded local CDR payloads without Java serialization (started by
   G7-060);
 - invoke approved generated stubs, ties, and skeletons through in-process
-  `LocalOrb` and `Poa` paths without socket or wire behavior (started by
-  G7-070);
+  `LocalOrb` and `Poa` paths (started by G7-070);
+- invoke approved generated wire stubs through existing `IiopClient` /
+  `IiopServer` request/reply paths for bounded local JVM scenarios without peer
+  compatibility claims (started by G7-080);
 - preserve and validate RMI repository ID forms;
-- prove local adapter invocation before external peer claims.
+- prove local adapter and local wire invocation before external peer claims.
 
 ## Native Image and Security Rules
 
@@ -111,14 +112,16 @@ slice:
 - unit tests for eligibility, mapping, and diagnostics;
 - golden IDL or golden Java fixtures for generated output;
 - local integration tests for ORB/POA adapter behavior;
+- local JVM wire integration tests for bounded GIOP/IIOP request/reply behavior;
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-After G7-070, this module contains explicit Java declaration models,
+After G7-080, this module contains explicit Java declaration models,
 deterministic eligibility diagnostics, an in-memory Java-to-IDL mapping model,
 metadata-based RMI repository ID planning, generated IDL fixtures for the
 parser-supported subset, compile-safe Java binding surfaces, bounded local CDR
 codecs for approved primitive/String values and empty declared user exceptions,
-and generated local ORB/POA adapter invocation for the approved binding slice.
-Follow-on G7 tasks must still implement and verify wire behavior, peer interop,
-and Native Image closure before external compatibility claims are made.
+generated local ORB/POA adapter invocation, and bounded local JVM GIOP/IIOP wire
+integration for the approved binding slice. Follow-on G7 tasks must still
+verify peer interop and Native Image closure before external compatibility
+claims are made.

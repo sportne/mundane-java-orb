@@ -18,11 +18,14 @@ stub/tie/skeleton placeholders, and initial binding descriptors. G7-060 adds
 bounded local CDR codecs for approved primitive/String values and empty declared
 user-exception payloads by repository ID. G7-070 extends generated stubs, ties,
 skeletons, and binding descriptors so the approved binding slice can invoke
-through in-process `LocalOrb` and `Poa` adapters. The module still does not
-perform wire IIOP behavior, scan classpaths, compute Java serialization hashes,
-or inspect application classes through runtime reflection.
+through in-process `LocalOrb` and `Poa` adapters. G7-080 adds bounded local JVM
+RMI-IIOP wire integration over existing GIOP request/reply and `IiopClient` /
+`IiopServer` paths for the approved binding slice. The module still does not
+claim external peer interoperability, scan classpaths, compute Java
+serialization hashes, or inspect application classes through runtime
+reflection.
 
-Follow-on G7 tasks own wire integration, peer interop, and Native Image closure.
+Follow-on G7 tasks own peer interop and Native Image closure.
 
 ## Documentation requirements
 

@@ -19,4 +19,8 @@ dependencies {
     // G7-070 generated adapters expose local ORB and POA invocation surfaces.
     api project(':modules:corba-orb-core')
     api project(':modules:corba-poa')
+
+    // G7-080 bridges approved RMI-IIOP payloads over bounded GIOP/IIOP loopback paths.
+    api project(':modules:corba-giop')
+    api project(':modules:corba-iiop')
 }

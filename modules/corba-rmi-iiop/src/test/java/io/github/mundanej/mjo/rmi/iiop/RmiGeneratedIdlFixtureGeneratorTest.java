@@ -119,7 +119,6 @@ final class RmiGeneratedIdlFixtureGeneratorTest {
       assertFalse(sources.contains("ObjectInputStream"));
       assertFalse(sources.contains("ObjectOutputStream"));
       assertFalse(sources.contains("java.io.Serializable"));
-      assertFalse(sources.contains("io.github.mundanej.mjo.iiop"));
     }
   }
 

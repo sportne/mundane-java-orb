@@ -46,8 +46,9 @@ proxies, runtime code generation, or native-image metadata.
 
 G7-060 uses these CDR primitives from `corba-rmi-iiop` to prove local
 primitive/String value payloads and empty user-exception repository ID payloads.
-That RMI slice deliberately stops before ORB dispatch, POA adapters, GIOP reply
-body ownership, IIOP sockets, or peer interoperability claims.
+G7-080 uses the same bounded CDR payloads inside local JVM GIOP/IIOP
+request/reply bodies for the approved RMI-IIOP binding slice. It does not claim
+external peer interoperability or full CORBA system-exception wire semantics.
 
 ## GIOP rules
 
@@ -73,8 +74,10 @@ Fragment messages preserve the GIOP 1.2 request id and raw fragment payload, and
 the header more-fragments flag remains visible on the message header.
 
 This slice intentionally has no TCP listener, no client connection management,
-no ORB dispatch, no POA object lookup, no peer interop, no GIOP reply exception
-marshaling, and no semantic interpretation of service contexts. The boundary is:
+no ORB dispatch, no POA object lookup, no peer interop, no general GIOP reply
+exception marshaling, and no semantic interpretation of service contexts. G7-080
+adds a narrow `corba-rmi-iiop` owner for approved RMI-IIOP reply bodies without
+moving that semantic ownership into `corba-giop`. The boundary is:
 
 ```text
 complete byte array -> GiopMessageReader -> typed GIOP message
@@ -108,10 +111,12 @@ read or mutate JVM-global TLS defaults. mTLS is represented by the server
 requiring client authentication and the client presenting key material through
 its configured context.
 
-This slice intentionally has no connection pooling, ORB dispatch, POA lookup,
-generated stubs or skeletons, Naming Service behavior, peer interop, CORBA
-Security Service, TLS tagged components in IORs, hostname/SAN verification
-policy, or GIOP exception-body marshaling. The boundary is:
+This slice intentionally has no connection pooling, generic ORB dispatch,
+generic POA lookup, Naming Service behavior, peer interop, CORBA Security
+Service, TLS tagged components in IORs, hostname/SAN verification policy, or
+general GIOP exception-body marshaling. G7-080 layers bounded local JVM RMI-IIOP
+wire calls above these client/server entrypoints; peer behavior remains outside
+the IIOP transport slice. The boundary is:
 
 ```text
 GiopRequest -> IiopClient -> TCP/TLS loopback -> IiopServer -> IiopRequestHandler -> GiopReply
