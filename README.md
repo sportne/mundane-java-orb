@@ -91,6 +91,11 @@ This repository is in **Gate G7 RMI-IIOP implementation state**:
   for the approved binding slice has started under approved roadmap tasks;
 - local RMI-IIOP generated stubs, ties, skeletons, and binding descriptors now
   invoke through in-process ORB/POA adapters under approved roadmap tasks;
+- bounded local JVM RMI-IIOP wire integration over existing GIOP/IIOP
+  request/reply paths has started under approved roadmap tasks;
+- RMI-IIOP peer interop scenario gates and structured report paths have started
+  under approved roadmap tasks, with live peer execution still
+  environment-gated;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -154,7 +159,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g7-090-rmi-iiop-peer-interop.md`
+- `docs/roadmap/tasks/g7-100-rmi-iiop-native-security-closure.md`
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

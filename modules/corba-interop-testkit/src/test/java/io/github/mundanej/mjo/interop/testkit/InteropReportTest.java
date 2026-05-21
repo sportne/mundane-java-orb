@@ -57,10 +57,18 @@ final class InteropReportTest {
     assertEquals(client, new InteropDirection(client, server).clientRuntime());
     assertEquals("jacorb", new InteropPeer("jacorb", "3.9").name());
     assertEquals("basic-idl", new InteropScenario("basic-idl", "interop/idl/basic").name());
+    assertEquals(
+        new InteropScenario("rmi-iiop", "interop/idl/rmi-iiop/Calculator.idl"),
+        InteropScenario.rmiIiop());
     assertThrows(IllegalArgumentException.class, () -> new InteropRuntime(" "));
     assertThrows(NullPointerException.class, () -> new InteropDirection(null, server));
     assertThrows(IllegalArgumentException.class, () -> new InteropPeer("", "3.9"));
     assertThrows(IllegalArgumentException.class, () -> new InteropScenario("basic-idl", null));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new InteropScenario("bad scenario", "interop/idl/basic/BasicTypes.idl"));
+    assertThrows(
+        IllegalArgumentException.class, () -> new InteropScenario("bad", "../BasicTypes.idl"));
   }
 
   private static InteropReport sampleReport(String notes) {

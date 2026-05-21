@@ -22,6 +22,7 @@ scenarioGroups:
   - naming
   - giop
   - iiop
+  - rmi-iiop
 candidateOrigin:
   kind: maven
   coordinate: "org.glassfish.corba:glassfish-corba:5.0.0"

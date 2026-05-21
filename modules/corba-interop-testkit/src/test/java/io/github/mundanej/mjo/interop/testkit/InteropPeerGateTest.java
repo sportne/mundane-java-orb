@@ -42,6 +42,20 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void actualPeerManifestsDeclareRmiIiopScenario() throws Exception {
+    for (String peer : REAL_PEERS) {
+      String manifest =
+          Files.readString(repoRoot().resolve("interop/peers/" + peer + "/peer.yaml"));
+
+      assertTrue(manifest.contains("scenarioGroups:"), manifest);
+      assertTrue(manifest.contains("  - rmi-iiop"), manifest);
+    }
+    assertTrue(
+        Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
+        "RMI-IIOP IDL fixture must be present");
+  }
+
+  @Test
   void approvedFixtureValidatesWithRequiredCache() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -183,6 +197,23 @@ final class InteropPeerGateTest {
         report.contains(
             "\"stderrPath\": \"build/interop/fixture/logs/basic-idl-server.stderr.log\""),
         report);
+  }
+
+  @Test
+  void rmiIiopLaunchWritesPrerequisiteFailureReportWhenCacheIsMissing() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("launch", FIXTURE_PEER, "server", "rmi-iiop"), fixture.environment());
+
+    assertFailure(result, "rmi-iiop-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/rmi-iiop-server.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"scenario\": \"rmi-iiop\""), report);
+    assertTrue(report.contains("\"idl\": \"interop/idl/rmi-iiop/Calculator.idl\""), report);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
   }
 
   @Test
@@ -338,17 +369,30 @@ final class InteropPeerGateTest {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
     CommandResult result =
-        run(command("run-scenario", "--dry-run", "basic-idl", FIXTURE_PEER), fixture.environment());
+        run(command("run-scenario", "--dry-run", "rmi-iiop", FIXTURE_PEER), fixture.environment());
 
     assertSuccess(result);
     assertTrue(
         result
             .output()
-            .contains("dry-run: would run scenario basic-idl role server for fixture-peer"));
+            .contains("dry-run: would run scenario rmi-iiop role server for fixture-peer"));
     assertTrue(
         result
             .output()
-            .contains("dry-run: would run scenario basic-idl role client for fixture-peer"));
+            .contains("dry-run: would run scenario rmi-iiop role client for fixture-peer"));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void undeclaredScenarioIsRejectedBeforeDryRunOrLiveExecution() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--dry-run", "not-declared", FIXTURE_PEER),
+            fixture.environment());
+
+    assertFailure(result, "scenario is not declared: not-declared");
     assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
   }
 
@@ -423,6 +467,9 @@ final class InteropPeerGateTest {
                 roles:
                   - client
                   - server
+                scenarioGroups:
+                  - basic-idl
+                  - rmi-iiop
                 candidateOrigin:
                   kind: maven
                   coordinate: "example:fixture:1.0"

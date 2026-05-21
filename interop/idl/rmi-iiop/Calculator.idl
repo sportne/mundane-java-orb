@@ -1,0 +1,11 @@
+module example {
+  module calc {
+    exception CalculatorProblem {
+    };
+    interface Calculator {
+      long add(in long left, in long right);
+      wstring describe(in wstring name) raises (CalculatorProblem);
+      void clear();
+    };
+  };
+};

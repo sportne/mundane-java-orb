@@ -22,6 +22,7 @@ scenarioGroups:
   - naming
   - giop
   - iiop
+  - rmi-iiop
 candidateOrigin:
   kind: maven
   coordinate: "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"

@@ -54,6 +54,7 @@ Java remote interface declaration
   -> bounded local value and empty user-exception CDR codecs (G7-060)
   -> local ORB/POA invocation adapters (G7-070)
   -> bounded local JVM CDR/GIOP/IIOP transport (G7-080)
+  -> environment-gated black-box peer scenarios and reports (G7-090)
 ```
 
 No step should depend on runtime classpath scanning. If a later implementation
@@ -86,6 +87,10 @@ The implementation slices should prefer observable, low-risk behavior:
 - invoke approved generated wire stubs through existing `IiopClient` /
   `IiopServer` request/reply paths for bounded local JVM scenarios without peer
   compatibility claims (started by G7-080);
+- validate approved RMI-IIOP peer scenario manifests and structured report
+  paths for JacORB, GlassFish ORB, JBoss OpenJDK ORB, and applicable ACE/TAO
+  checks without vendoring peer artifacts or requiring live peers in the default
+  local gate (started by G7-090);
 - preserve and validate RMI repository ID forms;
 - prove local adapter and local wire invocation before external peer claims.
 
@@ -116,12 +121,15 @@ slice:
 - interop scenarios against approved Java ORB peers before compatibility claims;
 - Native Image smoke coverage for public adapter entrypoints.
 
-After G7-080, this module contains explicit Java declaration models,
+After G7-090, this module contains explicit Java declaration models,
 deterministic eligibility diagnostics, an in-memory Java-to-IDL mapping model,
 metadata-based RMI repository ID planning, generated IDL fixtures for the
 parser-supported subset, compile-safe Java binding surfaces, bounded local CDR
 codecs for approved primitive/String values and empty declared user exceptions,
 generated local ORB/POA adapter invocation, and bounded local JVM GIOP/IIOP wire
-integration for the approved binding slice. Follow-on G7 tasks must still
-verify peer interop and Native Image closure before external compatibility
-claims are made.
+integration for the approved binding slice. The interop lab now includes
+environment-gated RMI-IIOP peer scenarios and structured report paths, but live
+peer pass/fail evidence remains dependent on approved external cache entries,
+digest-pinned base images, and container runtime availability. Follow-on G7
+closure must still verify Native Image and hostile-input evidence before
+external compatibility claims are finalized.

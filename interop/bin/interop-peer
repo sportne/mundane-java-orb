@@ -19,9 +19,9 @@ Usage:
   interop-peer report [--dry-run] <peer>
   interop-peer run-scenario [--dry-run] [--require-live] <scenario> <peer|all>
 
-G6-830 runs approved peer containers when external artifacts and images are
-present. Dry-run commands do not download peer artifacts, build images, start
-ORBs, or run interop assertions.
+G6-830/G7-090 run approved peer containers when external artifacts and images
+are present. Dry-run commands do not download peer artifacts, build images,
+start ORBs, or run interop assertions.
 EOF
 }
 
@@ -71,6 +71,7 @@ required_top_level = {
     "peerType",
     "requirementIds",
     "roles",
+    "scenarioGroups",
     "candidateOrigin",
     "license",
     "approval",
@@ -132,6 +133,10 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
     if manifest["container"]["vendoredPeerArtifacts"] is not False:
         failed = True
         print(f"{path}: vendoredPeerArtifacts must be false", file=sys.stderr)
+        continue
+    if not manifest.get("scenarioGroups"):
+        failed = True
+        print(f"{path}: scenarioGroups must not be empty", file=sys.stderr)
         continue
 
     print(path)
@@ -383,8 +388,27 @@ scenario_idl() {
   case "${scenario}" in
     basic-idl) printf 'interop/idl/basic/BasicTypes.idl\n' ;;
     hello) printf 'interop/idl/hello/hello.idl\n' ;;
+    rmi-iiop) printf 'interop/idl/rmi-iiop/Calculator.idl\n' ;;
     *) printf 'interop/idl/%s.idl\n' "${scenario}" ;;
   esac
+}
+
+scenario_supported() {
+  local manifest="$1"
+  local scenario="$2"
+  python3 - "$manifest" "$scenario" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+
+if sys.argv[2] in manifest.get("scenarioGroups", []):
+    sys.exit(0)
+
+print(f"{manifest.get('name', sys.argv[1])}: scenario is not declared: {sys.argv[2]}", file=sys.stderr)
+sys.exit(1)
+PY
 }
 
 peer_runtime_name() {
@@ -752,6 +776,7 @@ run_scenario() {
   local failures=0
   local peer role
   for peer in "${peers[@]}"; do
+    scenario_supported "$(manifest_path "${peer}")" "${scenario}"
     for role in server client; do
       if [[ "${dry_run}" == "true" ]]; then
         echo "dry-run: would run scenario ${scenario} role ${role} for ${peer}"

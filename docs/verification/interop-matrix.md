@@ -54,6 +54,27 @@ entries, missing digest-pinned base images, missing container runtimes, peer
 command failures, dry-run non-mutation, and report summary generation. Live peer
 success remains environment-gated by the approved external inputs above.
 
+## G7-090 RMI-IIOP scenario lane
+
+G7-090 adds `rmi-iiop` as the first RMI-IIOP peer scenario. The scenario uses
+`interop/idl/rmi-iiop/Calculator.idl`, matching the approved G7 primitive,
+`wstring`, `void`, and empty declared user-exception slice. The scenario is
+declared for JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, and
+applicable ACE/TAO checks.
+
+The default local gate validates manifests, approval records, dry-run behavior,
+missing-prerequisite structured reports, and report summaries. Live peer
+execution remains optional and requires the same approved external cache,
+digest-pinned base image, and container runtime inputs as the G6-830 report
+lane:
+
+```bash
+INTEROP_ARTIFACT_CACHE=/absolute/cache \
+INTEROP_JAVA_BASE_IMAGE=example@sha256:... \
+INTEROP_NATIVE_BASE_IMAGE=example@sha256:... \
+interop/bin/interop-peer run-scenario --require-live rmi-iiop all
+```
+
 ## Required directions
 
 | Client | Server | Required |

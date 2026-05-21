@@ -18,6 +18,11 @@ repository still does not download peer binaries, vendor peer source, commit
 peer outputs, generate peer-derived code, or add source-derived reference
 implementation logic.
 
+G7-090 adds the `rmi-iiop` scenario for the approved RMI-IIOP Calculator slice.
+The scenario is gate-validated and dry-run executable by default; live peer
+execution still requires approved external cache entries, digest-pinned base
+images, and Docker/Podman.
+
 ## Shared container contract
 
 - Peer images must use deterministic names from each `peer.yaml`.
@@ -45,7 +50,9 @@ implementation logic.
 - `interop/bin/interop-peer health --dry-run jacorb`
 - `interop/bin/interop-peer report --dry-run jacorb`
 - `interop/bin/interop-peer run-scenario --dry-run basic-idl all`
+- `interop/bin/interop-peer run-scenario --dry-run rmi-iiop all`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-scenario --require-live basic-idl all`
+- `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-scenario --require-live rmi-iiop all`
 
 Each peer directory also contains `build-image.sh`, `launch.sh`, and
 `health.sh` wrappers that delegate to the canonical CLI.

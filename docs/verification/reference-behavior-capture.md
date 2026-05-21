@@ -18,6 +18,12 @@ The approved use is black-box interoperability through logs, IORs, wire
 captures, and structured reports. Source copying, implementation
 transliteration, and vendored peer source or binaries remain prohibited.
 
+G7-090 extends this flow to the `rmi-iiop` scenario. Default validation remains
+dry-run and missing-prerequisite safe; live RMI-IIOP peer reports require the
+approved external cache, digest-pinned base images, and container runtime. A
+missing prerequisite must produce a structured `infrastructure-failure` report
+instead of an implicit skip.
+
 ## Capture fields
 
 ```json
@@ -42,6 +48,9 @@ transliteration, and vendored peer source or binaries remain prohibited.
   "notes": "G6-830 container command completed"
 }
 ```
+
+For the G7-090 RMI-IIOP lane, `scenario` is `rmi-iiop` and `idl` is
+`interop/idl/rmi-iiop/Calculator.idl`.
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,

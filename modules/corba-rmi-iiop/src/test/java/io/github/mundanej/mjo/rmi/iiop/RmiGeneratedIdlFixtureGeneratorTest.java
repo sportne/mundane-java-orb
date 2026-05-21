@@ -42,6 +42,14 @@ final class RmiGeneratedIdlFixtureGeneratorTest {
   }
 
   @Test
+  void generatedIdlMatchesRmiIiopPeerScenarioFixture() {
+    RmiGeneratedIdlResult result = generator.generate(approvedTranslationUnit());
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertEquals(peerScenarioFixture(), result.fixture().orElseThrow().idlText());
+  }
+
+  @Test
   void reportsUnsupportedGeneratedIdlInputsInModelOrder() {
     RmiIdlTranslationUnit translationUnit =
         new RmiIdlTranslationUnit(
@@ -173,6 +181,14 @@ final class RmiGeneratedIdlFixtureGeneratorTest {
 
   private static String goldenFixture() {
     return readString(Path.of("src/test/resources/rmi-generated-idl/calculator.idl"));
+  }
+
+  private static String peerScenarioFixture() {
+    return readString(
+        Path.of("../..")
+            .toAbsolutePath()
+            .normalize()
+            .resolve("interop/idl/rmi-iiop/Calculator.idl"));
   }
 
   private static String readString(Path path) {
