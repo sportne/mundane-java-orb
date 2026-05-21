@@ -102,8 +102,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g7-040-generated-idl-fixtures.md` - complete
 - `tasks/g7-050-rmi-binding-generation.md` - complete
 - `tasks/g7-060-rmi-value-exception-marshaling.md` - complete
-- `tasks/g7-070-local-rmi-iiop-adapters.md` - ready-for-implementation
-- `tasks/g7-080-rmi-iiop-wire-integration.md` - blocked
+- `tasks/g7-070-local-rmi-iiop-adapters.md` - complete
+- `tasks/g7-080-rmi-iiop-wire-integration.md` - ready-for-implementation
 - `tasks/g7-090-rmi-iiop-peer-interop.md` - blocked
 - `tasks/g7-100-rmi-iiop-native-security-closure.md` - blocked
 

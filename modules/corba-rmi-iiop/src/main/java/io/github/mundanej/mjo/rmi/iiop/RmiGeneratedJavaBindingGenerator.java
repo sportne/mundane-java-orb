@@ -17,9 +17,6 @@ import java.util.stream.Collectors;
 /** Generates deterministic compile-safe Java binding surfaces from RMI Java-to-IDL models. */
 public final class RmiGeneratedJavaBindingGenerator {
 
-  private static final String DEFERRED_MESSAGE =
-      "RMI-IIOP invocation is deferred to G7-070/G7-080.";
-
   /** Creates a stateless generated Java binding generator. */
   public RmiGeneratedJavaBindingGenerator() {}
 
@@ -332,6 +329,7 @@ public final class RmiGeneratedJavaBindingGenerator {
       String packageName, RmiIdlInterface idlInterface, BindingContext context) {
     String simpleName = idlInterface.name() + "BindingDescriptor";
     StringBuilder source = header(packageName);
+    List<RmiIdlTypeReference> typeReferences = descriptorTypeReferences(idlInterface);
     source
         .append("public final class ")
         .append(simpleName)
@@ -345,6 +343,35 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append("  public static final String REPOSITORY_ID = \"")
         .append(context.repositoryIds().get(idlInterface.javaBinaryName().orElseThrow()))
         .append("\";\n\n")
+        .append(
+            "  public static final io.github.mundanej.mjo.repositoryid.RepositoryId REPOSITORY_ID_VALUE =\n")
+        .append("      io.github.mundanej.mjo.repositoryid.RepositoryId.parse(REPOSITORY_ID);\n");
+    for (RmiIdlTypeReference type : typeReferences) {
+      renderTypeReferenceConstant(source, type, context);
+    }
+    for (RmiIdlExceptionReference exception : collectExceptions(List.of(idlInterface))) {
+      renderExceptionTypeReferenceConstant(source, exception, context);
+    }
+    for (RmiIdlOperation operation : idlInterface.operations()) {
+      renderOperationDescriptorConstant(source, operation);
+    }
+    source
+        .append("\n")
+        .append(
+            "  public static final io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor DESCRIPTOR =\n")
+        .append("      new io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor(\n")
+        .append("          io.github.mundanej.mjo.typecode.IdlTypeKind.INTERFACE,\n")
+        .append("          IDL_SCOPED_NAME,\n")
+        .append("          JAVA_BINARY_NAME,\n")
+        .append("          REPOSITORY_ID_VALUE,\n")
+        .append("          java.util.List.of(),\n")
+        .append("          java.util.List.of(),\n")
+        .append("          java.util.List.of(")
+        .append(
+            idlInterface.operations().stream()
+                .map(RmiGeneratedJavaBindingGenerator::operationConstantName)
+                .collect(Collectors.joining(", ")))
+        .append("));\n\n")
         .append("  public static final java.util.List<String> OPERATIONS = java.util.List.of(")
         .append(
             idlInterface.operations().stream()
@@ -368,15 +395,31 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append(" implements ")
         .append(idlInterface.name())
         .append(" {\n\n")
-        .append("  public static final String DEFERRED_INVOCATION_MESSAGE = \"")
-        .append(DEFERRED_MESSAGE)
-        .append("\";\n");
+        .append("  private final io.github.mundanej.mjo.orb.LocalOrb orb;\n")
+        .append("  private final io.github.mundanej.mjo.orb.LocalObjectReference<")
+        .append(idlInterface.name())
+        .append("> reference;\n\n")
+        .append("  public ")
+        .append(simpleName)
+        .append("(io.github.mundanej.mjo.orb.LocalOrb orb,\n")
+        .append("      io.github.mundanej.mjo.orb.LocalObjectReference<")
+        .append(idlInterface.name())
+        .append("> reference) {\n")
+        .append("    this.orb = java.util.Objects.requireNonNull(orb, \"orb\");\n")
+        .append(
+            "    this.reference = java.util.Objects.requireNonNull(reference, \"reference\");\n")
+        .append("  }\n");
     for (RmiIdlOperation operation : idlInterface.operations()) {
       renderMethodSignature(source, operation, " {\n", true);
-      source
-          .append("    throw new UnsupportedOperationException(DEFERRED_INVOCATION_MESSAGE);\n")
-          .append("  }\n");
+      renderStubMethodBody(source, idlInterface, operation);
     }
+    source
+        .append("\n")
+        .append(
+            "  private static java.rmi.RemoteException remoteFailure(RuntimeException exception) {\n")
+        .append(
+            "    return new java.rmi.RemoteException(\"Local RMI-IIOP invocation failed\", exception);\n")
+        .append("  }\n");
     source.append("}\n");
     return new RmiGeneratedJavaBindingSource(packageName, simpleName, source.toString());
   }
@@ -403,6 +446,35 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append(idlInterface.name())
         .append(" servant() {\n")
         .append("    return servant;\n")
+        .append("  }\n\n")
+        .append("  public io.github.mundanej.mjo.orb.LocalObjectReference<")
+        .append(idlInterface.name())
+        .append("> activate(io.github.mundanej.mjo.poa.Poa poa) {\n")
+        .append("    return java.util.Objects.requireNonNull(poa, \"poa\")\n")
+        .append("        .activateServant(\n")
+        .append("            ")
+        .append(idlInterface.name())
+        .append(".class,\n")
+        .append("            ")
+        .append(idlInterface.name())
+        .append("BindingDescriptor.DESCRIPTOR,\n")
+        .append("            servant,\n")
+        .append("            this::invoke);\n")
+        .append("  }\n\n")
+        .append(
+            "  private Object invoke("
+                + idlInterface.name()
+                + " target, io.github.mundanej.mjo.modern.LocalInvocationRequest request)\n")
+        .append("      throws Exception {\n");
+    for (RmiIdlOperation operation : idlInterface.operations()) {
+      renderTieDispatch(source, idlInterface, operation);
+    }
+    source
+        .append("    throw new org.omg.CORBA.BAD_OPERATION(\n")
+        .append(
+            "        \"Unsupported local RMI-IIOP operation: \" + request.operation().name(),\n")
+        .append("        0,\n")
+        .append("        org.omg.CORBA.CompletionStatus.COMPLETED_NO);\n")
         .append("  }\n")
         .append("}\n");
     return new RmiGeneratedJavaBindingSource(packageName, simpleName, source.toString());
@@ -418,18 +490,169 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append(" implements ")
         .append(idlInterface.name())
         .append(" {\n\n")
-        .append("  public static final String DEFERRED_INVOCATION_MESSAGE = \"")
-        .append(DEFERRED_MESSAGE)
-        .append("\";\n")
+        .append("  public io.github.mundanej.mjo.orb.LocalObjectReference<")
+        .append(idlInterface.name())
+        .append("> activate(io.github.mundanej.mjo.poa.Poa poa) {\n")
+        .append("    return new ")
+        .append(idlInterface.name())
+        .append("Tie(this).activate(poa);\n")
+        .append("  }\n")
         .append("}\n");
     return new RmiGeneratedJavaBindingSource(packageName, simpleName, source.toString());
+  }
+
+  private static void renderStubMethodBody(
+      StringBuilder source, RmiIdlInterface idlInterface, RmiIdlOperation operation) {
+    source.append("    try {\n");
+    String invocation =
+        "orb.invoke(reference, "
+            + idlInterface.name()
+            + "BindingDescriptor."
+            + operationConstantName(operation)
+            + ", "
+            + argumentList(operation)
+            + ")";
+    if (operation.returnType().kind() == RmiIdlTypeKind.VOID) {
+      source.append("      ").append(invocation).append(";\n");
+    } else {
+      source.append("      Object result = ").append(invocation).append(";\n");
+      source
+          .append("      return ")
+          .append(returnExpression(operation.returnType(), "result"))
+          .append(";\n");
+    }
+    source.append(
+        "    } catch (io.github.mundanej.mjo.orb.LocalInvocationUserException exception) {\n");
+    for (RmiIdlExceptionReference exception : operation.exceptions()) {
+      String simpleName = simpleName(exception.scopedName());
+      source
+          .append("      if (exception.userException() instanceof ")
+          .append(simpleName)
+          .append(" typedException) {\n")
+          .append("        throw typedException;\n")
+          .append("      }\n");
+    }
+    source
+        .append("      throw remoteFailure(exception);\n")
+        .append("    } catch (org.omg.CORBA.SystemException exception) {\n")
+        .append("      throw remoteFailure(exception);\n")
+        .append("    } catch (RuntimeException exception) {\n")
+        .append("      throw remoteFailure(exception);\n")
+        .append("    }\n")
+        .append("  }\n");
+  }
+
+  private static void renderTieDispatch(
+      StringBuilder source, RmiIdlInterface idlInterface, RmiIdlOperation operation) {
+    source
+        .append("    if (")
+        .append(idlInterface.name())
+        .append("BindingDescriptor.")
+        .append(operationConstantName(operation))
+        .append(".equals(request.operation())) {\n");
+    if (operation.returnType().kind() != RmiIdlTypeKind.VOID) {
+      source.append("      return ");
+    } else {
+      source.append("      ");
+    }
+    source
+        .append("target.")
+        .append(operation.name())
+        .append('(')
+        .append(requestArguments(operation))
+        .append(");\n");
+    if (operation.returnType().kind() == RmiIdlTypeKind.VOID) {
+      source.append("      return null;\n");
+    }
+    source.append("    }\n");
+  }
+
+  private static List<RmiIdlTypeReference> descriptorTypeReferences(RmiIdlInterface idlInterface) {
+    Map<String, RmiIdlTypeReference> types = new LinkedHashMap<>();
+    for (RmiIdlOperation operation : idlInterface.operations()) {
+      types.putIfAbsent(typeConstantName(operation.returnType()), operation.returnType());
+      for (RmiIdlParameter parameter : operation.parameters()) {
+        types.putIfAbsent(typeConstantName(parameter.type()), parameter.type());
+      }
+    }
+    return List.copyOf(types.values());
+  }
+
+  private static void renderTypeReferenceConstant(
+      StringBuilder source, RmiIdlTypeReference type, BindingContext context) {
+    source
+        .append("\n")
+        .append("  public static final io.github.mundanej.mjo.typecode.IdlTypeReference ")
+        .append(typeConstantName(type))
+        .append(" =\n")
+        .append("      new io.github.mundanej.mjo.typecode.IdlTypeReference(\n")
+        .append("          ")
+        .append(idlTypeKindExpression(type))
+        .append(",\n")
+        .append("          \"")
+        .append(type.name())
+        .append("\",\n")
+        .append("          \"")
+        .append(typeJavaName(type))
+        .append("\",\n")
+        .append(repositoryIdExpression(type, context))
+        .append(");\n");
+  }
+
+  private static void renderExceptionTypeReferenceConstant(
+      StringBuilder source, RmiIdlExceptionReference exception, BindingContext context) {
+    source
+        .append("\n")
+        .append("  public static final io.github.mundanej.mjo.typecode.IdlTypeReference ")
+        .append(exceptionTypeConstantName(exception))
+        .append(" =\n")
+        .append("      new io.github.mundanej.mjo.typecode.IdlTypeReference(\n")
+        .append("          io.github.mundanej.mjo.typecode.IdlTypeKind.EXCEPTION,\n")
+        .append("          \"")
+        .append(exception.scopedName())
+        .append("\",\n")
+        .append("          \"")
+        .append(javaName(exception.scopedName()))
+        .append("\",\n")
+        .append("          java.util.Optional.of(\n")
+        .append("              io.github.mundanej.mjo.repositoryid.RepositoryId.parse(\"")
+        .append(context.repositoryIds().get(exception.javaBinaryName()))
+        .append("\")));\n");
+  }
+
+  private static void renderOperationDescriptorConstant(
+      StringBuilder source, RmiIdlOperation operation) {
+    source
+        .append("\n")
+        .append("  public static final io.github.mundanej.mjo.typecode.IdlOperationDescriptor ")
+        .append(operationConstantName(operation))
+        .append(" =\n")
+        .append("      new io.github.mundanej.mjo.typecode.IdlOperationDescriptor(\n")
+        .append("          \"")
+        .append(operation.name())
+        .append("\",\n")
+        .append("          ")
+        .append(typeConstantName(operation.returnType()))
+        .append(",\n")
+        .append("          java.util.List.of(")
+        .append(
+            operation.parameters().stream()
+                .map(RmiGeneratedJavaBindingGenerator::parameterDescriptorExpression)
+                .collect(Collectors.joining(", ")))
+        .append("),\n")
+        .append("          java.util.List.of(")
+        .append(
+            operation.exceptions().stream()
+                .map(RmiGeneratedJavaBindingGenerator::exceptionTypeConstantName)
+                .collect(Collectors.joining(", ")))
+        .append("));\n");
   }
 
   private static StringBuilder header(String packageName) {
     StringBuilder source = new StringBuilder();
     source
-        .append("// Generated by mundane-java-orb G7-050.\n")
-        .append("// Compatibility profile: compile-safe RMI-IIOP binding surface.\n\n");
+        .append("// Generated by mundane-java-orb G7-070.\n")
+        .append("// Compatibility profile: local RMI-IIOP binding surface.\n\n");
     if (!packageName.isEmpty()) {
       source.append("package ").append(packageName).append(";\n\n");
     }
@@ -470,6 +693,58 @@ public final class RmiGeneratedJavaBindingGenerator {
     return javaType(parameter.type()) + " " + parameter.name();
   }
 
+  private static String parameterDescriptorExpression(RmiIdlParameter parameter) {
+    return "new io.github.mundanej.mjo.typecode.IdlParameterDescriptor(\""
+        + parameter.name()
+        + "\", io.github.mundanej.mjo.typecode.IdlParameterMode.IN, "
+        + typeConstantName(parameter.type())
+        + ")";
+  }
+
+  private static String argumentList(RmiIdlOperation operation) {
+    if (operation.parameters().isEmpty()) {
+      return "java.util.List.of()";
+    }
+    return operation.parameters().stream()
+        .map(RmiIdlParameter::name)
+        .collect(Collectors.joining(", ", "java.util.List.of(", ")"));
+  }
+
+  private static String requestArguments(RmiIdlOperation operation) {
+    List<String> arguments = new ArrayList<>();
+    for (int index = 0; index < operation.parameters().size(); index++) {
+      RmiIdlParameter parameter = operation.parameters().get(index);
+      arguments.add(castExpression(parameter.type(), "request.arguments().get(" + index + ")"));
+    }
+    return String.join(", ", arguments);
+  }
+
+  private static String returnExpression(RmiIdlTypeReference type, String valueExpression) {
+    return castExpression(type, valueExpression);
+  }
+
+  private static String castExpression(RmiIdlTypeReference type, String valueExpression) {
+    if (type.kind() == RmiIdlTypeKind.BUILTIN) {
+      return switch (type.name()) {
+        case "boolean" -> "((java.lang.Boolean) " + valueExpression + ").booleanValue()";
+        case "octet" -> "((java.lang.Byte) " + valueExpression + ").byteValue()";
+        case "wchar" -> "((java.lang.Character) " + valueExpression + ").charValue()";
+        case "double" -> "((java.lang.Double) " + valueExpression + ").doubleValue()";
+        case "float" -> "((java.lang.Float) " + valueExpression + ").floatValue()";
+        case "long" -> "((java.lang.Integer) " + valueExpression + ").intValue()";
+        case "long long" -> "((java.lang.Long) " + valueExpression + ").longValue()";
+        case "short" -> "((java.lang.Short) " + valueExpression + ").shortValue()";
+        case "wstring" -> "(java.lang.String) " + valueExpression;
+        default ->
+            throw new IllegalArgumentException("Unsupported IDL built-in type: " + type.name());
+      };
+    }
+    if (type.kind() == RmiIdlTypeKind.DECLARED_VALUE) {
+      return "(" + javaType(type) + ") " + valueExpression;
+    }
+    throw new IllegalArgumentException("Unsupported cast type: " + type.kind());
+  }
+
   private static String javaType(RmiIdlTypeReference type) {
     return switch (type.kind()) {
       case VOID -> "void";
@@ -494,8 +769,72 @@ public final class RmiGeneratedJavaBindingGenerator {
     };
   }
 
+  private static String idlTypeKindExpression(RmiIdlTypeReference type) {
+    return switch (type.kind()) {
+      case VOID -> "io.github.mundanej.mjo.typecode.IdlTypeKind.VOID";
+      case BUILTIN -> "io.github.mundanej.mjo.typecode.IdlTypeKind.PRIMITIVE";
+      case DECLARED_VALUE -> "io.github.mundanej.mjo.typecode.IdlTypeKind.INTERFACE";
+      case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
+    };
+  }
+
+  private static String typeJavaName(RmiIdlTypeReference type) {
+    return switch (type.kind()) {
+      case VOID -> "void";
+      case BUILTIN -> javaType(type);
+      case DECLARED_VALUE -> javaName(type.name());
+      case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
+    };
+  }
+
+  private static String repositoryIdExpression(RmiIdlTypeReference type, BindingContext context) {
+    if (type.kind() != RmiIdlTypeKind.DECLARED_VALUE) {
+      return "          java.util.Optional.empty()";
+    }
+    return "          java.util.Optional.of(\n"
+        + "              io.github.mundanej.mjo.repositoryid.RepositoryId.parse(\""
+        + context.repositoryIds().get(type.javaBinaryName().orElseThrow())
+        + "\"))";
+  }
+
+  private static String typeConstantName(RmiIdlTypeReference type) {
+    return switch (type.kind()) {
+      case VOID -> "VOID_TYPE";
+      case BUILTIN -> upperSnake(type.name()) + "_TYPE";
+      case DECLARED_VALUE -> upperSnake(simpleName(type.name())) + "_TYPE";
+      case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
+    };
+  }
+
+  private static String exceptionTypeConstantName(RmiIdlExceptionReference exception) {
+    return upperSnake(simpleName(exception.scopedName())) + "_EXCEPTION_TYPE";
+  }
+
+  private static String operationConstantName(RmiIdlOperation operation) {
+    return upperSnake(operation.name()) + "_OPERATION";
+  }
+
   private static String javaName(String scopedName) {
     return String.join(".", scopedParts(scopedName));
+  }
+
+  private static String upperSnake(String value) {
+    StringBuilder output = new StringBuilder();
+    for (int index = 0; index < value.length(); index++) {
+      char character = value.charAt(index);
+      if (Character.isLetterOrDigit(character)) {
+        if (Character.isUpperCase(character) && index > 0 && output.length() > 0) {
+          output.append('_');
+        }
+        output.append(Character.toUpperCase(character));
+      } else if (output.length() > 0 && output.charAt(output.length() - 1) != '_') {
+        output.append('_');
+      }
+    }
+    if (output.length() > 0 && output.charAt(output.length() - 1) == '_') {
+      output.deleteCharAt(output.length() - 1);
+    }
+    return output.toString();
   }
 
   private static void assertUniqueSourcePaths(

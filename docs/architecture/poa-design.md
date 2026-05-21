@@ -136,6 +136,16 @@ POA/ORB identity, restart rules, or persistent object-reference encoding.
 Network dispatch, peer interoperability, and `org.omg.PortableServer`
 compatibility types also remain outside the G6-630 local slice.
 
+### RMI-IIOP Generated Adapters
+
+G7-070 reuses the existing local POA activation and dispatch contracts for
+generated RMI-IIOP ties and skeletons. Generated ties call
+`Poa.activateServant` with static RMI binding descriptors and explicit
+operation dispatch methods. Generated skeletons provide a convenience
+`activate(Poa)` path through the generated tie. This does not add new POA
+policies, persistent references, wire dispatch, dynamic lookup, reflection, or
+Java serialization marshaling.
+
 ## Test Coverage
 
 | Test ID | Stage | Coverage intent |
@@ -147,3 +157,4 @@ compatibility types also remain outside the G6-630 local slice.
 | `PoaManagerStateTest` | G6-630 implemented | Covers active, holding, discarding, inactive, and single-thread state behavior. |
 | `PoaServantManagerTest` | G6-630 implemented | Covers `ServantActivator` and `ServantLocator` lifecycle behavior. |
 | `PoaAdapterActivatorTest` | G6-630 implemented | Covers child POA lookup through an adapter activator. |
+| `RmiGeneratedJavaBindingGeneratorTest` | G7-070 implemented | Covers generated RMI ties and skeletons activating through `Poa.activateServant` and dispatching local calls from generated stubs through `LocalOrb`. |

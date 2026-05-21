@@ -15,4 +15,8 @@ dependencies {
 
     // G7-060 owns bounded local RMI-IIOP payload encoding through CDR readers/writers.
     api project(':modules:corba-cdr')
+
+    // G7-070 generated adapters expose local ORB and POA invocation surfaces.
+    api project(':modules:corba-orb-core')
+    api project(':modules:corba-poa')
 }

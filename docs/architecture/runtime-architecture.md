@@ -86,3 +86,22 @@ invoke POA policy behavior, create dynamic proxies, generate runtime bytecode,
 use reflection for dispatch, or marshal exceptions as CDR reply bodies.
 Generated-style dispatchers call servants explicitly using static operation
 descriptors.
+
+## Local RMI-IIOP Adapter Path
+
+G7-070 adds generated RMI-IIOP adapters over the same in-process ORB and POA
+contracts:
+
+```text
+generated RMI stub
+  -> LocalOrb.invoke
+  -> Poa dispatch
+  -> generated RMI tie or skeleton
+  -> servant
+```
+
+This path exposes generated static binding descriptors, operation descriptors,
+local stubs, ties, and skeleton activation helpers for the approved RMI-IIOP
+slice. It does not open sockets, construct GIOP request/reply frames, use IIOP
+transport, discover classes dynamically, create proxies, invoke through
+reflection, or marshal values through Java serialization.
