@@ -350,6 +350,7 @@ final class InteropPeerGateTest {
                 "INTEROP_JAVA_BASE_IMAGE",
                 DIGEST_PINNED_BASE_IMAGE));
     run(command("launch", FIXTURE_PEER, "server", "basic-idl"), environment);
+    run(command("launch", FIXTURE_PEER, "server", "rmi-iiop"), environment);
 
     CommandResult result = run(command("report", FIXTURE_PEER), environment);
 
@@ -359,8 +360,9 @@ final class InteropPeerGateTest {
             fixture.root().resolve("build/interop/fixture/reports/summary.json"),
             StandardCharsets.UTF_8);
     assertTrue(summary.contains("\"peer\": \"fixture-peer\""), summary);
-    assertTrue(summary.contains("\"reportCount\": 2"), summary);
+    assertTrue(summary.contains("\"reportCount\": 3"), summary);
     assertTrue(summary.contains("basic-idl-server.json"), summary);
+    assertTrue(summary.contains("rmi-iiop-server.json"), summary);
     assertTrue(summary.contains("report-report.json"), summary);
   }
 

@@ -75,6 +75,12 @@ INTEROP_NATIVE_BASE_IMAGE=example@sha256:... \
 interop/bin/interop-peer run-scenario --require-live rmi-iiop all
 ```
 
+G7-100 closes the default local RMI-IIOP report evidence: missing prerequisites
+produce deterministic `infrastructure-failure` reports, dry runs remain
+non-mutating, and summaries preserve the `rmi-iiop` scenario report paths. Live
+peer pass/fail evidence remains environment-gated by the approved external
+inputs above.
+
 ## Required directions
 
 | Client | Server | Required |

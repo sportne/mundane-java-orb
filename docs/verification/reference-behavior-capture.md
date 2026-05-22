@@ -24,6 +24,10 @@ approved external cache, digest-pinned base images, and container runtime. A
 missing prerequisite must produce a structured `infrastructure-failure` report
 instead of an implicit skip.
 
+G7-100 closes the local RMI-IIOP report evidence by validating that dry-run
+execution does not mutate outputs, missing prerequisites produce structured
+`rmi-iiop` reports, and summaries include captured RMI-IIOP report paths.
+
 ## Capture fields
 
 ```json

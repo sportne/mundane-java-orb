@@ -27,6 +27,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-naming-server')
     nativeSmokeImplementation project(':modules:corba-orb-core')
     nativeSmokeImplementation project(':modules:corba-interop-testkit')
+    // G7-100 adds a smoke entry point for the approved RMI-IIOP local wire slice.
+    nativeSmokeImplementation project(':modules:corba-rmi-iiop')
     nativeSmokeImplementation project(':modules:corba-typecode')
 
     // Unit tests execute the smoke entry points on the JVM before native compilation.
@@ -98,6 +100,11 @@ def nativeSmokeTargets = [
         name: 'interopReport',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.InteropReportNativeSmoke',
         binaryName: 'interop-report-native-smoke'
+    ],
+    [
+        name: 'rmiIiop',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke',
+        binaryName: 'rmi-iiop-native-smoke'
     ]
 ]
 
@@ -110,7 +117,7 @@ nativeSmokeTargets.each { target ->
 
     tasks.register(compileTaskName, Exec) {
         group = 'verification'
-        description = "Builds the G6-910 ${target.name} Native Image smoke executable."
+        description = "Builds the ${target.name} Native Image smoke executable."
         dependsOn tasks.named('nativeSmokeClasses')
         inputs.files(nativeSmokeRuntimeClasspath)
         outputs.file(binary)
@@ -132,7 +139,7 @@ nativeSmokeTargets.each { target ->
 
     tasks.register(runTaskName, Exec) {
         group = 'verification'
-        description = "Runs the G6-910 ${target.name} Native Image smoke executable."
+        description = "Runs the ${target.name} Native Image smoke executable."
         dependsOn tasks.named(compileTaskName)
 
         doFirst {
@@ -144,6 +151,6 @@ nativeSmokeTargets.each { target ->
 
 tasks.register('nativeImageBinariesSmoke') {
     group = 'verification'
-    description = 'Builds and runs all G6-910 Native Image smoke executables.'
+    description = 'Builds and runs all aggregate Native Image smoke executables.'
     dependsOn nativeSmokeTargets.collect { target -> "native${target.name.capitalize()}Smoke" }
 }

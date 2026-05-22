@@ -18,6 +18,7 @@ import io.github.mundanej.mjo.iiop.IiopClient;
 import io.github.mundanej.mjo.iiop.IiopEndpoint;
 import io.github.mundanej.mjo.iiop.IiopOptions;
 import io.github.mundanej.mjo.iiop.IiopServer;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -137,6 +138,70 @@ final class RmiIiopWireIntegrationTest {
               codec.encodeSystemFailure(new RmiIiopWireException(code, code.value())));
       assertEquals(code, codec.decodeSystemFailure(codedReply).code());
     }
+  }
+
+  @Test
+  void hostileWireBodiesFailDeterministicallyWithoutPartialAcceptance() {
+    RmiIdlOperation add = operation("add");
+    RmiIdlOperation describe = operation("describe");
+    RmiIiopObjectKey objectKey = RmiIiopObjectKey.fromString("local-1");
+    byte[] validArguments =
+        codec.encodeArguments(add, List.of(RmiCdrValue.longValue(1), RmiCdrValue.longValue(2)));
+    byte[] trailingArguments = Arrays.copyOf(validArguments, validArguments.length + 1);
+    GiopRequest trailingRequest =
+        new GiopRequest(
+            GiopHeader.forType(GiopMessageType.REQUEST),
+            6,
+            3,
+            objectKey.bytes(),
+            "add",
+            List.of(),
+            trailingArguments);
+
+    assertRmiCode(
+        RmiJavaDiagnosticCodes.MALFORMED_WIRE_BODY,
+        () -> codec.decodeArguments(trailingRequest, add));
+
+    byte[] validReturn = codec.encodeReturnValue(add, RmiCdrValue.longValue(3));
+    byte[] trailingReturn = Arrays.copyOf(validReturn, validReturn.length + 1);
+    GiopReply trailingReply =
+        new GiopReply(
+            GiopHeader.forType(GiopMessageType.REPLY),
+            7,
+            GiopReplyStatus.NO_EXCEPTION,
+            List.of(),
+            trailingReturn);
+
+    assertRmiCode(
+        RmiJavaDiagnosticCodes.MALFORMED_WIRE_BODY,
+        () -> codec.decodeReturnValue(trailingReply, add));
+
+    byte[] validUserException =
+        codec.encodeUserException(describe, describe.exceptions().getFirst());
+    byte[] trailingUserException = Arrays.copyOf(validUserException, validUserException.length + 1);
+    GiopReply trailingUserExceptionReply =
+        new GiopReply(
+            GiopHeader.forType(GiopMessageType.REPLY),
+            8,
+            GiopReplyStatus.USER_EXCEPTION,
+            List.of(),
+            trailingUserException);
+
+    assertRmiCode(
+        RmiJavaDiagnosticCodes.MALFORMED_WIRE_BODY,
+        () -> codec.decodeUserException(trailingUserExceptionReply, describe));
+
+    GiopReply truncatedSystemReply =
+        new GiopReply(
+            GiopHeader.forType(GiopMessageType.REPLY),
+            9,
+            GiopReplyStatus.SYSTEM_EXCEPTION,
+            List.of(),
+            CdrWriter.bigEndian().writeString("RMI-0803").toByteArray());
+
+    assertEquals(
+        RmiJavaDiagnosticCodes.REMOTE_SYSTEM_EXCEPTION_REPLY,
+        codec.decodeSystemFailure(truncatedSystemReply).code());
   }
 
   @Test

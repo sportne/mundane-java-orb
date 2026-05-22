@@ -130,6 +130,11 @@ generated local ORB/POA adapter invocation, and bounded local JVM GIOP/IIOP wire
 integration for the approved binding slice. The interop lab now includes
 environment-gated RMI-IIOP peer scenarios and structured report paths, but live
 peer pass/fail evidence remains dependent on approved external cache entries,
-digest-pinned base images, and container runtime availability. Follow-on G7
-closure must still verify Native Image and hostile-input evidence before
-external compatibility claims are finalized.
+digest-pinned base images, and container runtime availability.
+
+After G7-100, the implemented RMI-IIOP slice has source-level Native Image and
+security closure evidence. The closure adds an RMI-IIOP Native Image smoke
+entrypoint over explicit metadata and local loopback IIOP, audits the RMI-IIOP
+and Native Image sources for forbidden runtime mechanisms, and records
+deterministic hostile-input and structured-report coverage. Live external peer
+compatibility remains environment-gated and is not claimed by this closure.

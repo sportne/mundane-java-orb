@@ -105,7 +105,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g7-070-local-rmi-iiop-adapters.md` - complete
 - `tasks/g7-080-rmi-iiop-wire-integration.md` - complete
 - `tasks/g7-090-rmi-iiop-peer-interop.md` - complete
-- `tasks/g7-100-rmi-iiop-native-security-closure.md` - ready-for-implementation
+- `tasks/g7-100-rmi-iiop-native-security-closure.md` - complete
 
 ### Deferred gated tasks
 

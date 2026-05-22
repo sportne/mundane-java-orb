@@ -6,6 +6,7 @@ import io.github.mundanej.mjo.nativeimage.smoke.IdljValidateNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.InteropReportNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.IorDiagnosticsNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
 import org.junit.jupiter.api.Test;
 
 final class NativeImageSmokeEntrypointTest {
@@ -18,6 +19,7 @@ final class NativeImageSmokeEntrypointTest {
     NamingServerNativeSmoke.main(new String[0]);
     IorDiagnosticsNativeSmoke.main(new String[0]);
     InteropReportNativeSmoke.main(new String[0]);
+    RmiIiopNativeSmoke.main(new String[0]);
   }
 
   @Test
@@ -26,6 +28,7 @@ final class NativeImageSmokeEntrypointTest {
       IdljValidateNativeSmoke.main(new String[0]);
       IorDiagnosticsNativeSmoke.main(new String[0]);
       InteropReportNativeSmoke.main(new String[0]);
+      RmiIiopNativeSmoke.main(new String[0]);
     }
   }
 }

@@ -1,2 +1,2 @@
-/** Native Image smoke entry points for representative G6 binaries. */
+/** Native Image smoke entry points for representative runtime and tooling binaries. */
 package io.github.mundanej.mjo.nativeimage.smoke;

@@ -31,10 +31,10 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 - class-initialization audit;
 - reflection metadata audit.
 
-## Current G6 native checks
+## Current native checks
 
 - `:modules:corba-native-image:nativeImageBinariesSmoke` builds and executes
-  the G6-910 aggregate Native Image smoke suite:
+  the aggregate Native Image smoke suite:
   - `idljValidate` validates compact valid and invalid IDL through `IdljCli`;
   - `generatedClient` exercises generated-style local client invocation through
     `LocalOrb`;
@@ -45,6 +45,10 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
   - `iorDiagnostics` parses deterministic `corbaloc`, `corbaname`, and
     stringified IOR/profile values;
   - `interopReport` serializes and parses structured G6 interop reports.
+  - `rmiIiop` exercises explicit RMI repository ID metadata, local loopback
+    IIOP, `RmiIiopWireServerHandler`, `RmiIiopWireClient`, normal replies,
+    empty user exceptions, unknown object keys, and unknown operations for the
+    approved G7 RMI-IIOP slice.
 - `:modules:corba-cdr:nativeCdrSmoke` builds and executes a GraalVM Native
   Image smoke executable for the CDR primitive, string, sequence, and
   encapsulation reader/writer API.
@@ -83,3 +87,17 @@ dynamic proxies, service-loader discovery, serialization metadata, runtime
 bytecode generation, process execution, internal JDK APIs, or `Unsafe`. The JVM
 test lane also repeats representative smoke entrypoints before optional Native
 Image compilation.
+
+## G7-100 RMI-IIOP closure evidence
+
+G7-100 extends the source-level Native Image audit to the RMI-IIOP production
+sources and the new RMI-IIOP native smoke entrypoint. The accepted metadata set
+remains empty: no reflection, dynamic proxy, Java serialization, service-loader,
+runtime bytecode generation, or class-initialization override metadata is needed
+for the implemented local RMI-IIOP slice.
+
+The optional single-smoke command is:
+
+```bash
+./gradlew :modules:corba-native-image:nativeRmiIiopSmoke
+```
