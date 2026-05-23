@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **post-G7 optional-service gate state**:
+This repository is in **pre-1.0 interoperability completion state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -102,6 +102,9 @@ This repository is in **post-G7 optional-service gate state**:
 - optional Trading, Event, Notification, Transaction, Security, and Time
   Services are split into separately traceable human-gated design tasks, with
   no service behavior implemented by that split;
+- the G10 pre-1.0 interoperability roadmap is defined for closing
+  non-optional IDL, mapping, wire, runtime, Native Image, harness, and live peer
+  execution gaps before a `1.0.0` release can be declared;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -163,8 +166,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-There is no non-human-gated roadmap task currently ready for implementation or
-in progress.
+`docs/roadmap/tasks/g10-010-idl-4-2-grammar-closure.md` is the next
+non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

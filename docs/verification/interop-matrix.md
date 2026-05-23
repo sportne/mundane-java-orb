@@ -81,6 +81,19 @@ non-mutating, and summaries preserve the `rmi-iiop` scenario report paths. Live
 peer pass/fail evidence remains environment-gated by the approved external
 inputs above.
 
+## Pre-1.0 full matrix gate
+
+Full live interoperability evidence for `1.0.0` is blocked on the G10
+pre-1.0 roadmap. G10 keeps optional CORBA Services deferred, but requires the
+non-optional IDL, IDL-to-Java, OMG API, CDR/GIOP/IIOP/IOR, ORB/POA, Naming,
+DynamicAny/DII/DSI/Interface Repository, Portable Interceptor, RMI-IIOP, Native
+Image, and real peer harness closure tasks to complete before
+`G10-120-PRE-1.0-FULL-INTEROP-EXECUTION` runs.
+
+Until those prerequisite tasks complete, `basic-idl` and `rmi-iiop` remain the
+only existing peer lanes, and live peer pass/fail results are not a 1.0.0
+compatibility claim.
+
 ## Required directions
 
 | Client | Server | Required |

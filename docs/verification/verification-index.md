@@ -9,6 +9,7 @@
 - `g9-exhaustive-test-hardening.md`
 - `g5-validation-gate-readiness.md`
 - `interop-matrix.md`
+- `pre-1-0-interoperability-plan.md`
 - `native-image-matrix.md`
 - `offline-build-validation.md`
 - `optional-services-review.md`
