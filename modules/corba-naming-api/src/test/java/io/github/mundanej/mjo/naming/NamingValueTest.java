@@ -77,6 +77,15 @@ final class NamingValueTest {
         () ->
             new NamingBindingTarget(
                 NamingBindingTarget.Kind.CONTEXT, Optional.empty(), Optional.empty()));
+
+    NamingException invalidObject =
+        assertThrows(
+            NamingException.class,
+            () ->
+                new NamingBindingTarget(
+                    NamingBindingTarget.Kind.OBJECT, Optional.empty(), Optional.empty()));
+
+    assertEquals(NamingDiagnosticCodes.INVALID_NAME, invalidObject.code());
   }
 
   @Test

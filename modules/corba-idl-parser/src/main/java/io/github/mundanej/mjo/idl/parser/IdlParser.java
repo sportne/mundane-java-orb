@@ -173,6 +173,10 @@ public final class IdlParser {
       }
 
       emitUnexpected("declaration");
+      if (check(IdlTokenKind.RIGHT_BRACE)) {
+        advance();
+        return null;
+      }
       synchronizeDeclaration();
       return null;
     }

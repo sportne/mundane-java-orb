@@ -64,6 +64,15 @@ final class RepositoryIdTest {
   @Test
   void rejectsInvalidIdlBuilderInputs() {
     assertThrows(
+        NullPointerException.class,
+        () -> RepositoryId.idl((String) null, new RepositoryIdVersion(1, 0)));
+    assertThrows(NullPointerException.class, () -> RepositoryId.idl("foo", null));
+    assertThrows(
+        NullPointerException.class,
+        () -> RepositoryId.idl(Optional.empty(), null, new RepositoryIdVersion(1, 0)));
+    assertThrows(
+        NullPointerException.class, () -> RepositoryId.idl(Optional.empty(), List.of("foo"), null));
+    assertThrows(
         RepositoryIdException.class,
         () -> RepositoryId.idl(List.of(), new RepositoryIdVersion(1, 0)));
     assertThrows(
@@ -104,7 +113,28 @@ final class RepositoryIdTest {
   }
 
   @Test
+  void rmiComponentsNormalizeHexAndExposeDeterministicBody() {
+    RmiRepositoryIdComponents components =
+        RmiRepositoryIdComponents.create(
+            "example.Outer$Inner", "abcdef0123456789", Optional.of("0123456789abcdef"));
+
+    assertEquals("example.Outer$Inner", components.javaBinaryName());
+    assertEquals("ABCDEF0123456789", components.hash());
+    assertEquals(Optional.of("0123456789ABCDEF"), components.serialVersionUid());
+    assertEquals("example.Outer$Inner:ABCDEF0123456789:0123456789ABCDEF", components.body());
+  }
+
+  @Test
   void rejectsMalformedRecognizedNonIdlRepositoryIds() {
+    assertThrows(NullPointerException.class, () -> RepositoryId.parse(null));
+    assertThrows(NullPointerException.class, () -> RepositoryId.rmi(null, "0123456789ABCDEF"));
+    assertThrows(NullPointerException.class, () -> RepositoryId.rmi("example.Widget", null));
+    assertThrows(
+        NullPointerException.class,
+        () -> RepositoryId.rmi("example.Widget", "0123456789ABCDEF", (Optional<String>) null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new RmiRepositoryIdComponents("example.Widget", "0123456789ABCDEF", null));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.Widget"));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("RMI:example.Widget::hash"));
     assertThrows(
@@ -146,6 +176,8 @@ final class RepositoryIdTest {
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse("IDL"));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.parse(":body"));
     assertThrows(RepositoryIdException.class, () -> RepositoryId.generic("A:B", "body"));
+    assertThrows(NullPointerException.class, () -> RepositoryId.generic(null, "body"));
+    assertThrows(NullPointerException.class, () -> RepositoryId.generic("CUSTOM", null));
   }
 
   @Test
@@ -155,6 +187,20 @@ final class RepositoryIdTest {
 
     assertEquals(parsed, constructed);
     assertEquals(parsed.hashCode(), constructed.hashCode());
+  }
+
+  @Test
+  void repositoryIdFormatsRemainCaseSensitiveAndOrdered() {
+    assertEquals(
+        List.of(
+            RepositoryIdFormat.IDL,
+            RepositoryIdFormat.RMI,
+            RepositoryIdFormat.DCE,
+            RepositoryIdFormat.LOCAL,
+            RepositoryIdFormat.UNKNOWN),
+        List.of(RepositoryIdFormat.values()));
+    assertEquals(RepositoryIdFormat.IDL, RepositoryIdFormat.fromFormatName("IDL"));
+    assertEquals(RepositoryIdFormat.UNKNOWN, RepositoryIdFormat.fromFormatName("idl"));
   }
 
   private static void assertPreserved(String value, RepositoryIdFormat format) {

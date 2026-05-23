@@ -52,6 +52,17 @@ final class LocalInvocationRequestTest {
   }
 
   @Test
+  void emptyAndNullArgumentValuesHaveDeterministicRecordSemantics() {
+    LocalInvocationRequest empty = new LocalInvocationRequest(GREETER, GREET, List.of());
+    LocalInvocationRequest withNull =
+        new LocalInvocationRequest(GREETER, GREET, java.util.Arrays.asList("Ada", null));
+
+    assertEquals(new LocalInvocationRequest(GREETER, GREET, List.of()), empty);
+    assertEquals(List.of(), empty.arguments());
+    assertEquals(java.util.Arrays.asList("Ada", null), withNull.arguments());
+  }
+
+  @Test
   void rejectsMissingRequestFields() {
     assertThrows(
         NullPointerException.class, () -> new LocalInvocationRequest(null, GREET, List.of()));

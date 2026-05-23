@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import io.github.mundanej.mjo.cdr.CdrException;
 import io.github.mundanej.mjo.cdr.CdrReader;
 import io.github.mundanej.mjo.cdr.CdrWriter;
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
@@ -13,6 +14,7 @@ import io.github.mundanej.mjo.typecode.IdlTypeCode;
 import io.github.mundanej.mjo.typecode.IdlTypeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeReference;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +38,83 @@ final class AnyCodecTest {
     assertEquals(
         new AnyValue<>(IdlTypeCode.BOOLEAN, true), roundTrip(AnyCodecs.booleanCodec(), true));
     assertEquals(new AnyValue<>(IdlTypeCode.DOUBLE, 3.5), roundTrip(AnyCodecs.doubleCodec(), 3.5));
+  }
+
+  @Test
+  void scalarAnyCodecsRoundTripBoundaryValues() {
+    BigInteger maxUnsignedLongLong = BigInteger.ONE.shiftLeft(64).subtract(BigInteger.ONE);
+
+    assertEquals(new AnyValue<>(IdlTypeCode.OCTET, 0), roundTrip(AnyCodecs.octetCodec(), 0));
+    assertEquals(new AnyValue<>(IdlTypeCode.OCTET, 255), roundTrip(AnyCodecs.octetCodec(), 255));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.CHAR, '\u00ff'), roundTrip(AnyCodecs.charCodec(), '\u00ff'));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.SHORT, Short.MIN_VALUE),
+        roundTrip(AnyCodecs.shortCodec(), Short.MIN_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.SHORT, Short.MAX_VALUE),
+        roundTrip(AnyCodecs.shortCodec(), Short.MAX_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.UNSIGNED_SHORT, 65_535),
+        roundTrip(AnyCodecs.unsignedShortCodec(), 65_535));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.LONG, Integer.MIN_VALUE),
+        roundTrip(AnyCodecs.longCodec(), Integer.MIN_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.LONG, Integer.MAX_VALUE),
+        roundTrip(AnyCodecs.longCodec(), Integer.MAX_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.UNSIGNED_LONG, 0xFFFF_FFFFL),
+        roundTrip(AnyCodecs.unsignedLongCodec(), 0xFFFF_FFFFL));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.LONG_LONG, Long.MIN_VALUE),
+        roundTrip(AnyCodecs.longLongCodec(), Long.MIN_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.LONG_LONG, Long.MAX_VALUE),
+        roundTrip(AnyCodecs.longLongCodec(), Long.MAX_VALUE));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.UNSIGNED_LONG_LONG, maxUnsignedLongLong),
+        roundTrip(AnyCodecs.unsignedLongLongCodec(), maxUnsignedLongLong));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.FLOAT, Float.NaN), roundTrip(AnyCodecs.floatCodec(), Float.NaN));
+    assertEquals(
+        new AnyValue<>(IdlTypeCode.DOUBLE, Double.NEGATIVE_INFINITY),
+        roundTrip(AnyCodecs.doubleCodec(), Double.NEGATIVE_INFINITY));
+  }
+
+  @Test
+  void scalarAnyCodecsRejectOutOfRangeAndNullValues() {
+    assertThrows(NullPointerException.class, () -> new AnyValue<>(IdlTypeCode.LONG, null));
+    assertThrows(NullPointerException.class, () -> new AnyValue<Integer>(null, 1));
+    assertThrows(NullPointerException.class, () -> AnyCodecs.longCodec().write(null, 1));
+    assertThrows(
+        NullPointerException.class, () -> AnyCodecs.longCodec().write(CdrWriter.bigEndian(), null));
+    assertThrows(CdrException.class, () -> AnyCodecs.octetCodec().write(CdrWriter.bigEndian(), -1));
+    assertThrows(
+        CdrException.class, () -> AnyCodecs.octetCodec().write(CdrWriter.bigEndian(), 256));
+    assertThrows(
+        CdrException.class,
+        () -> AnyCodecs.unsignedShortCodec().write(CdrWriter.bigEndian(), 65_536));
+    assertThrows(
+        CdrException.class,
+        () -> AnyCodecs.unsignedLongCodec().write(CdrWriter.bigEndian(), 0x1_0000_0000L));
+    assertThrows(
+        CdrException.class,
+        () ->
+            AnyCodecs.unsignedLongLongCodec()
+                .write(CdrWriter.bigEndian(), BigInteger.ONE.negate()));
+  }
+
+  @Test
+  void writeAnyRejectsCodecTypeCodeMismatch() {
+    AnyException failure =
+        assertThrows(
+            AnyException.class,
+            () ->
+                AnyCodecs.longCodec()
+                    .writeAny(CdrWriter.bigEndian(), new AnyValue<>(IdlTypeCode.STRING, 42)));
+
+    assertEquals(AnyDiagnosticCodes.TYPE_MISMATCH, failure.code());
   }
 
   @Test
@@ -166,6 +245,27 @@ final class AnyCodecTest {
     assertEquals(AnyDiagnosticCodes.MISSING_MEMBER, missing.code());
     assertEquals(AnyDiagnosticCodes.UNKNOWN_MEMBER, extra.code());
     assertEquals(AnyDiagnosticCodes.TYPE_MISMATCH, mismatch.code());
+  }
+
+  @Test
+  void aggregateValuesRejectNonAggregateTypeCodesAndMissingMemberLookup() {
+    AnyException nonAggregate =
+        assertThrows(AnyException.class, () -> new AnyAggregateValue(IdlTypeCode.LONG, Map.of()));
+    AnyAggregateValue point =
+        new AnyAggregateValue(
+            pointType(),
+            Map.of(
+                "x",
+                new AnyValue<>(IdlTypeCode.LONG, 1),
+                "y",
+                new AnyValue<>(IdlTypeCode.LONG, 2)));
+    AnyException missing = assertThrows(AnyException.class, () -> point.member("z"));
+
+    assertEquals(AnyDiagnosticCodes.TYPE_MISMATCH, nonAggregate.code());
+    assertEquals(AnyDiagnosticCodes.MISSING_MEMBER, missing.code());
+    assertThrows(NullPointerException.class, () -> new AnyAggregateValue(null, Map.of()));
+    assertThrows(NullPointerException.class, () -> new AnyAggregateValue(pointType(), null));
+    assertThrows(NullPointerException.class, () -> point.member(null));
   }
 
   @Test

@@ -5,7 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mjo.common.Diagnostic;
 import io.github.mundanej.mjo.common.DiagnosticCode;
+import io.github.mundanej.mjo.common.DiagnosticSeverity;
 import io.github.mundanej.mjo.idl.ast.IdlAttribute;
 import io.github.mundanej.mjo.idl.ast.IdlConstant;
 import io.github.mundanej.mjo.idl.ast.IdlEnum;
@@ -23,6 +25,7 @@ import io.github.mundanej.mjo.idl.preprocessor.IdlPreprocessResult;
 import io.github.mundanej.mjo.idl.preprocessor.IdlPreprocessor;
 import io.github.mundanej.mjo.idl.preprocessor.IdlSource;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -102,6 +105,19 @@ final class IdlParserTest {
   }
 
   @Test
+  void parsesEmptyTranslationUnitWithDeterministicEofSpan() {
+    IdlParseResult result = parser.parse("empty.idl", "");
+
+    assertFalse(result.hasErrors());
+    IdlTranslationUnit unit = result.translationUnit().orElseThrow();
+    assertEquals(List.of(), unit.declarations());
+    assertEquals("empty.idl", unit.span().start().sourceName());
+    assertEquals(1, unit.span().start().line());
+    assertEquals(1, unit.span().start().column());
+    assertEquals(unit.span().start(), unit.span().end());
+  }
+
+  @Test
   void parsesGeneratedRmiIdlFixtureSubset() {
     IdlParseResult result = parser.parse("rmi-generated.idl", generatedRmiFixture());
 
@@ -152,6 +168,29 @@ final class IdlParserTest {
   }
 
   @Test
+  void parsesAllParameterDirectionsAndEmptyRaisesClauseAbsence() {
+    IdlParseResult result =
+        parser.parse(
+            "directions.idl",
+            """
+            interface Ops {
+              void mix(in long input, out string output, inout double both);
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlInterface idlInterface =
+        (IdlInterface) result.translationUnit().orElseThrow().declarations().getFirst();
+    IdlOperation operation = (IdlOperation) idlInterface.members().getFirst();
+
+    assertEquals("mix", operation.name());
+    assertEquals(
+        List.of(IdlParameterDirection.IN, IdlParameterDirection.OUT, IdlParameterDirection.INOUT),
+        operation.parameters().stream().map(parameter -> parameter.direction()).toList());
+    assertEquals(List.of(), operation.raises());
+  }
+
+  @Test
   void reportsUnsupportedDeclarationsTypesDeclaratorsAndPragmas() {
     IdlParseResult unsupportedDeclarations =
         parser.parse("unsupported.idl", "typedef long Count; union Choice; valuetype Value;");
@@ -191,6 +230,30 @@ final class IdlParserTest {
         parser.parse("eof.idl", "module Broken { interface I { void op(in long value); };");
     assertTrue(diagnosticCodes(unexpectedEnd).contains(IdlParserDiagnosticCodes.UNEXPECTED_EOF));
     assertTrue(unexpectedEnd.translationUnit().isEmpty());
+  }
+
+  @Test
+  void reportsDiagnosticSpanAtUnexpectedTokenAndRejectsErroredResultsWithAst() {
+    IdlParseResult result = parser.parse("diagnostic-span.idl", "module Broken { interface ; };");
+
+    assertTrue(result.hasErrors());
+    assertEquals(List.of(IdlParserDiagnosticCodes.UNEXPECTED_TOKEN), diagnosticCodes(result));
+    Diagnostic diagnostic = result.diagnostics().getFirst();
+    assertEquals("diagnostic-span.idl", diagnostic.span().orElseThrow().start().sourceName());
+    assertEquals(1, diagnostic.span().orElseThrow().start().line());
+    assertEquals(27, diagnostic.span().orElseThrow().start().column());
+
+    IdlTranslationUnit unit = parser.parse("empty.idl", "").translationUnit().orElseThrow();
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new IdlParseResult(
+                Optional.of(unit),
+                List.of(
+                    Diagnostic.withoutSpan(
+                        IdlParserDiagnosticCodes.UNEXPECTED_TOKEN,
+                        DiagnosticSeverity.ERROR,
+                        "forced"))));
   }
 
   @Test

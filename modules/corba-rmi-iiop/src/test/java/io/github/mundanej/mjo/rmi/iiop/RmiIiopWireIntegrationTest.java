@@ -14,6 +14,7 @@ import io.github.mundanej.mjo.giop.GiopMessageWriter;
 import io.github.mundanej.mjo.giop.GiopReply;
 import io.github.mundanej.mjo.giop.GiopReplyStatus;
 import io.github.mundanej.mjo.giop.GiopRequest;
+import io.github.mundanej.mjo.giop.GiopVersion;
 import io.github.mundanej.mjo.iiop.IiopClient;
 import io.github.mundanej.mjo.iiop.IiopEndpoint;
 import io.github.mundanej.mjo.iiop.IiopOptions;
@@ -138,6 +139,39 @@ final class RmiIiopWireIntegrationTest {
               codec.encodeSystemFailure(new RmiIiopWireException(code, code.value())));
       assertEquals(code, codec.decodeSystemFailure(codedReply).code());
     }
+  }
+
+  @Test
+  void decodesLittleEndianWireBodiesFromHeaderByteOrder() {
+    RmiIdlOperation add = operation("add");
+    CdrWriter argumentWriter = CdrWriter.littleEndian();
+    argumentWriter.writeLong(13);
+    argumentWriter.writeLong(29);
+    GiopRequest littleEndianRequest =
+        new GiopRequest(
+            new GiopHeader(GiopVersion.GIOP_1_2, true, false, GiopMessageType.REQUEST, 0),
+            10,
+            3,
+            RmiIiopObjectKey.fromString("local-1").bytes(),
+            "add",
+            List.of(),
+            argumentWriter.toByteArray());
+
+    assertEquals(
+        List.of(RmiCdrValue.longValue(13), RmiCdrValue.longValue(29)),
+        codec.decodeArguments(littleEndianRequest, add));
+
+    CdrWriter returnWriter = CdrWriter.littleEndian();
+    returnWriter.writeLong(42);
+    GiopReply littleEndianReply =
+        new GiopReply(
+            new GiopHeader(GiopVersion.GIOP_1_2, true, false, GiopMessageType.REPLY, 0),
+            10,
+            GiopReplyStatus.NO_EXCEPTION,
+            List.of(),
+            returnWriter.toByteArray());
+
+    assertEquals(RmiCdrValue.longValue(42), codec.decodeReturnValue(littleEndianReply, add));
   }
 
   @Test

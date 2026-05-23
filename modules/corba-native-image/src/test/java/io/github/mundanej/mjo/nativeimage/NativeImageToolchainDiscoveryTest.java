@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -62,6 +64,20 @@ final class NativeImageToolchainDiscoveryTest {
   }
 
   @Test
+  void sdkmanCandidatesUseSortedLastCandidateWhenCurrentIsAbsent() throws IOException {
+    Path sdkman = temporaryDirectory.resolve("sdkman");
+    nativeImageAt(sdkman.resolve("java/21.0.1-graalce/bin"));
+    Path expected = nativeImageAt(sdkman.resolve("java/21.0.2-graalce/bin"));
+    nativeImageAt(sdkman.resolve("java/17.0.10-graalce/bin"));
+
+    NativeImageToolchain toolchain =
+        discover(Map.of("SDKMAN_CANDIDATES_DIR", sdkman.toString()), List.of());
+
+    assertEquals(expected, toolchain.executable());
+    assertEquals(NativeImageToolchain.Source.SDKMAN, toolchain.source());
+  }
+
+  @Test
   void pathCandidatePrecedesBareCommandFallback() throws IOException {
     Path pathDirectory = temporaryDirectory.resolve("path-bin");
     Path nativeImage = nativeImageAt(pathDirectory);
@@ -79,6 +95,23 @@ final class NativeImageToolchainDiscoveryTest {
 
     assertEquals(Path.of("native-image"), toolchain.executable());
     assertEquals(NativeImageToolchain.Source.BARE_COMMAND, toolchain.source());
+  }
+
+  @Test
+  void environmentDefensivelyCopiesInputsAndExposesImmutableViews() {
+    Map<String, String> variables = new HashMap<>();
+    variables.put("NATIVE_IMAGE", "native-image-a");
+    List<Path> pathDirectories = new ArrayList<>(List.of(temporaryDirectory.resolve("bin-a")));
+    NativeImageEnvironment environment = new NativeImageEnvironment(variables, pathDirectories);
+
+    variables.put("NATIVE_IMAGE", "native-image-b");
+    pathDirectories.add(temporaryDirectory.resolve("bin-b"));
+
+    assertEquals("native-image-a", environment.variables().get("NATIVE_IMAGE"));
+    assertEquals(List.of(temporaryDirectory.resolve("bin-a")), environment.pathDirectories());
+    assertThrows(
+        UnsupportedOperationException.class, () -> environment.variables().put("OTHER", "value"));
+    assertThrows(UnsupportedOperationException.class, () -> environment.pathDirectories().clear());
   }
 
   @Test

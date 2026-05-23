@@ -48,6 +48,39 @@ final class StaticInterfaceRepositoryTest {
   }
 
   @Test
+  void emptyRepositoryLookupsReturnEmptyAndRequireFailsDeterministically() {
+    StaticInterfaceRepository repository = StaticInterfaceRepository.of(List.of());
+    RepositoryId missing = RepositoryId.parse("IDL:demo/Missing:1.0");
+
+    assertEquals(Optional.empty(), repository.findByRepositoryId(missing));
+    assertEquals(Optional.empty(), repository.findByIdlScopedName("::demo::Missing"));
+    assertEquals(Optional.empty(), repository.findByJavaName("demo.Missing"));
+
+    InterfaceRepositoryException exception =
+        assertThrows(
+            InterfaceRepositoryException.class, () -> repository.requireByRepositoryId(missing));
+
+    assertEquals(InterfaceRepositoryDiagnosticCodes.MISSING_DESCRIPTOR, exception.code());
+  }
+
+  @Test
+  void lookupInputsRejectNullAndBlankNames() {
+    StaticInterfaceRepository repository = repository();
+
+    assertThrows(NullPointerException.class, () -> StaticInterfaceRepository.of(null));
+    assertThrows(
+        NullPointerException.class,
+        () -> StaticInterfaceRepository.of(java.util.Collections.singletonList(null)));
+    assertThrows(NullPointerException.class, () -> repository.findByRepositoryId(null));
+    assertThrows(NullPointerException.class, () -> repository.findByIdlScopedName(null));
+    assertThrows(NullPointerException.class, () -> repository.findByJavaName(null));
+    assertThrows(NullPointerException.class, () -> repository.requireOperation(SHAPE_ID, null));
+    assertThrows(IllegalArgumentException.class, () -> repository.findByIdlScopedName(" "));
+    assertThrows(IllegalArgumentException.class, () -> repository.findByJavaName(" "));
+    assertThrows(IllegalArgumentException.class, () -> repository.requireOperation(SHAPE_ID, " "));
+  }
+
+  @Test
   void returnedDescriptorOrderIsImmutable() {
     StaticInterfaceRepository repository = repository();
 

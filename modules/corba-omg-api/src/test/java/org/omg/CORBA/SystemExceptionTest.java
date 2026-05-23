@@ -25,6 +25,18 @@ final class SystemExceptionTest {
   }
 
   @Test
+  void systemExceptionsPreserveBoundaryMinorCodesAndNullMessages() {
+    BAD_PARAM minimum = new BAD_PARAM(null, Integer.MIN_VALUE, CompletionStatus.COMPLETED_YES);
+    BAD_PARAM maximum = new BAD_PARAM("max", Integer.MAX_VALUE, CompletionStatus.COMPLETED_NO);
+
+    assertNull(minimum.getMessage());
+    assertEquals(Integer.MIN_VALUE, minimum.minor);
+    assertEquals(CompletionStatus.COMPLETED_YES, minimum.completed);
+    assertEquals(Integer.MAX_VALUE, maximum.minor);
+    assertEquals(CompletionStatus.COMPLETED_NO, maximum.completed);
+  }
+
+  @Test
   void concreteSystemExceptionsExposeLocalInvocationConstructors() {
     IllegalStateException cause = new IllegalStateException("cause");
 
@@ -52,6 +64,16 @@ final class SystemExceptionTest {
         () -> {
           throw new BAD_PARAM("bad", 0, null);
         });
+  }
+
+  @Test
+  void completionStatusOrderIsStable() {
+    assertEquals(
+        java.util.List.of(
+            CompletionStatus.COMPLETED_YES,
+            CompletionStatus.COMPLETED_NO,
+            CompletionStatus.COMPLETED_MAYBE),
+        java.util.List.of(CompletionStatus.values()));
   }
 
   @Test

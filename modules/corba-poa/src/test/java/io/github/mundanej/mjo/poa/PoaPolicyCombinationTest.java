@@ -143,6 +143,25 @@ final class PoaPolicyCombinationTest {
     assertEquals(1, poa.activeObjectCount());
   }
 
+  @Test
+  void deactivationReleasesUniqueIdServantForLaterActivation() {
+    LocalOrb orb = LocalOrb.create();
+    Poa poa = Poa.createRoot(orb);
+    PoaTestFixtures.GreeterServant servant = new PoaTestFixtures.GreeterServant();
+    LocalObjectReference<PoaTestFixtures.Greeter> first =
+        poa.activateServant(
+            PoaTestFixtures.Greeter.class, GREETER_DESCRIPTOR, servant, GREETER_DISPATCHER);
+
+    poa.deactivateObject(first.objectId());
+    LocalObjectReference<PoaTestFixtures.Greeter> second =
+        poa.activateServant(
+            PoaTestFixtures.Greeter.class, GREETER_DESCRIPTOR, servant, GREETER_DISPATCHER);
+
+    assertEquals("local-2", second.objectId());
+    assertEquals("Hello Ada", invoke(orb, second));
+    assertEquals(1, poa.activeObjectCount());
+  }
+
   private static PoaPolicySet policy(
       PoaPolicySet.ThreadPolicy threadPolicy,
       PoaPolicySet.LifespanPolicy lifespanPolicy,

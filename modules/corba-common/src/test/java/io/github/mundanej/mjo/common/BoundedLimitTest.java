@@ -24,9 +24,21 @@ final class BoundedLimitTest {
   }
 
   @Test
+  void handlesLongBoundaryValuesDeterministically() {
+    BoundedLimit unboundedLongRange = new BoundedLimit("max-long", Long.MAX_VALUE);
+
+    assertTrue(unboundedLongRange.accepts(Long.MAX_VALUE));
+    assertFalse(unboundedLongRange.accepts(Long.MIN_VALUE));
+    assertEquals(Optional.empty(), unboundedLongRange.check(Long.MAX_VALUE));
+    assertEquals(
+        Long.MIN_VALUE, unboundedLongRange.check(Long.MIN_VALUE).orElseThrow().observedValue());
+  }
+
+  @Test
   void rejectsInvalidLimitDefinition() {
     assertThrows(IllegalArgumentException.class, () -> new BoundedLimit(" ", 1));
     assertThrows(IllegalArgumentException.class, () -> new BoundedLimit("message-size", -1));
+    assertThrows(NullPointerException.class, () -> new BoundedLimit(null, 1));
   }
 
   @Test
@@ -53,5 +65,6 @@ final class BoundedLimitTest {
     BoundedLimit limit = new BoundedLimit("sequence-length", 3);
 
     assertEquals(new LimitViolation(limit, 4), new LimitViolation(limit, 4));
+    assertThrows(NullPointerException.class, () -> new LimitViolation(null, 4));
   }
 }

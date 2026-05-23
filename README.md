@@ -163,7 +163,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-There is no non-human-gated roadmap task currently ready for implementation.
+There is no non-human-gated roadmap task currently ready for implementation or
+in progress.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

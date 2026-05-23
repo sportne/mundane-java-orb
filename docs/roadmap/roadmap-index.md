@@ -116,3 +116,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-d40-transaction-service-design-gate.md` - human-gate-blocked
 - `tasks/g8-d50-security-service-design-gate.md` - human-gate-blocked
 - `tasks/g8-d60-time-service-design-gate.md` - human-gate-blocked
+
+## G9 Verification Hardening
+
+- `tasks/g9-010-exhaustive-test-hardening.md` - complete

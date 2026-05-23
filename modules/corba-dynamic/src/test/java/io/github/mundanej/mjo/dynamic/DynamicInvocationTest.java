@@ -124,6 +124,53 @@ final class DynamicInvocationTest {
   }
 
   @Test
+  void rejectsDynamicResultOperationAndVoidValueMismatches() {
+    DynamicOperationCodec addCodec = DynamicTestFixtures.addCodec();
+    DynamicOperationCodec pingCodec = DynamicTestFixtures.pingCodec();
+
+    DynamicException wrongOperation =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                addCodec.payloadFromResult(
+                    DynamicInvocationResult.value(
+                        DynamicTestFixtures.PING_OPERATION, DynamicTestFixtures.longAny(1))));
+    DynamicException voidWithValue =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                pingCodec.payloadFromResult(
+                    DynamicInvocationResult.value(
+                        DynamicTestFixtures.PING_OPERATION, DynamicTestFixtures.longAny(1))));
+    DynamicException missingValue =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                addCodec.payloadFromResult(
+                    DynamicInvocationResult.voidResult(DynamicTestFixtures.ADD_OPERATION)));
+
+    assertEquals(DynamicDiagnosticCodes.UNKNOWN_OPERATION, wrongOperation.code());
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, voidWithValue.code());
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, missingValue.code());
+  }
+
+  @Test
+  void dynamicInvokerRejectsNullInputsBeforeOrbDispatch() {
+    LocalOrb orb = LocalOrb.create();
+    DynamicInvoker invoker = new DynamicInvoker(orb);
+    LocalObjectReference<DynamicTestFixtures.Calculator> reference =
+        bindCalculator(orb, request -> 0);
+    DynamicInvocationRequest request =
+        new DynamicInvocationRequest(
+            DynamicTestFixtures.addCodec(),
+            List.of(DynamicTestFixtures.longAny(1), DynamicTestFixtures.longAny(2)));
+
+    assertThrows(NullPointerException.class, () -> new DynamicInvoker(null));
+    assertThrows(NullPointerException.class, () -> invoker.invoke(null, request));
+    assertThrows(NullPointerException.class, () -> invoker.invoke(reference, null));
+  }
+
+  @Test
   void propagatesLocalOrbLifecycleAndMissingTargetFailures() {
     LocalOrb orb = LocalOrb.create();
     LocalObjectReference<DynamicTestFixtures.Calculator> reference =

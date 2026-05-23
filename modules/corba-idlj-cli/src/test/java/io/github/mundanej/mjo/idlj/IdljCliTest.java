@@ -1,8 +1,14 @@
 package io.github.mundanej.mjo.idlj;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mjo.common.Diagnostic;
+import io.github.mundanej.mjo.common.DiagnosticCode;
+import io.github.mundanej.mjo.common.DiagnosticSeverity;
+import io.github.mundanej.mjo.common.SourcePosition;
+import io.github.mundanej.mjo.common.SourceSpan;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +86,7 @@ final class IdljCliTest {
   @Test
   void reportsUsageAndInputFailuresWithStableExitCode() throws Exception {
     Path missing = tempDir.resolve("missing.idl");
+    Path directory = Files.createDirectory(tempDir.resolve("directory.idl"));
 
     assertUsageError(run());
     assertUsageError(run("compile"));
@@ -92,6 +99,30 @@ final class IdljCliTest {
     assertEquals(IdljExitCodes.USAGE_OR_INPUT_ERROR, missingFile.exitCode());
     assertEquals("", missingFile.stdout());
     assertTrue(missingFile.stderr().contains("ERROR IDLJ-0002: Could not read IDL source file"));
+
+    CliRun directoryInput = run("validate", "--quiet", directory.toString());
+    assertEquals(IdljExitCodes.USAGE_OR_INPUT_ERROR, directoryInput.exitCode());
+    assertEquals("", directoryInput.stdout());
+    assertTrue(directoryInput.stderr().contains("ERROR IDLJ-0002: Could not read IDL source file"));
+  }
+
+  @Test
+  void returnsValidationFailureForFilesystemIncludeDiagnostics() throws Exception {
+    Path source =
+        write(
+            "missing-include.idl",
+            """
+            #include "missing.idl"
+            module Demo { const long VALUE = 1; };
+            """);
+
+    CliRun result = run("validate", "--quiet", "-I", tempDir.toString(), source.toString());
+
+    assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
+    assertEquals("", result.stdout());
+    assertTrue(result.stderr().contains("ERROR IDL-0202:"));
+    assertTrue(result.stderr().contains("missing.idl"));
+    assertTrue(result.stderr().startsWith(source + ":1:1: "));
   }
 
   @Test
@@ -128,6 +159,23 @@ final class IdljCliTest {
     CliRun result = run("validate", "--quiet", hello.toString());
 
     assertQuietSuccess(result);
+  }
+
+  @Test
+  void diagnosticFormatterRendersStableSpanAndNoSpanForms() {
+    IdljDiagnosticFormatter formatter = new IdljDiagnosticFormatter();
+    DiagnosticCode code = new DiagnosticCode("TEST-1234");
+    SourcePosition start = new SourcePosition("demo.idl", 4, 7, 30);
+    SourceSpan span = new SourceSpan(start, new SourcePosition("demo.idl", 4, 11, 34));
+
+    assertEquals(
+        "ERROR TEST-1234: no source",
+        formatter.format(Diagnostic.withoutSpan(code, DiagnosticSeverity.ERROR, "no source")));
+    assertEquals(
+        "demo.idl:4:7: WARNING TEST-1234: with source",
+        formatter.format(
+            Diagnostic.withSpan(code, DiagnosticSeverity.WARNING, "with source", span)));
+    assertThrows(NullPointerException.class, () -> formatter.format(null));
   }
 
   private Path write(String name, String source) throws Exception {

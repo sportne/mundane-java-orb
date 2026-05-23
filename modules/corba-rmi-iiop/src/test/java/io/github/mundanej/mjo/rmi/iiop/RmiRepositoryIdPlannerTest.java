@@ -71,6 +71,53 @@ final class RmiRepositoryIdPlannerTest {
   }
 
   @Test
+  void deduplicatesRequiredNamesAndSkipsStringRepositoryIdsInTraversalOrder() {
+    RmiIdlTranslationUnit translationUnit =
+        new RmiIdlTranslationUnit(
+            List.of(),
+            List.of(
+                new RmiIdlInterface(
+                    "Root",
+                    "::Root",
+                    Optional.of("example.Root"),
+                    List.of(
+                        new RmiIdlOperation(
+                            "lookup",
+                            RmiIdlTypeReference.declaredValue("::example::Value", "example.Value"),
+                            List.of(
+                                new RmiIdlParameter(
+                                    "sameValue",
+                                    RmiIdlTypeReference.declaredValue(
+                                        "::example::Value", "example.Value")),
+                                new RmiIdlParameter(
+                                    "names",
+                                    RmiIdlTypeReference.sequenceOf(
+                                        RmiIdlTypeReference.builtin("wstring")))),
+                            List.of(
+                                new RmiIdlExceptionReference(
+                                    "example.Problem", "::example::Problem")))))));
+
+    RmiRepositoryIdPlanResult result =
+        planner.plan(
+            translationUnit,
+            List.of(
+                new RmiRepositoryIdHashMetadata("example.Root", "aaaaaaaaaaaaaaaa"),
+                new RmiRepositoryIdHashMetadata("example.Value", "bbbbbbbbbbbbbbbb"),
+                new RmiRepositoryIdHashMetadata("example.Problem", "cccccccccccccccc"),
+                new RmiRepositoryIdHashMetadata("java.lang.String", "dddddddddddddddd")));
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertEquals(
+        List.of(
+            "RMI:example.Root:AAAAAAAAAAAAAAAA",
+            "RMI:example.Value:BBBBBBBBBBBBBBBB",
+            "RMI:example.Problem:CCCCCCCCCCCCCCCC"),
+        result.plan().orElseThrow().repositoryIds().stream()
+            .map(RmiRepositoryIdValue::repositoryId)
+            .toList());
+  }
+
+  @Test
   void reportsDuplicateInvalidAndUnresolvedInputsDeterministically() {
     RmiIdlTranslationUnit translationUnit =
         new RmiIdlTranslationUnit(

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mundanej.mjo.common.SourcePosition;
 import io.github.mundanej.mjo.common.SourceSpan;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -67,6 +68,62 @@ final class IdlAstValueTest {
     assertThrows(
         IllegalArgumentException.class, () -> new IdlAttribute(false, longType, List.of(), span));
     assertThrows(IllegalArgumentException.class, () -> new IdlConstantExpression(List.of(), span));
+  }
+
+  @Test
+  void rejectsNullRequiredConstructorComponents() {
+    SourceSpan span = span();
+    IdlTypeReference longType = new IdlTypeReference("long", span);
+    IdlConstantExpression expression = new IdlConstantExpression(List.of("1"), span);
+
+    assertThrows(NullPointerException.class, () -> new IdlTypeReference(null, span));
+    assertThrows(NullPointerException.class, () -> new IdlTypeReference("long", null));
+    assertThrows(NullPointerException.class, () -> new IdlTranslationUnit(null, span));
+    assertThrows(NullPointerException.class, () -> new IdlModule("M", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlStruct("S", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlEnum("E", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlExceptionDeclaration("E", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlField(null, "f", span));
+    assertThrows(NullPointerException.class, () -> new IdlConstant(null, "C", expression, span));
+    assertThrows(NullPointerException.class, () -> new IdlConstant(longType, "C", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlConstantExpression(null, span));
+    assertThrows(
+        NullPointerException.class, () -> new IdlAttribute(false, null, List.of("a"), span));
+    assertThrows(NullPointerException.class, () -> new IdlParameter(null, longType, "value", span));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlOperation(false, null, "op", List.of(), List.of(), span));
+  }
+
+  @Test
+  void defensivelyCopiesMutableListsAndRejectsNullElements() {
+    SourceSpan span = span();
+    IdlTypeReference longType = new IdlTypeReference("long", span);
+    IdlStruct struct = new IdlStruct("Point", List.of(new IdlField(longType, "x", span)), span);
+    List<IdlDeclaration> declarations = new ArrayList<>();
+    declarations.add(struct);
+    IdlTranslationUnit unit = new IdlTranslationUnit(declarations, span);
+
+    declarations.clear();
+
+    assertEquals(List.of(struct), unit.declarations());
+
+    List<String> names = new ArrayList<>(List.of("left", "right"));
+    IdlAttribute attribute = new IdlAttribute(false, longType, names, span);
+
+    names.add("ignored");
+
+    assertEquals(List.of("left", "right"), attribute.names());
+
+    List<String> enumerators = new ArrayList<>(List.of("ON"));
+    enumerators.add(null);
+    assertThrows(NullPointerException.class, () -> new IdlEnum("Mode", enumerators, span));
+
+    List<IdlParameter> parameters = new ArrayList<>();
+    parameters.add(null);
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlOperation(false, longType, "op", parameters, List.of(), span));
   }
 
   @Test

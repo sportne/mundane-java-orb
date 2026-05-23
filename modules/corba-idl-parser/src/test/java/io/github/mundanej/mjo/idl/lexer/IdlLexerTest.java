@@ -138,6 +138,22 @@ final class IdlLexerTest {
   }
 
   @Test
+  void preservesLiteralLexemesAndIdentifierTextContracts() {
+    IdlLexResult result =
+        lexer.tokenize("lexemes.idl", "\"plain\" L\"wide\" 'c' L'\\u0041' _module module");
+
+    List<IdlToken> tokens = nonEofTokens(result);
+
+    assertEquals(
+        List.of("\"plain\"", "L\"wide\"", "'c'", "L'\\u0041'", "_module", "module"),
+        tokens.stream().map(IdlToken::lexeme).toList());
+    assertEquals(Optional.empty(), tokens.getFirst().identifierText());
+    assertEquals(Optional.of("module"), tokens.get(4).identifierText());
+    assertEquals(Optional.empty(), tokens.get(5).identifierText());
+    assertFalse(result.hasErrors());
+  }
+
+  @Test
   void reportsLiteralDiagnosticsAndRecovers() {
     IdlLexResult result =
         lexer.tokenize("bad-literals.idl", "\"\\q\" \"\\0\" L\"\\u0000\" \"unterminated\n'a");
@@ -157,6 +173,26 @@ final class IdlLexerTest {
             IdlDiagnosticCodes.NUL_LITERAL_CHARACTER,
             IdlDiagnosticCodes.UNTERMINATED_STRING_LITERAL,
             IdlDiagnosticCodes.UNTERMINATED_CHARACTER_LITERAL),
+        diagnosticCodes(result));
+  }
+
+  @Test
+  void reportsInvalidEscapedIdentifiersAndNonLatinLiteralCharacters() {
+    IdlLexResult result = lexer.tokenize("invalid-literals.idl", "_ _9 \"\u0100\" L'\u0100'");
+
+    assertEquals(
+        List.of(
+            IdlTokenKind.INVALID_TOKEN,
+            IdlTokenKind.INVALID_TOKEN,
+            IdlTokenKind.STRING_LITERAL,
+            IdlTokenKind.WIDE_CHARACTER_LITERAL),
+        nonEofKinds(result));
+    assertEquals(
+        List.of(
+            IdlDiagnosticCodes.INVALID_CHARACTER,
+            IdlDiagnosticCodes.INVALID_CHARACTER,
+            IdlDiagnosticCodes.INVALID_CHARACTER,
+            IdlDiagnosticCodes.INVALID_CHARACTER),
         diagnosticCodes(result));
   }
 
@@ -196,6 +232,23 @@ final class IdlLexerTest {
 
     assertEquals(List.of(IdlTokenKind.KEYWORD, IdlTokenKind.IDENTIFIER), nonEofKinds(result));
     assertEquals(List.of(IdlDiagnosticCodes.UNTERMINATED_BLOCK_COMMENT), diagnosticCodes(result));
+  }
+
+  @Test
+  void acceptsExactSourceTokenAndTokenLengthLimitBoundaries() {
+    IdlLexerOptions options =
+        new IdlLexerOptions(
+            new BoundedLimit("source", 7),
+            new BoundedLimit("tokens", 2),
+            new BoundedLimit("token-length", 3),
+            new BoundedLimit("diagnostics", 10));
+
+    IdlLexResult result = lexer.tokenize("limits.idl", "abc def", options);
+
+    assertEquals(List.of(IdlTokenKind.IDENTIFIER, IdlTokenKind.IDENTIFIER), nonEofKinds(result));
+    assertEquals(
+        List.of("abc", "def"), nonEofTokens(result).stream().map(IdlToken::lexeme).toList());
+    assertFalse(result.hasErrors());
   }
 
   @Test

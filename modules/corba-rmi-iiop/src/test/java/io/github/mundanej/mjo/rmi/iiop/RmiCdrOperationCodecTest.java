@@ -45,6 +45,10 @@ final class RmiCdrOperationCodecTest {
     valueCodec.writeValue(
         writer, RmiIdlTypeReference.builtin("octet"), RmiCdrValue.octetValue((byte) 7));
     valueCodec.writeValue(
+        writer,
+        RmiIdlTypeReference.builtin("char"),
+        new RmiCdrValue(RmiIdlTypeReference.builtin("char"), 'A'));
+    valueCodec.writeValue(
         writer, RmiIdlTypeReference.builtin("wchar"), RmiCdrValue.wcharValue('\u03A9'));
     valueCodec.writeValue(
         writer, RmiIdlTypeReference.builtin("short"), RmiCdrValue.shortValue((short) 12));
@@ -56,6 +60,10 @@ final class RmiCdrOperationCodecTest {
     valueCodec.writeValue(
         writer, RmiIdlTypeReference.builtin("double"), RmiCdrValue.doubleValue(2.5D));
     valueCodec.writeValue(
+        writer,
+        RmiIdlTypeReference.builtin("string"),
+        new RmiCdrValue(RmiIdlTypeReference.builtin("string"), "plain"));
+    valueCodec.writeValue(
         writer, RmiIdlTypeReference.builtin("wstring"), RmiCdrValue.stringValue("A\u03A9"));
 
     CdrReader reader = CdrReader.bigEndian(writer.toByteArray());
@@ -66,6 +74,9 @@ final class RmiCdrOperationCodecTest {
     assertEquals(
         RmiCdrValue.octetValue((byte) 7),
         valueCodec.readValue(reader, RmiIdlTypeReference.builtin("octet")));
+    assertEquals(
+        new RmiCdrValue(RmiIdlTypeReference.builtin("char"), 'A'),
+        valueCodec.readValue(reader, RmiIdlTypeReference.builtin("char")));
     assertEquals(
         RmiCdrValue.wcharValue('\u03A9'),
         valueCodec.readValue(reader, RmiIdlTypeReference.builtin("wchar")));
@@ -84,6 +95,9 @@ final class RmiCdrOperationCodecTest {
     assertEquals(
         RmiCdrValue.doubleValue(2.5D),
         valueCodec.readValue(reader, RmiIdlTypeReference.builtin("double")));
+    assertEquals(
+        new RmiCdrValue(RmiIdlTypeReference.builtin("string"), "plain"),
+        valueCodec.readValue(reader, RmiIdlTypeReference.builtin("string")));
     assertEquals(
         RmiCdrValue.stringValue("A\u03A9"),
         valueCodec.readValue(reader, RmiIdlTypeReference.builtin("wstring")));
@@ -185,6 +199,20 @@ final class RmiCdrOperationCodecTest {
         () ->
             operationCodec.writeArguments(
                 CdrWriter.bigEndian(), add, List.of(RmiCdrValue.longValue(1))));
+    assertRmiCode(
+        RmiJavaDiagnosticCodes.CDR_VALUE_TYPE_MISMATCH,
+        () ->
+            valueCodec.writeValue(
+                CdrWriter.bigEndian(),
+                RmiIdlTypeReference.voidType(),
+                new RmiCdrValue(RmiIdlTypeReference.voidType(), "not void")));
+    assertRmiCode(
+        RmiJavaDiagnosticCodes.CDR_VALUE_TYPE_MISMATCH,
+        () ->
+            valueCodec.writeValue(
+                CdrWriter.bigEndian(),
+                RmiIdlTypeReference.builtin("long"),
+                RmiCdrValue.shortValue((short) 1)));
     assertRmiCode(
         RmiJavaDiagnosticCodes.UNSUPPORTED_CDR_MARSHALING_TYPE,
         () ->

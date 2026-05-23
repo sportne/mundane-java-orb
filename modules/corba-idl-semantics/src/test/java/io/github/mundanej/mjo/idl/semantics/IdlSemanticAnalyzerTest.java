@@ -13,6 +13,7 @@ import io.github.mundanej.mjo.idl.parser.IdlParseResult;
 import io.github.mundanej.mjo.idl.parser.IdlParser;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
@@ -227,6 +228,44 @@ final class IdlSemanticAnalyzerTest {
   }
 
   @Test
+  void resolvesRelativeNamesFromNearestScopeAndAbsoluteNamesFromGlobalScope() {
+    IdlSemanticModel model =
+        analyze(
+                """
+                module Root {
+                  struct Value { long x; };
+                  module Nested {
+                    struct Value { short y; };
+                    struct Holder {
+                      Value nearby;
+                      Root::Value global;
+                    };
+                  };
+                };
+                """)
+            .model()
+            .orElseThrow();
+
+    assertEquals(
+        "::Root::Nested::Value",
+        model
+            .findSymbol("Root::Nested::Holder::nearby")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+    assertEquals(
+        "::Root::Value",
+        model
+            .findSymbol("Root::Nested::Holder::global")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+    assertEquals(
+        List.of("::Root::Value", "::Root::Nested::Value", "::Root::Nested::Holder"),
+        model.symbols(IdlSymbolKind.STRUCT).stream().map(IdlSymbol::qualifiedName).toList());
+  }
+
+  @Test
   void reportsDuplicateNamesInvalidConstantsAndInvalidRaisesTargets() {
     IdlSemanticResult result =
         analyze(
@@ -295,6 +334,60 @@ final class IdlSemanticAnalyzerTest {
     assertEquals(4, count(codes, IdlSemanticDiagnosticCodes.INVALID_CONSTANT_VALUE));
     assertEquals(4, count(codes, IdlSemanticDiagnosticCodes.INVALID_CONSTANT_EXPRESSION));
     assertEquals(2, count(codes, IdlSemanticDiagnosticCodes.UNRESOLVED_NAME));
+  }
+
+  @Test
+  void reportsInvalidTypeReferencesWithStableDiagnosticSpan() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module Bad {
+              const long VALUE = 1;
+              struct UsesValueAsType { VALUE field; };
+            };
+            """);
+
+    assertTrue(result.hasErrors());
+    assertTrue(result.model().isEmpty());
+    assertEquals(
+        List.of(IdlSemanticDiagnosticCodes.INVALID_TYPE_REFERENCE), diagnosticCodes(result));
+    Diagnostic diagnostic = result.diagnostics().getFirst();
+    assertEquals("semantic-test.idl", diagnostic.span().orElseThrow().start().sourceName());
+    assertEquals(3, diagnostic.span().orElseThrow().start().line());
+  }
+
+  @Test
+  void validatesSemanticValueObjectsAndDefensiveCopiesSymbolLists() {
+    IdlSemanticModel model =
+        analyze("module Demo { const long VALUE = 42; };").model().orElseThrow();
+    List<IdlSymbol> symbols = new ArrayList<>(model.symbols());
+    IdlSemanticModel copied = new IdlSemanticModel(model.translationUnit(), symbols);
+
+    symbols.clear();
+
+    assertEquals(model.symbols(), copied.symbols());
+    assertEquals(
+        IdlConstantValue.Kind.INTEGER, IdlConstantValue.integer("long", BigInteger.ONE).kind());
+    assertEquals(
+        IdlConstantValue.Kind.FLOATING, IdlConstantValue.floating("double", BigDecimal.ONE).kind());
+    assertEquals(IdlConstantValue.Kind.BOOLEAN, IdlConstantValue.bool("boolean", true).kind());
+    assertEquals(IdlConstantValue.Kind.CHARACTER, IdlConstantValue.character("char", "x").kind());
+    assertEquals(IdlConstantValue.Kind.STRING, IdlConstantValue.string("string", "").kind());
+    assertEquals(
+        IdlConstantValue.Kind.ENUMERATOR,
+        IdlConstantValue.enumerator("::Demo::Color", "::Demo::Color::RED").kind());
+
+    assertThrows(
+        IllegalArgumentException.class, () -> IdlConstantValue.integer(" ", BigInteger.ONE));
+    assertThrows(NullPointerException.class, () -> IdlConstantValue.integer("long", null));
+    assertThrows(NullPointerException.class, () -> IdlConstantValue.floating("double", null));
+    assertThrows(IllegalArgumentException.class, () -> IdlConstantValue.character("char", ""));
+    assertThrows(NullPointerException.class, () -> IdlConstantValue.string("string", null));
+    assertThrows(
+        IllegalArgumentException.class, () -> IdlConstantValue.enumerator("::Demo::Color", " "));
+    assertThrows(NullPointerException.class, () -> new IdlSemanticModel(null, List.of()));
+    assertThrows(
+        NullPointerException.class, () -> new IdlSemanticModel(model.translationUnit(), null));
   }
 
   private IdlSemanticResult analyze(String source) {

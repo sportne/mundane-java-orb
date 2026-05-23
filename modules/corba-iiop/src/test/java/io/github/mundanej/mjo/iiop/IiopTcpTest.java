@@ -18,6 +18,7 @@ import io.github.mundanej.mjo.giop.GiopReply;
 import io.github.mundanej.mjo.giop.GiopReplyStatus;
 import io.github.mundanej.mjo.giop.GiopRequest;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
@@ -188,7 +189,39 @@ final class IiopTcpTest {
   }
 
   @Test
+  void frameBodyEofAndWriterFlushAreDeterministic() throws Exception {
+    assertIiopCode(
+        IiopDiagnosticCodes.EOF,
+        () ->
+            IiopFrameCodec.readMessage(
+                new ByteArrayInputStream(
+                    bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x05, 0, 0, 0, 4, 0x00)),
+                GiopLimits.defaults()));
+
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    IiopFrameCodec.writeMessage(
+        output,
+        new GiopCloseConnection(GiopHeader.forType(GiopMessageType.CLOSE_CONNECTION)),
+        GiopLimits.defaults());
+
+    assertArrayEquals(
+        bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x05, 0, 0, 0, 0), output.toByteArray());
+  }
+
+  @Test
   void endpointOptionsAndExceptionInputsAreValidated() {
+    assertThrows(NullPointerException.class, () -> new IiopEndpoint(null, 1));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IiopOptions(null, Duration.ZERO, 1, 1, GiopLimits.defaults()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IiopOptions(Duration.ZERO, null, 1, 1, GiopLimits.defaults()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IiopOptions(Duration.ZERO, Duration.ZERO, 1, 1, null));
+    assertEquals(new IiopEndpoint("127.0.0.1", 2809), new IiopEndpoint("127.0.0.1", 2809));
+
     assertIiopCode(IiopDiagnosticCodes.INVALID_CONFIGURATION, () -> new IiopEndpoint("", 1));
     assertIiopCode(IiopDiagnosticCodes.INVALID_CONFIGURATION, () -> IiopEndpoint.loopback(-1));
     assertIiopCode(IiopDiagnosticCodes.INVALID_CONFIGURATION, () -> IiopEndpoint.loopback(65_536));
@@ -241,6 +274,41 @@ final class IiopTcpTest {
 
         assertEquals(-1, socket.getInputStream().read());
       }
+    }
+  }
+
+  @Test
+  void clientClosesAfterPeerSendsNonReplyMessage() throws Exception {
+    AtomicReference<Throwable> peerFailure = new AtomicReference<>();
+
+    try (ServerSocket peer = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+      Thread peerThread =
+          new Thread(
+              () -> {
+                try (Socket socket = peer.accept()) {
+                  IiopFrameCodec.readMessage(socket.getInputStream(), GiopLimits.defaults());
+                  IiopFrameCodec.writeMessage(
+                      socket.getOutputStream(),
+                      new GiopCloseConnection(GiopHeader.forType(GiopMessageType.CLOSE_CONNECTION)),
+                      GiopLimits.defaults());
+                } catch (Throwable throwable) {
+                  peerFailure.set(throwable);
+                }
+              },
+              "mjo-iiop-non-reply-peer");
+      peerThread.setDaemon(true);
+      peerThread.start();
+
+      try (IiopClient client =
+          IiopClient.connect(IiopEndpoint.fromBoundSocket(peer), IiopOptions.defaults())) {
+        assertIiopCode(
+            IiopDiagnosticCodes.UNSUPPORTED_MESSAGE, () -> client.invoke(helloRequest(12, "Jae")));
+        assertIiopCode(IiopDiagnosticCodes.LIFECYCLE, () -> client.invoke(helloRequest(13, "Jae")));
+      }
+
+      peerThread.join(2_000);
+      assertTrue(!peerThread.isAlive());
+      assertNull(peerFailure.get());
     }
   }
 

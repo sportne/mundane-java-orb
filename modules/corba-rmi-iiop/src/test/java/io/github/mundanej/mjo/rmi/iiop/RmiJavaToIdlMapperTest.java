@@ -123,6 +123,84 @@ final class RmiJavaToIdlMapperTest {
   }
 
   @Test
+  void mapsPrimitiveArrayAndDeclaredValueEdgesDeterministically() {
+    RmiJavaRemoteInterface declaration =
+        new RmiJavaRemoteInterface(
+            "example.EdgeRemote",
+            true,
+            List.of(
+                RmiJavaOperation.abstractOperation(
+                    "edges",
+                    RmiJavaTypeReference.arrayOf(
+                        RmiJavaTypeReference.arrayOf(RmiJavaTypeReference.primitive("byte"))),
+                    List.of(
+                        new RmiJavaParameter("flag", RmiJavaTypeReference.primitive("boolean")),
+                        new RmiJavaParameter("letter", RmiJavaTypeReference.primitive("char")),
+                        new RmiJavaParameter("ratio", RmiJavaTypeReference.primitive("float")),
+                        new RmiJavaParameter("total", RmiJavaTypeReference.primitive("double")),
+                        new RmiJavaParameter(
+                            "value", RmiJavaTypeReference.declared("example.Value"))),
+                    List.of(REMOTE_EXCEPTION))));
+
+    RmiJavaToIdlResult result = mapper.map(declaration);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    RmiIdlOperation operation =
+        result
+            .translationUnit()
+            .orElseThrow()
+            .modules()
+            .getFirst()
+            .interfaces()
+            .getFirst()
+            .operations()
+            .getFirst();
+    assertEquals(RmiIdlTypeKind.SEQUENCE, operation.returnType().kind());
+    assertEquals(
+        RmiIdlTypeKind.SEQUENCE, operation.returnType().elementType().orElseThrow().kind());
+    assertEquals(
+        RmiIdlTypeReference.builtin("octet"),
+        operation.returnType().elementType().orElseThrow().elementType().orElseThrow());
+    assertEquals(
+        List.of(
+            RmiIdlTypeReference.builtin("boolean"),
+            RmiIdlTypeReference.builtin("wchar"),
+            RmiIdlTypeReference.builtin("float"),
+            RmiIdlTypeReference.builtin("double"),
+            RmiIdlTypeReference.declaredValue("::example::Value", "example.Value")),
+        operation.parameters().stream().map(RmiIdlParameter::type).toList());
+  }
+
+  @Test
+  void modelTypeReferencesValidateIncompatibleMetadata() {
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RmiJavaTypeReference(
+                RmiJavaTypeKind.DECLARED,
+                "example.Value",
+                Optional.of(RmiJavaTypeReference.primitive("int"))));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RmiIdlTypeReference(
+                RmiIdlTypeKind.BUILTIN, " ", Optional.empty(), Optional.empty()));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RmiIdlTypeReference(
+                RmiIdlTypeKind.BUILTIN, "long", Optional.of("example.Value"), Optional.empty()));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RmiIdlTypeReference(
+                RmiIdlTypeKind.DECLARED_VALUE,
+                "::example::Value",
+                Optional.of("example.Value"),
+                Optional.of(RmiIdlTypeReference.builtin("long"))));
+  }
+
+  @Test
   void propagatesEligibilityDiagnosticsWithoutCreatingModel() {
     RmiJavaRemoteInterface declaration =
         new RmiJavaRemoteInterface(

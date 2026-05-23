@@ -3,6 +3,7 @@ package io.github.mundanej.mjo.giop;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -92,6 +93,25 @@ final class GiopMessageCodecTest {
 
     GiopCancelRequest decoded = assertInstanceOf(GiopCancelRequest.class, reader.read(expected));
     assertEquals(5, decoded.requestId());
+  }
+
+  @Test
+  void littleEndianHeaderFlagsAndSizeDriveBodyByteOrder() {
+    GiopCancelRequest cancelRequest =
+        new GiopCancelRequest(
+            new GiopHeader(GiopVersion.GIOP_1_2, true, false, GiopMessageType.CANCEL_REQUEST, 0),
+            0x01020304L);
+    byte[] expected =
+        bytes(
+            0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x01, 0x02, 0x04, 0x00, 0x00, 0x00, 0x04, 0x03,
+            0x02, 0x01);
+
+    GoldenAssertions.assertBytesEquals(
+        "giop-cancel-request-little-endian", expected, writer.write(cancelRequest));
+
+    GiopCancelRequest decoded = assertInstanceOf(GiopCancelRequest.class, reader.read(expected));
+    assertTrue(decoded.header().littleEndian());
+    assertEquals(0x01020304L, decoded.requestId());
   }
 
   @Test
@@ -203,6 +223,105 @@ final class GiopMessageCodecTest {
     decodedContextData[0] = 0x55;
 
     assertEquals(List.of(new GiopServiceContext(42, bytes(0x01, 0x02))), decoded.serviceContexts());
+  }
+
+  @Test
+  void serviceContextValueObjectHasStableEqualityHashAndSummary() {
+    GiopServiceContext context = new GiopServiceContext(0xFFFF_FFFFL, bytes(0x01, 0x02));
+
+    assertEquals(context, new GiopServiceContext(0xFFFF_FFFFL, bytes(0x01, 0x02)));
+    assertEquals(
+        context.hashCode(), new GiopServiceContext(0xFFFF_FFFFL, bytes(0x01, 0x02)).hashCode());
+    assertNotEquals(context, new GiopServiceContext(1, bytes(0x01, 0x02)));
+    assertNotEquals(context, new GiopServiceContext(0xFFFF_FFFFL, bytes(0x01)));
+    assertNotEquals(context, "context");
+    assertEquals(
+        "GiopServiceContext[contextId=4294967295, contextDataLength=2]", context.toString());
+  }
+
+  @Test
+  void modelValuesRejectInvalidHeadersUnsignedBoundsAndBlankOperations() {
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () -> new GiopHeader(GiopVersion.GIOP_1_2, false, false, GiopMessageType.REQUEST, -1));
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REPLY),
+                1,
+                3,
+                bytes(0x4B),
+                "op",
+                List.of(),
+                bytes()));
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                -1,
+                3,
+                bytes(0x4B),
+                "op",
+                List.of(),
+                bytes()));
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                0x1_0000_0000L,
+                3,
+                bytes(0x4B),
+                "op",
+                List.of(),
+                bytes()));
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                1,
+                0x100,
+                bytes(0x4B),
+                "op",
+                List.of(),
+                bytes()));
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                1,
+                3,
+                bytes(0x4B),
+                " ",
+                List.of(),
+                bytes()));
+    assertGiopCode(GiopDiagnosticCodes.INVALID_BODY, () -> new GiopServiceContext(-1, bytes()));
+  }
+
+  @Test
+  void statusLookupsRejectUnknownWireIdsAndMalformedReservedBytes() {
+    assertEquals(GiopReplyStatus.NEEDS_ADDRESSING_MODE, GiopReplyStatus.fromId(5));
+    assertEquals(GiopLocateStatus.LOC_NEEDS_ADDRESSING_MODE, GiopLocateStatus.fromId(5));
+    assertGiopCode(GiopDiagnosticCodes.INVALID_BODY, () -> GiopReplyStatus.fromId(6));
+    assertGiopCode(GiopDiagnosticCodes.INVALID_BODY, () -> GiopLocateStatus.fromId(6));
+
+    byte[] request =
+        writer.write(
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                1,
+                3,
+                bytes(0x4B),
+                "op",
+                List.of(),
+                bytes()));
+    request[17] = 0x01;
+
+    assertGiopCode(GiopDiagnosticCodes.INVALID_BODY, () -> reader.read(request));
   }
 
   @Test

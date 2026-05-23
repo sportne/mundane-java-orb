@@ -50,6 +50,23 @@ final class NamingNameTest {
 
     assertThrows(
         UnsupportedOperationException.class, () -> name.components().add(NameComponent.id("c")));
+    assertThrows(
+        UnsupportedOperationException.class,
+        () -> name.parentComponents().add(NameComponent.id("c")));
+  }
+
+  @Test
+  void parsesKindOnlyComponentsAndRejectsNullFactoryInputs() {
+    NamingName name = NamingName.parse(".kind/leaf");
+
+    assertEquals(new NameComponent("", "kind"), name.components().get(0));
+    assertEquals(".kind/leaf", name.stringified());
+    assertThrows(NullPointerException.class, () -> NamingName.parse(null));
+    assertThrows(NullPointerException.class, () -> NamingName.of(null));
+    assertThrows(
+        NullPointerException.class,
+        () -> NamingName.of(NameComponent.id("a"), (NameComponent) null));
+    assertThrows(NullPointerException.class, () -> NameComponent.id(null));
   }
 
   @Test

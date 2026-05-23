@@ -13,7 +13,9 @@ import io.github.mundanej.mjo.idl.lexer.IdlTokenKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,6 +46,30 @@ final class IdlPreprocessorTest {
             tempDir.resolve("common.idl").toAbsolutePath().normalize().toString(),
             nestedDir.resolve("Types.idl").toAbsolutePath().normalize().toString()),
         result.includedSourceNames());
+    assertFalse(result.hasErrors());
+  }
+
+  @Test
+  void passesIncludeRequestDetailsToResolverAndRecordsResolvedSourceName() {
+    List<IdlIncludeRequest> requests = new ArrayList<>();
+    IdlPreprocessor preprocessor =
+        new IdlPreprocessor(
+            request -> {
+              requests.add(request);
+              return Optional.of(new IdlSource("virtual/defs.idl", "interface FromInclude;\n"));
+            });
+
+    IdlPreprocessResult result =
+        preprocessor.preprocess(new IdlSource("root.idl", "#include <defs.idl>\n"));
+
+    assertEquals(List.of("interface", "FromInclude", ";"), nonEofLexemes(result));
+    assertEquals(List.of("virtual/defs.idl"), result.includedSourceNames());
+    IdlIncludeRequest request = requests.getFirst();
+    assertEquals("defs.idl", request.includeName());
+    assertEquals(IdlIncludeKind.SYSTEM, request.kind());
+    assertEquals("root.idl", request.requestingSourceName());
+    assertEquals(1, request.span().start().line());
+    assertEquals(1, request.span().start().column());
     assertFalse(result.hasErrors());
   }
 
@@ -251,6 +277,34 @@ final class IdlPreprocessorTest {
   }
 
   @Test
+  void ignoresIncludesAndMacroDefinitionsInsideInactiveConditionals() {
+    IdlPreprocessor preprocessor =
+        new IdlPreprocessor(
+            request -> {
+              throw new AssertionError("inactive include should not be resolved");
+            });
+
+    IdlPreprocessResult result =
+        preprocessor.preprocess(
+            new IdlSource(
+                "inactive.idl",
+                """
+                #if 0
+                #include "ignored.idl"
+                #define NAME Ignored
+                #else
+                interface Alive;
+                #endif
+                NAME after;
+                """));
+
+    assertEquals(List.of("interface", "Alive", ";", "NAME", "after", ";"), nonEofLexemes(result));
+    assertEquals(List.of(), diagnosticCodes(result));
+    assertEquals(List.of(), result.includedSourceNames());
+    assertFalse(result.hasErrors());
+  }
+
+  @Test
   void reportsUnterminatedConditionalsAndPassesThroughPragmaTokens() {
     IdlPreprocessResult result =
         new IdlPreprocessor()
@@ -260,6 +314,34 @@ final class IdlPreprocessorTest {
     assertEquals(List.of("#", "pragma", "prefix", "\"example\""), nonEofLexemes(result));
     assertEquals(
         List.of(IdlPreprocessorDiagnosticCodes.UNTERMINATED_CONDITIONAL), diagnosticCodes(result));
+  }
+
+  @Test
+  void reportsMalformedIncludeMacroAndConditionalDirectives() {
+    IdlPreprocessResult result =
+        new IdlPreprocessor()
+            .preprocess(
+                new IdlSource(
+                    "malformed-directives.idl",
+                    """
+                    #include
+                    #define
+                    #undef
+                    #if defined(
+                    #else
+                    #else
+                    #endif
+                    """));
+
+    assertEquals(List.of(), nonEofLexemes(result));
+    assertEquals(
+        List.of(
+            IdlPreprocessorDiagnosticCodes.MALFORMED_INCLUDE,
+            IdlPreprocessorDiagnosticCodes.MALFORMED_MACRO,
+            IdlPreprocessorDiagnosticCodes.MALFORMED_MACRO,
+            IdlPreprocessorDiagnosticCodes.UNSUPPORTED_CONDITIONAL_EXPRESSION,
+            IdlPreprocessorDiagnosticCodes.MALFORMED_CONDITIONAL),
+        diagnosticCodes(result));
   }
 
   @Test

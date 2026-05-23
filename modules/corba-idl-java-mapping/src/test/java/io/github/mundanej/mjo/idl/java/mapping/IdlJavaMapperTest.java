@@ -180,6 +180,101 @@ final class IdlJavaMapperTest {
   }
 
   @Test
+  void mapsNamesTypesConstantsAndValueObjectAliasesAcrossScopes() {
+    JavaMappingModel model =
+        mapper.map(
+            semanticModel(
+                """
+                module Outer {
+                  module Inner {
+                    enum MixedCase { firstValue, second_value };
+                    const MixedCase CHOSEN = MixedCase::firstValue;
+                    const long MASK = (1 << 4) | 3;
+                    struct ValueHolder { any value; MixedCase color; };
+                    interface Service {
+                      readonly attribute any result;
+                      any invoke(in ValueHolder payload, in any anyValue);
+                    };
+                  };
+                };
+                """),
+            JavaMappingMode.MODERN);
+
+    assertEquals(
+        List.of(
+            "modern.outer.inner.MixedCase",
+            "modern.outer.inner.ValueHolder",
+            "modern.outer.inner.Service"),
+        model.types().stream().map(type -> type.name().qualifiedName()).toList());
+
+    JavaMappedType mixedCase = model.types().get(0);
+    assertEquals(List.of("FIRST_VALUE", "SECOND_VALUE"), mixedCase.enumConstants());
+
+    JavaMappedType valueObject = model.types().get(1);
+    assertEquals(JavaMappedTypeKind.STRUCT, valueObject.kind());
+    assertEquals(
+        List.of("java.lang.Object", "modern.outer.inner.MixedCase"),
+        valueObject.fields().stream().map(JavaMappedField::javaType).toList());
+    assertEquals(
+        List.of("value", "color"),
+        valueObject.fields().stream().map(JavaMappedField::name).toList());
+
+    JavaMappedType service = model.types().get(2);
+    assertEquals(JavaMappedTypeKind.INTERFACE, service.kind());
+    assertEquals("java.lang.Object", service.attributes().getFirst().javaType());
+    assertEquals("java.lang.Object", service.operations().getFirst().returnType());
+    assertEquals(
+        List.of("modern.outer.inner.ValueHolder", "java.lang.Object"),
+        service.operations().getFirst().parameters().stream()
+            .map(JavaMappedParameter::javaType)
+            .toList());
+
+    JavaMappedConstantScope constants = constantScope(model, "modern.outer.inner.IdlConstants");
+    assertEquals(
+        List.of("modern.outer.inner.MixedCase.FIRST_VALUE", "19"),
+        constants.constants().stream().map(JavaMappedConstant::initializer).toList());
+  }
+
+  @Test
+  void mappedValueRecordsValidateInputsAndDefensivelyCopyCollections() {
+    JavaMappedField field = new JavaMappedField("int", "count");
+    JavaMappedType type =
+        new JavaMappedType(
+            JavaMappedTypeKind.STRUCT,
+            new JavaMappedName("demo", "Counter"),
+            new java.util.ArrayList<>(List.of(field)),
+            new java.util.ArrayList<>(),
+            new java.util.ArrayList<>(),
+            new java.util.ArrayList<>());
+    JavaMappingModel model =
+        new JavaMappingModel(
+            JavaMappingMode.LEGACY_COMPATIBILITY,
+            "manual.idl",
+            new java.util.ArrayList<>(List.of(type)),
+            List.of(
+                new JavaMappedConstantScope(
+                    new JavaMappedName("demo", "IdlConstants"),
+                    new java.util.ArrayList<>(
+                        List.of(new JavaMappedConstant("int", "COUNT", "1"))))));
+
+    assertEquals("demo.Counter", type.name().qualifiedName());
+    assertThrows(UnsupportedOperationException.class, () -> type.fields().add(field));
+    assertThrows(UnsupportedOperationException.class, () -> model.constantScopes().clear());
+    assertThrows(IllegalArgumentException.class, () -> new JavaMappedField(" ", "count"));
+    assertThrows(IllegalArgumentException.class, () -> new JavaMappedParameter("int", ""));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new JavaMappedOperation("void", " ", List.of(), List.of()));
+    assertThrows(IllegalArgumentException.class, () -> new JavaMappedAttribute("", "value", true));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new JavaMappedConstantScope(new JavaMappedName("demo", "Empty"), List.of()));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new JavaMappingModel(JavaMappingMode.MODERN, " ", List.of(), List.of()));
+  }
+
+  @Test
   void mapsApprovedRmiGeneratedIdlFixture() {
     JavaMappingModel model =
         mapper.map(

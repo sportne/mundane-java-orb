@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -47,6 +48,24 @@ final class NativeImageCommandTest {
     assertThrows(IllegalArgumentException.class, () -> new NativeImageTarget("sample", " ", "x"));
     assertThrows(
         IllegalArgumentException.class, () -> new NativeImageTarget("sample", "example.Main", ""));
+  }
+
+  @Test
+  void commandDefensivelyCopiesClasspathAndReturnsImmutableArguments() {
+    List<Path> classpath = new ArrayList<>(List.of(Path.of("a.jar")));
+    NativeImageCommand command =
+        new NativeImageCommand(
+            new NativeImageToolchain(Path.of("native-image"), NativeImageToolchain.Source.PATH),
+            new NativeImageTarget("sample", "example.Main", "sample-native-smoke"),
+            classpath,
+            Path.of("build/native"));
+
+    classpath.add(Path.of("b.jar"));
+
+    assertEquals("a.jar", command.compileArguments().get(5));
+    assertThrows(UnsupportedOperationException.class, () -> command.compileArguments().clear());
+    assertThrows(UnsupportedOperationException.class, () -> command.commandLine().clear());
+    assertThrows(UnsupportedOperationException.class, () -> command.classpathEntries().clear());
   }
 
   @Test

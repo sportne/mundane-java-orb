@@ -182,6 +182,34 @@ final class LocalOrbTest {
   }
 
   @Test
+  void foreignReferenceWithCollidingObjectIdStillFailsOwnerCheck() {
+    LocalObjectReference<Greeter> foreignReference =
+        LocalOrb.create()
+            .bind(Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant()));
+    LocalOrb orb = LocalOrb.create();
+
+    orb.bind(Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant()));
+
+    OBJECT_NOT_EXIST exception =
+        assertThrows(
+            OBJECT_NOT_EXIST.class, () -> orb.invoke(foreignReference, GREET, List.of("Ada")));
+
+    assertEquals("Local object reference belongs to a different local ORB", exception.getMessage());
+    assertEquals(CompletionStatus.COMPLETED_NO, exception.completed);
+  }
+
+  @Test
+  void unbindingMissingObjectIdIsNoopAndLeavesExistingBindingsUsable() {
+    LocalOrb orb = LocalOrb.create();
+    LocalObjectReference<Greeter> reference =
+        orb.bind(Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant()));
+
+    orb.unbind("missing");
+
+    assertEquals("Hello Ada", orb.invoke(reference, GREET, List.of("Ada")));
+  }
+
+  @Test
   void operationAndArgumentValidationHappensBeforeDispatch() {
     LocalOrb orb = LocalOrb.create();
     CountingDispatcher dispatcher = new CountingDispatcher();
@@ -239,6 +267,22 @@ final class LocalOrbTest {
 
     assertEquals(CompletionStatus.COMPLETED_NO, bindFailure.completed);
     assertEquals(CompletionStatus.COMPLETED_NO, invokeFailure.completed);
+  }
+
+  @Test
+  void shutdownClearsBindingsAndInitialReferencesBeforeReportingInactive() {
+    LocalOrb orb = LocalOrb.create();
+    LocalObjectReference<Greeter> reference =
+        orb.bind(Greeter.class, GREETER_DESCRIPTOR, new GreeterDispatcher(new GreeterServant()));
+
+    orb.registerInitialReference("NameService", GreeterServant.class, new GreeterServant());
+    orb.shutdown();
+
+    assertThrows(
+        OBJECT_NOT_EXIST.class, () -> LocalOrb.create().invoke(reference, GREET, List.of()));
+    assertThrows(BAD_INV_ORDER.class, () -> orb.invoke(reference, GREET, List.of("Ada")));
+    assertThrows(
+        BAD_INV_ORDER.class, () -> orb.resolveInitialReference("NameService", Object.class));
   }
 
   @Test
@@ -352,6 +396,25 @@ final class LocalOrbTest {
 
     UNKNOWN exception =
         assertThrows(UNKNOWN.class, () -> orb.invoke(reference, GREET, List.of("Ada")));
+
+    assertSame(cause, exception.getCause());
+    assertEquals(CompletionStatus.COMPLETED_MAYBE, exception.completed);
+  }
+
+  @Test
+  void runtimeExceptionsAreNeverMappedAsDeclaredUserExceptions() {
+    LocalOrb orb = LocalOrb.create();
+    IllegalStateException cause = new IllegalStateException("declared runtime");
+    LocalObjectReference<RiskyGreeter> reference =
+        orb.bind(
+            RiskyGreeter.class,
+            RISKY_GREETER_DESCRIPTOR,
+            request -> {
+              throw cause;
+            });
+
+    UNKNOWN exception =
+        assertThrows(UNKNOWN.class, () -> orb.invoke(reference, RISKY_GREET, List.of("Ada")));
 
     assertSame(cause, exception.getCause());
     assertEquals(CompletionStatus.COMPLETED_MAYBE, exception.completed);

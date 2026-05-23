@@ -65,6 +65,27 @@ final class ObjectUrlTest {
   }
 
   @Test
+  void parsesBoundaryObjectUrlsAndAddressValueObjects() {
+    CorbalocUrl noSlash = CorbalocUrl.parse("CORBALOC::h");
+    CorbalocUrl escaped = CorbalocUrl.parse("corbaloc::h/%2F%00%7f");
+    CorbanameUrl noFragment = CorbanameUrl.parse("corbaname::h");
+    CorbalocAddress future = CorbalocAddress.future("proto", "addr");
+
+    assertEquals("", noSlash.keyString());
+    assertArrayEquals(bytes(), noSlash.objectKey().octets());
+    assertArrayEquals(bytes('/', 0x00, 0x7F), escaped.objectKey().octets());
+    assertEquals("", noFragment.stringName());
+    assertEquals("", noFragment.location().keyString());
+    assertEquals(CorbalocAddress.Kind.FUTURE, future.kind());
+    assertEquals("proto", future.protocol());
+    assertEquals("addr", future.protocolSpecificAddress().orElseThrow());
+    assertTrue(future.toString().contains("proto:addr"));
+    assertIorCode(IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocAddress.future(" ", "x"));
+    assertThrows(NullPointerException.class, () -> CorbalocAddress.iiop(null, "h", 1));
+    assertThrows(NullPointerException.class, () -> CorbalocAddress.iiop(IiopVersion.V1_0, null, 1));
+  }
+
+  @Test
   void reportsInvalidObjectUrlsAndBounds() {
     IorLimits strict =
         new IorLimits(
@@ -86,14 +107,26 @@ final class ObjectUrlTest {
         IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc:rir:,:h/k"));
     assertIorCode(
         IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc:iiop:1@h/k"));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc:iiop:1.x@h/k"));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc:iiop:.2@h/k"));
     assertIorCode(IorDiagnosticCodes.INVALID_PORT, () -> CorbalocUrl.parse("corbaloc::h:99999/k"));
+    assertIorCode(IorDiagnosticCodes.INVALID_PORT, () -> CorbalocUrl.parse("corbaloc::h:/k"));
+    assertIorCode(IorDiagnosticCodes.INVALID_PORT, () -> CorbalocUrl.parse("corbaloc::h:abc/k"));
     assertIorCode(
         IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc::[1080::1/k"));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc::[1080::1]x/k"));
     assertIorCode(IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc::h/%"));
     assertIorCode(
         IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaloc::h/%GG"));
     assertIorCode(
-        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbalocUrl.parse("corbaname::h#caf\u00E9"));
+        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbanameUrl.parse("corbaname::h#%"));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_OBJECT_URL, () -> CorbanameUrl.parse("corbaname::h#caf\u00E9"));
+    assertEquals(
+        "", CorbalocUrl.parse("corbaloc::", strict).addresses().getFirst().host().orElseThrow());
     assertIorCode(
         IorDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
         () -> CorbalocUrl.parse("corbaloc::h/key", strict));
@@ -174,6 +207,14 @@ final class ObjectUrlTest {
     byte[] bytes = new byte[value.length()];
     for (int index = 0; index < value.length(); index++) {
       bytes[index] = (byte) value.charAt(index);
+    }
+    return bytes;
+  }
+
+  private static byte[] bytes(int... values) {
+    byte[] bytes = new byte[values.length];
+    for (int index = 0; index < values.length; index++) {
+      bytes[index] = (byte) values[index];
     }
     return bytes;
   }

@@ -147,6 +147,30 @@ final class CdrCollectionTest {
   }
 
   @Test
+  void encapsulationValuesValidateNullsAndExposeTrailingNestedBytesDeterministically() {
+    assertThrows(NullPointerException.class, () -> new CdrEncapsulation(null, bytes(0x00)));
+    assertThrows(
+        NullPointerException.class, () -> new CdrEncapsulation(CdrByteOrder.BIG_ENDIAN, null));
+    assertThrows(NullPointerException.class, () -> CdrEncapsulation.of(null, bytes()));
+    assertThrows(
+        NullPointerException.class, () -> CdrEncapsulation.of(CdrByteOrder.BIG_ENDIAN, null));
+    assertThrows(NullPointerException.class, () -> CdrEncapsulation.fromBytes(null));
+    assertThrows(
+        NullPointerException.class,
+        () -> CdrEncapsulation.of(CdrByteOrder.BIG_ENDIAN, bytes()).reader(null));
+
+    CdrEncapsulation encapsulation =
+        CdrEncapsulation.of(
+            CdrByteOrder.BIG_ENDIAN, bytes(0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2A, 0x7F));
+    CdrReader nested = encapsulation.reader();
+
+    assertEquals(42, nested.readLong());
+    assertEquals(1, nested.remaining());
+    assertEquals(0x7F, nested.readOctet());
+    assertEquals(0, nested.remaining());
+  }
+
+  @Test
   void rawOctetsRoundTripWithoutLengthPrefixAndUseDefensiveCopies() {
     byte[] octets = bytes(0x01, 0x02, 0x03);
     CdrWriter writer = CdrWriter.bigEndian().writeOctets(octets);
@@ -291,6 +315,17 @@ final class CdrCollectionTest {
     assertCdrCode(
         CdrDiagnosticCodes.INVALID_ENCAPSULATION_BYTE_ORDER,
         () -> new CdrEncapsulation(CdrByteOrder.BIG_ENDIAN, bytes(0x01)));
+    assertCdrCode(
+        CdrDiagnosticCodes.TRUNCATED_INPUT,
+        () -> CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x02, 0x00)).readEncapsulation());
+    assertCdrCode(
+        CdrDiagnosticCodes.INVALID_ENCAPSULATION_BYTE_ORDER,
+        () -> CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x01, 0x02)).readEncapsulation());
+
+    CdrReader reader = CdrReader.bigEndian(bytes(0x00, 0x00, 0x00, 0x01, 0x00, 0x7E));
+    assertEquals(CdrByteOrder.BIG_ENDIAN, reader.readEncapsulation().byteOrder());
+    assertEquals(1, reader.remaining());
+    assertEquals(0x7E, reader.readOctet());
   }
 
   @Test

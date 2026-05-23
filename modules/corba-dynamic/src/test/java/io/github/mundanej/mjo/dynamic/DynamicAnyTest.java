@@ -98,6 +98,19 @@ final class DynamicAnyTest {
         assertThrows(
             DynamicException.class,
             () -> DynamicAnyFactory.aggregate(DynamicTestFixtures.pointType(), Map.of()));
+    DynamicException unknownMember =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                DynamicAnyFactory.aggregate(
+                    DynamicTestFixtures.pointType(),
+                    Map.of(
+                        "x",
+                        DynamicAnyFactory.value(IdlTypeCode.LONG, 5),
+                        "label",
+                        DynamicAnyFactory.value(IdlTypeCode.STRING, "origin"),
+                        "extra",
+                        DynamicAnyFactory.value(IdlTypeCode.LONG, 9))));
     DynamicException wrongSequenceElement =
         assertThrows(
             DynamicException.class,
@@ -111,6 +124,7 @@ final class DynamicAnyTest {
     assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, outOfRangeOctet.code());
     assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, unsupportedInterface.code());
     assertEquals(DynamicDiagnosticCodes.INVALID_ARGUMENTS, missingMember.code());
+    assertEquals(DynamicDiagnosticCodes.INVALID_ARGUMENTS, unknownMember.code());
     assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, wrongSequenceElement.code());
     assertThrows(
         DynamicException.class,
@@ -155,6 +169,17 @@ final class DynamicAnyTest {
 
     assertEquals("origin", point.member("label").value());
     assertEquals(1, sequence.element(0).value());
+  }
+
+  @Test
+  void longDoublePayloadsAreCopiedOnIngress() {
+    byte[] payload = new byte[16];
+    payload[0] = 7;
+
+    DynamicAny value = DynamicAnyFactory.value(IdlTypeCode.LONG_DOUBLE, payload);
+    payload[0] = 9;
+
+    assertEquals(7, ((byte[]) value.value())[0]);
   }
 
   @Test

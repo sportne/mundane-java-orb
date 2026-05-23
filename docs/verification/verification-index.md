@@ -6,6 +6,7 @@
 - `fixture-conventions.md`
 - `g6-release-hardening-closure.md`
 - `g7-rmi-iiop-native-security-closure.md`
+- `g9-exhaustive-test-hardening.md`
 - `g5-validation-gate-readiness.md`
 - `interop-matrix.md`
 - `native-image-matrix.md`

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import io.github.mundanej.mjo.cdr.CdrReader;
 import io.github.mundanej.mjo.cdr.CdrWriter;
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
@@ -74,6 +75,9 @@ final class IdlDescriptorTest {
     assertEquals("deferred codec", readFailure.getMessage());
     assertEquals("deferred codec", writeFailure.getMessage());
     assertThrows(IllegalArgumentException.class, () -> new UnsupportedIdlCodec<>(" "));
+    assertThrows(NullPointerException.class, () -> new UnsupportedIdlCodec<>(null));
+    assertThrows(NullPointerException.class, () -> codec.read(null));
+    assertThrows(NullPointerException.class, () -> codec.write(null, new Object()));
   }
 
   @Test
@@ -131,5 +135,136 @@ final class IdlDescriptorTest {
                 List.of()));
     assertThrows(UnsupportedOperationException.class, () -> descriptor.fields().clear());
     assertThrows(UnsupportedOperationException.class, () -> descriptor.enumConstants().clear());
+  }
+
+  @Test
+  void descriptorValueObjectsRejectNullContracts() {
+    RepositoryId repositoryId = RepositoryId.parse("IDL:demo/Thing:1.0");
+    IdlTypeReference longType =
+        new IdlTypeReference(IdlTypeKind.PRIMITIVE, "long", "int", Optional.empty());
+
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlTypeReference(null, "long", "int", Optional.empty()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlTypeReference(IdlTypeKind.PRIMITIVE, null, "int", Optional.empty()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlTypeReference(IdlTypeKind.PRIMITIVE, "long", null, Optional.empty()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlTypeReference(IdlTypeKind.PRIMITIVE, "long", "int", null));
+    assertThrows(NullPointerException.class, () -> new IdlFieldDescriptor("value", null));
+    assertThrows(
+        NullPointerException.class, () -> new IdlParameterDescriptor("value", null, longType));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlParameterDescriptor("value", IdlParameterMode.IN, null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlOperationDescriptor("current", null, List.of(), List.of()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlOperationDescriptor("current", longType, null, List.of()));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlOperationDescriptor("current", longType, List.of(), null));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new IdlGeneratedTypeDescriptor(
+                null,
+                "::demo::Thing",
+                "demo.Thing",
+                repositoryId,
+                List.of(),
+                List.of(),
+                List.of()));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new IdlGeneratedTypeDescriptor(
+                IdlTypeKind.STRUCT,
+                "::demo::Thing",
+                "demo.Thing",
+                null,
+                List.of(),
+                List.of(),
+                List.of()));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new IdlGeneratedTypeDescriptor(
+                IdlTypeKind.STRUCT,
+                "::demo::Thing",
+                "demo.Thing",
+                repositoryId,
+                null,
+                List.of(),
+                List.of()));
+  }
+
+  @Test
+  void descriptorCollectionsAreDefensiveCopies() {
+    RepositoryId repositoryId = RepositoryId.parse("IDL:demo/Thing:1.0");
+    IdlTypeReference longType =
+        new IdlTypeReference(IdlTypeKind.PRIMITIVE, "long", "int", Optional.empty());
+    IdlTypeReference problemType =
+        new IdlTypeReference(
+            IdlTypeKind.EXCEPTION,
+            "::demo::Problem",
+            "demo.Problem",
+            Optional.of(RepositoryId.parse("IDL:demo/Problem:1.0")));
+    IdlParameterDescriptor parameter =
+        new IdlParameterDescriptor("value", IdlParameterMode.INOUT, longType);
+    ArrayList<IdlParameterDescriptor> parameters = new ArrayList<>(List.of(parameter));
+    ArrayList<IdlTypeReference> raises = new ArrayList<>(List.of(problemType));
+    IdlOperationDescriptor operation =
+        new IdlOperationDescriptor("set", longType, parameters, raises);
+    ArrayList<IdlFieldDescriptor> fields =
+        new ArrayList<>(List.of(new IdlFieldDescriptor("value", longType)));
+    ArrayList<String> enumConstants = new ArrayList<>(List.of("ONE"));
+    ArrayList<IdlOperationDescriptor> operations = new ArrayList<>(List.of(operation));
+    IdlGeneratedTypeDescriptor descriptor =
+        new IdlGeneratedTypeDescriptor(
+            IdlTypeKind.STRUCT,
+            "::demo::Thing",
+            "demo.Thing",
+            repositoryId,
+            fields,
+            enumConstants,
+            operations);
+
+    parameters.clear();
+    raises.clear();
+    fields.clear();
+    enumConstants.clear();
+    operations.clear();
+
+    assertEquals(List.of(parameter), operation.parameters());
+    assertEquals(List.of(problemType), operation.raises());
+    assertEquals(List.of(new IdlFieldDescriptor("value", longType)), descriptor.fields());
+    assertEquals(List.of("ONE"), descriptor.enumConstants());
+    assertEquals(List.of(operation), descriptor.operations());
+    assertThrows(UnsupportedOperationException.class, () -> operation.parameters().clear());
+    assertThrows(UnsupportedOperationException.class, () -> operation.raises().clear());
+    assertThrows(UnsupportedOperationException.class, () -> descriptor.operations().clear());
+  }
+
+  @Test
+  void descriptorEnumsRemainInStableOrder() {
+    assertEquals(
+        List.of(
+            IdlTypeKind.VOID,
+            IdlTypeKind.PRIMITIVE,
+            IdlTypeKind.INTERFACE,
+            IdlTypeKind.STRUCT,
+            IdlTypeKind.ENUM,
+            IdlTypeKind.EXCEPTION),
+        List.of(IdlTypeKind.values()));
+    assertEquals(
+        List.of(IdlParameterMode.IN, IdlParameterMode.OUT, IdlParameterMode.INOUT),
+        List.of(IdlParameterMode.values()));
   }
 }

@@ -25,7 +25,17 @@ final class RepositoryIdVersionTest {
   }
 
   @Test
+  void acceptsMaximumLongVersionComponents() {
+    RepositoryIdVersion version = RepositoryIdVersion.parse(Long.MAX_VALUE + "." + Long.MAX_VALUE);
+
+    assertEquals(Long.MAX_VALUE, version.major());
+    assertEquals(Long.MAX_VALUE, version.minor());
+    assertEquals(Long.MAX_VALUE + "." + Long.MAX_VALUE, version.toString());
+  }
+
+  @Test
   void rejectsInvalidVersionValues() {
+    assertThrows(NullPointerException.class, () -> RepositoryIdVersion.parse(null));
     assertThrows(RepositoryIdException.class, () -> new RepositoryIdVersion(-1, 0));
     assertThrows(RepositoryIdException.class, () -> new RepositoryIdVersion(1, -1));
     assertThrows(RepositoryIdException.class, () -> RepositoryIdVersion.parse("1"));
@@ -35,5 +45,7 @@ final class RepositoryIdVersionTest {
     assertThrows(RepositoryIdException.class, () -> RepositoryIdVersion.parse("1.-2"));
     assertThrows(
         RepositoryIdException.class, () -> RepositoryIdVersion.parse("999999999999999999999.0"));
+    assertThrows(
+        RepositoryIdException.class, () -> RepositoryIdVersion.parse("9223372036854775808.0"));
   }
 }

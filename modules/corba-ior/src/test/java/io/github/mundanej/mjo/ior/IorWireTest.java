@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mjo.common.BoundedLimit;
 import io.github.mundanej.mjo.testkit.GoldenAssertions;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -90,6 +91,59 @@ final class IorWireTest {
     assertEquals(component, new TaggedComponent(7, bytes(0x04)));
     assertNotEquals(component, new TaggedComponent(8, bytes(0x04)));
     assertEquals("TaggedComponent[tag=7, dataLength=1]", component.toString());
+  }
+
+  @Test
+  void objectKeyVersionsAndProfilesBehaveAsStableWireValues() {
+    byte[] keyBytes = bytes(0x0A, 0x0B);
+    ObjectKey key = new ObjectKey(keyBytes);
+    keyBytes[0] = 0x7F;
+    byte[] first = key.octets();
+    first[1] = 0x7E;
+
+    assertEquals(new ObjectKey(bytes(0x0A, 0x0B)), key);
+    assertEquals(new ObjectKey(bytes(0x0A, 0x0B)).hashCode(), key.hashCode());
+    assertNotEquals(key, new ObjectKey(bytes(0x0A)));
+    assertNotEquals(key, "key");
+    assertEquals("0A0B", key.toHex());
+    assertEquals("ObjectKey[octets=2]", key.toString());
+
+    assertTrue(IiopVersion.V1_1.carriesTaggedComponents());
+    assertTrue(IiopVersion.V1_2.carriesTaggedComponents());
+    assertEquals("1.2", IiopVersion.V1_2.toString());
+    assertIorCode(IorDiagnosticCodes.INVALID_IIOP_PROFILE, () -> new IiopVersion(-1, 0));
+    assertIorCode(IorDiagnosticCodes.INVALID_IIOP_PROFILE, () -> new IiopVersion(1, 256));
+  }
+
+  @Test
+  void encapsulatedIorsRejectTrailingBytesAndProfileTrailingRulesAreVersioned() {
+    byte[] nullReference = Ior.nullReference().toEncapsulation();
+    byte[] trailingIor = Arrays.copyOf(nullReference, nullReference.length + 1);
+    trailingIor[trailingIor.length - 1] = 0x7E;
+
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_IIOP_PROFILE, () -> Ior.fromEncapsulation(trailingIor));
+
+    byte[] profileData =
+        new IiopProfile(IiopVersion.V1_0, "h", 1, ObjectKey.empty(), List.of()).toProfileData();
+    byte[] trailingProfileData = Arrays.copyOf(profileData, profileData.length + 1);
+    trailingProfileData[trailingProfileData.length - 1] = 0x7F;
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_IIOP_PROFILE,
+        () -> IiopProfile.fromProfileData(trailingProfileData));
+
+    IiopProfile futureMinor =
+        new IiopProfile(
+            new IiopVersion(1, 3),
+            "h",
+            1,
+            ObjectKey.empty(),
+            List.of(),
+            bytes(0xAA),
+            IorLimits.defaults());
+    IiopProfile decoded = IiopProfile.fromProfileData(futureMinor.toProfileData());
+    assertEquals(futureMinor, decoded);
+    assertArrayEquals(bytes(0xAA), decoded.trailingData());
   }
 
   @Test

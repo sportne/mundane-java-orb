@@ -178,6 +178,66 @@ final class JavaDescriptorSourceGeneratorTest {
   }
 
   @Test
+  void rendersRepositoryInCommonMetadataPackageForMixedDeclarationPackages() throws Exception {
+    IdlSemanticModel semanticModel =
+        semanticModel(
+            "mixed-packages.idl",
+            """
+            module Gamma {
+              struct Global { long id; };
+            };
+            module Alpha {
+              struct A { string label; };
+            };
+            module Beta {
+              interface B {
+                long getA(in long global);
+              };
+            };
+            """);
+
+    List<GeneratedJavaSource> descriptorSources =
+        generator.generate(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY);
+    List<GeneratedJavaSource> compileSources = new ArrayList<>(descriptorSources);
+    compileSources.addAll(
+        sourceGenerator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY)));
+
+    assertEquals(
+        List.of(
+            "alpha/codec/ACodec.java",
+            "alpha/metadata/ADescriptor.java",
+            "beta/codec/BCodec.java",
+            "beta/metadata/BDescriptor.java",
+            "gamma/codec/GlobalCodec.java",
+            "gamma/metadata/GlobalDescriptor.java",
+            "metadata/GeneratedInterfaceRepository.java"),
+        sourcePaths(descriptorSources));
+    String repositorySource =
+        descriptorSources.stream()
+            .filter(
+                source -> source.sourcePath().equals("metadata/GeneratedInterfaceRepository.java"))
+            .findFirst()
+            .orElseThrow()
+            .sourceText();
+    assertContains(repositorySource, "package metadata;");
+    assertContains(
+        repositorySource,
+        """
+        List.of(gamma.metadata.GlobalDescriptor.DESCRIPTOR,
+                      alpha.metadata.ADescriptor.DESCRIPTOR,
+                      beta.metadata.BDescriptor.DESCRIPTOR)""");
+    String descriptorText =
+        descriptorSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat);
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:Gamma/Global:1.0\")");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:Beta/B:1.0\")");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:Alpha/A:1.0\")");
+    assertContains(descriptorText, "public static final IdlCodec<java.lang.Object> GET_A_REQUEST");
+    assertContains(descriptorText, "public static final IdlCodec<java.lang.Object> GET_A_REPLY");
+    assertContains(descriptorText, "public static final IdlCodec<gamma.Global> VALUE");
+    compile(compileSources);
+  }
+
+  @Test
   void generatedRmiIdlFixtureMapsThroughDescriptorAndCodegenPaths() throws Exception {
     String idl = Files.readString(rmiGeneratedIdlFixture(), StandardCharsets.UTF_8);
     IdlSemanticModel semanticModel = semanticModel("rmi-generated-idl/calculator.idl", idl);

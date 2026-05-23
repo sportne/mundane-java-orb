@@ -68,6 +68,36 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void requestedUnknownPeerFailsBeforeCacheOrLiveActions() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("validate-gates", "--require-cache", "missing-peer"), fixture.environment());
+
+    assertFailure(result, "unknown peer");
+  }
+
+  @Test
+  void emptyScenarioGroupsAreRejectedByManifestValidation() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path manifest = fixture.root().resolve("interop/peers/fixture-peer/peer.yaml");
+    Files.writeString(
+        manifest,
+        Files.readString(manifest, StandardCharsets.UTF_8)
+            .replace(
+                """
+                  - basic-idl
+                  - rmi-iiop
+                """,
+                ""),
+        StandardCharsets.UTF_8);
+
+    CommandResult result = run(command("validate-manifests"), fixture.environment());
+
+    assertFailure(result, "scenarioGroups must not be empty");
+  }
+
+  @Test
   void requiredCacheRejectsMissingEntry() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
@@ -108,6 +109,52 @@ final class IdlTypeCodeTest {
     assertEquals(IdlTypeCodeKind.SEQUENCE, sequence.kind());
     assertEquals(Optional.of(IdlTypeCode.STRING), sequence.elementType());
     assertThrows(IllegalArgumentException.class, () -> IdlTypeCode.sequenceOf(null, "seq", "List"));
+  }
+
+  @Test
+  void typeCodeConstructorDefensivelyCopiesCollectionInputs() {
+    RepositoryId repositoryId = RepositoryId.parse("IDL:demo/Color:1.0");
+    ArrayList<String> enumConstants = new ArrayList<>(List.of("RED", "GREEN"));
+    IdlTypeCode enumType =
+        new IdlTypeCode(
+            IdlTypeCodeKind.ENUM,
+            "::demo::Color",
+            "demo.Color",
+            Optional.of(repositoryId),
+            List.of(),
+            enumConstants,
+            Optional.empty());
+
+    enumConstants.clear();
+
+    assertEquals(List.of("RED", "GREEN"), enumType.enumConstants());
+    assertThrows(UnsupportedOperationException.class, () -> enumType.enumConstants().clear());
+  }
+
+  @Test
+  void typeCodeEnumsRemainInStableOrder() {
+    assertEquals(
+        List.of(
+            IdlTypeCodeKind.VOID,
+            IdlTypeCodeKind.BOOLEAN,
+            IdlTypeCodeKind.OCTET,
+            IdlTypeCodeKind.CHAR,
+            IdlTypeCodeKind.SHORT,
+            IdlTypeCodeKind.UNSIGNED_SHORT,
+            IdlTypeCodeKind.LONG,
+            IdlTypeCodeKind.UNSIGNED_LONG,
+            IdlTypeCodeKind.LONG_LONG,
+            IdlTypeCodeKind.UNSIGNED_LONG_LONG,
+            IdlTypeCodeKind.FLOAT,
+            IdlTypeCodeKind.DOUBLE,
+            IdlTypeCodeKind.LONG_DOUBLE,
+            IdlTypeCodeKind.STRING,
+            IdlTypeCodeKind.INTERFACE,
+            IdlTypeCodeKind.STRUCT,
+            IdlTypeCodeKind.ENUM,
+            IdlTypeCodeKind.EXCEPTION,
+            IdlTypeCodeKind.SEQUENCE),
+        List.of(IdlTypeCodeKind.values()));
   }
 
   @Test

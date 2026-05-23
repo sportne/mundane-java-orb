@@ -47,6 +47,34 @@ final class DiagnosticTest {
   }
 
   @Test
+  void rejectsNullDiagnosticFields() {
+    DiagnosticCode code = new DiagnosticCode("IDL-0001");
+
+    assertThrows(
+        NullPointerException.class,
+        () -> Diagnostic.withoutSpan(null, DiagnosticSeverity.ERROR, "Invalid token"));
+    assertThrows(
+        NullPointerException.class, () -> Diagnostic.withoutSpan(code, null, "Invalid token"));
+    assertThrows(
+        NullPointerException.class,
+        () -> Diagnostic.withoutSpan(code, DiagnosticSeverity.ERROR, null));
+    assertThrows(
+        NullPointerException.class,
+        () -> new Diagnostic(code, DiagnosticSeverity.ERROR, "Invalid token", null));
+    assertThrows(
+        NullPointerException.class,
+        () -> Diagnostic.withSpan(code, DiagnosticSeverity.ERROR, "Invalid token", null));
+  }
+
+  @Test
+  void diagnosticSeverityOrderIsStableForReports() {
+    assertEquals(
+        java.util.List.of(
+            DiagnosticSeverity.INFO, DiagnosticSeverity.WARNING, DiagnosticSeverity.ERROR),
+        java.util.List.of(DiagnosticSeverity.values()));
+  }
+
+  @Test
   void recordsHaveValueEquality() {
     Diagnostic first =
         Diagnostic.withoutSpan(

@@ -104,6 +104,44 @@ final class DynamicSkeletonTest {
   }
 
   @Test
+  void rejectsDynamicHandlerResultShapeMismatches() {
+    LocalInvocationDispatcher missingValue =
+        DynamicSkeleton.dispatcher(
+            DynamicTestFixtures.SERVICE_DESCRIPTOR,
+            List.of(DynamicTestFixtures.addCodec()),
+            request -> DynamicInvocationResult.voidResult(request.operationCodec().operation()));
+    LocalInvocationDispatcher voidWithValue =
+        DynamicSkeleton.dispatcher(
+            DynamicTestFixtures.SERVICE_DESCRIPTOR,
+            List.of(DynamicTestFixtures.pingCodec()),
+            request ->
+                DynamicInvocationResult.value(
+                    request.operationCodec().operation(), DynamicTestFixtures.longAny(1)));
+
+    DynamicException missingValueFailure =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                missingValue.invoke(
+                    new LocalInvocationRequest(
+                        DynamicTestFixtures.SERVICE_DESCRIPTOR,
+                        DynamicTestFixtures.ADD_OPERATION,
+                        List.of(1, 2))));
+    DynamicException voidWithValueFailure =
+        assertThrows(
+            DynamicException.class,
+            () ->
+                voidWithValue.invoke(
+                    new LocalInvocationRequest(
+                        DynamicTestFixtures.SERVICE_DESCRIPTOR,
+                        DynamicTestFixtures.PING_OPERATION,
+                        List.of())));
+
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, missingValueFailure.code());
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, voidWithValueFailure.code());
+  }
+
+  @Test
   void rejectsInvalidGeneratedStyleArgumentsBeforeDynamicHandlerRuns() {
     LocalInvocationDispatcher dispatcher =
         DynamicSkeleton.dispatcher(

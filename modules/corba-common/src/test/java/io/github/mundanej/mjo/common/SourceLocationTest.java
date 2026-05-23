@@ -21,7 +21,17 @@ final class SourceLocationTest {
   }
 
   @Test
+  void sourcePositionAcceptsMaximumOffset() {
+    SourcePosition position = new SourcePosition("huge.idl", Integer.MAX_VALUE, 1, Long.MAX_VALUE);
+
+    assertEquals(Integer.MAX_VALUE, position.line());
+    assertEquals(Long.MAX_VALUE, position.offset());
+  }
+
+  @Test
   void sourcePositionRejectsInvalidCoordinates() {
+    assertThrows(NullPointerException.class, () -> new SourcePosition(null, 1, 1, 0));
+    assertThrows(IllegalArgumentException.class, () -> new SourcePosition(" ", 1, 1, 0));
     assertThrows(IllegalArgumentException.class, () -> new SourcePosition("hello.idl", 0, 1, 0));
     assertThrows(IllegalArgumentException.class, () -> new SourcePosition("hello.idl", 1, 0, 0));
     assertThrows(IllegalArgumentException.class, () -> new SourcePosition("hello.idl", 1, 1, -1));
@@ -44,6 +54,8 @@ final class SourceLocationTest {
     SourcePosition end = new SourcePosition("b.idl", 1, 1, 0);
 
     assertThrows(IllegalArgumentException.class, () -> new SourceSpan(start, end));
+    assertThrows(NullPointerException.class, () -> new SourceSpan(null, end));
+    assertThrows(NullPointerException.class, () -> new SourceSpan(start, null));
   }
 
   @Test

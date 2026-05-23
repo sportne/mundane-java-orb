@@ -81,6 +81,36 @@ final class NamingContextTest {
   }
 
   @Test
+  void rebindCreatesMissingLeafAndReplacesExistingContextLeaf() {
+    LocalNamingContext root = LocalNamingContext.createRoot();
+    LocalObjectReference<Dummy> object = object("object");
+
+    root.bindNewContext(NamingName.parse("apps"));
+    root.rebind(NamingName.parse("apps/service"), NamingBindingTarget.object(object));
+    assertEquals(
+        object, root.resolve(NamingName.parse("apps/service")).objectReference().orElseThrow());
+
+    root.rebind(NamingName.parse("apps"), NamingBindingTarget.object(object("replacement")));
+
+    assertEquals(NamingBindingTarget.Kind.OBJECT, root.resolve(NamingName.parse("apps")).kind());
+    assertCode(
+        NamingDiagnosticCodes.NOT_CONTEXT, () -> root.resolve(NamingName.parse("apps/service")));
+  }
+
+  @Test
+  void rejectsDestroyedAndNonLocalContextIntermediates() {
+    LocalNamingContext root = LocalNamingContext.createRoot();
+    NamingContext destroyedChild = root.bindNewContext(NamingName.parse("destroyed"));
+
+    destroyedChild.destroy();
+    root.bind(NamingName.parse("remote"), NamingBindingTarget.context(new NonLocalContext()));
+
+    assertCode(
+        NamingDiagnosticCodes.DESTROYED, () -> root.resolve(NamingName.parse("destroyed/x")));
+    assertCode(NamingDiagnosticCodes.NOT_CONTEXT, () -> root.resolve(NamingName.parse("remote/x")));
+  }
+
+  @Test
   void listsInlineBindingsAndIteratorRemainderFromSnapshot() {
     LocalNamingContext root = LocalNamingContext.createRoot();
     root.bind(NamingName.parse("a"), NamingBindingTarget.object(object("a")));
@@ -102,6 +132,25 @@ final class NamingContextTest {
     assertCode(NamingDiagnosticCodes.ITERATOR_CLOSED, iterator::nextOne);
     assertThrows(
         UnsupportedOperationException.class, () -> listed.bindings().add(listed.bindings().get(0)));
+  }
+
+  @Test
+  void listZeroReturnsIteratorOverSnapshotAndIteratorBatchesAreImmutable() {
+    LocalNamingContext root = LocalNamingContext.createRoot();
+    root.bind(NamingName.parse("a"), NamingBindingTarget.object(object("a")));
+    root.bind(NamingName.parse("b"), NamingBindingTarget.object(object("b")));
+
+    NamingBindingIterator iterator = root.list(0).iterator().orElseThrow();
+
+    assertEquals(List.of(), iterator.next(0));
+    List<NamingBinding> batch = iterator.next(2);
+    assertEquals(List.of(new NameComponent("a", ""), new NameComponent("b", "")), names(batch));
+    assertThrows(UnsupportedOperationException.class, () -> batch.add(batch.get(0)));
+    assertEquals(List.of(), iterator.next(1));
+    assertCode(NamingDiagnosticCodes.INVALID_NAME, () -> iterator.next(-1));
+    iterator.destroy();
+    iterator.destroy();
+    assertCode(NamingDiagnosticCodes.ITERATOR_CLOSED, () -> iterator.next(0));
   }
 
   @Test
@@ -142,6 +191,41 @@ final class NamingContextTest {
   }
 
   private interface Dummy {}
+
+  private static final class NonLocalContext implements NamingContext {
+
+    @Override
+    public void bind(NamingName name, NamingBindingTarget target) {}
+
+    @Override
+    public void rebind(NamingName name, NamingBindingTarget target) {}
+
+    @Override
+    public NamingBindingTarget resolve(NamingName name) {
+      throw new AssertionError("non-local context should not be traversed");
+    }
+
+    @Override
+    public void unbind(NamingName name) {}
+
+    @Override
+    public NamingContext bindNewContext(NamingName name) {
+      return this;
+    }
+
+    @Override
+    public NamingListResult list(int howMany) {
+      return new NamingListResult(List.of(), java.util.Optional.empty());
+    }
+
+    @Override
+    public void destroy() {}
+
+    @Override
+    public boolean isDestroyed() {
+      return false;
+    }
+  }
 
   @FunctionalInterface
   private interface ThrowingRunnable {

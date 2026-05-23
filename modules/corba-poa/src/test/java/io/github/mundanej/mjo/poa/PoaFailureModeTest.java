@@ -102,6 +102,51 @@ final class PoaFailureModeTest {
   }
 
   @Test
+  void invalidChildNamesAndNullLifecycleCollaboratorsAreRejected() {
+    Poa root = Poa.createRoot(LocalOrb.create());
+
+    assertThrows(
+        BAD_PARAM.class, () -> root.createChild(" ", PoaPolicySet.transientRetainedProfile()));
+    assertThrows(BAD_PARAM.class, () -> root.findChild(null, false));
+    assertThrows(BAD_PARAM.class, () -> root.setAdapterActivator(null));
+  }
+
+  @Test
+  void duplicateUserObjectKeysAreRejectedForReferencesAndActivations() {
+    LocalOrb orb = LocalOrb.create();
+    Poa poa =
+        Poa.createRoot(
+            orb,
+            policy(
+                PoaPolicySet.IdAssignmentPolicy.USER_ID,
+                PoaPolicySet.ServantRetentionPolicy.RETAIN,
+                PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
+                PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION));
+
+    poa.createReferenceWithId("object", PoaTestFixtures.Greeter.class, GREETER_DESCRIPTOR);
+
+    BAD_PARAM duplicateReference =
+        assertThrows(
+            BAD_PARAM.class,
+            () ->
+                poa.createReferenceWithId(
+                    "object", PoaTestFixtures.Greeter.class, GREETER_DESCRIPTOR));
+    BAD_PARAM duplicateActivation =
+        assertThrows(
+            BAD_PARAM.class,
+            () ->
+                poa.activateServantWithId(
+                    "object",
+                    PoaTestFixtures.Greeter.class,
+                    GREETER_DESCRIPTOR,
+                    new PoaTestFixtures.GreeterServant(),
+                    GREETER_DISPATCHER));
+
+    assertEquals(org.omg.CORBA.CompletionStatus.COMPLETED_NO, duplicateReference.completed);
+    assertEquals(org.omg.CORBA.CompletionStatus.COMPLETED_NO, duplicateActivation.completed);
+  }
+
+  @Test
   void missingServantResolutionPathsFailDeterministically() {
     LocalOrb orb = LocalOrb.create();
     Poa defaultPoa =
@@ -215,6 +260,23 @@ final class PoaFailureModeTest {
     assertThrows(
         BAD_INV_ORDER.class,
         () -> poa.createChild("late", PoaPolicySet.transientRetainedProfile()));
+  }
+
+  @Test
+  void destroyUnbindsRetainedReferencesFromLocalOrb() {
+    LocalOrb orb = LocalOrb.create();
+    Poa poa = Poa.createRoot(orb);
+    LocalObjectReference<PoaTestFixtures.Greeter> reference =
+        poa.activateServant(
+            PoaTestFixtures.Greeter.class,
+            GREETER_DESCRIPTOR,
+            new PoaTestFixtures.GreeterServant(),
+            GREETER_DISPATCHER);
+
+    poa.destroy();
+
+    assertThrows(OBJECT_NOT_EXIST.class, () -> invoke(orb, reference));
+    assertEquals(0, poa.activeObjectCount());
   }
 
   @Test
