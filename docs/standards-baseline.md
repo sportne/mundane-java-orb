@@ -24,6 +24,14 @@ The primary normative implementation target is CORBA 3.4.
 - OMG IDL4 to Java Language Mapping as design input for modern mode.
 - OMG Java to IDL Language Mapping for RMI-IIOP work, staged separately.
 
+## CORBA services baselines
+
+CosNaming is part of the implementation baseline. Trading, Event,
+Notification, Transaction, Security, and Time Services are optional service
+baselines. Each optional service remains deferred until a dedicated human gate
+approves the service scope, compatibility profile, interop posture, Native
+Image restrictions, and security review.
+
 ## Specification index
 
 | Area | Primary reference |
@@ -36,6 +44,12 @@ The primary normative implementation target is CORBA 3.4.
 | IDL to Java Mapping | https://www.omg.org/spec/I2JAV/1.3/About-I2JAV |
 | Java to IDL Mapping | https://www.omg.org/spec/JAV2I/1.4/ |
 | Naming Service | https://www.omg.org/spec/NAM/1.3/About-NAM |
+| Trading Object Service | https://www.omg.org/spec/TRADE/1.0 |
+| Event Service | https://www.omg.org/spec/EVNT/1.2 |
+| Notification Service | https://www.omg.org/spec/NOT/1.1 |
+| Transaction Service | https://www.omg.org/spec/TRANS/1.4 |
+| Security Service | https://www.omg.org/spec/SEC/1.8 |
+| Time Service | https://www.omg.org/spec/TIME/1.1 |
 
 ## Documentation rule
 

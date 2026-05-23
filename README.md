@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **Gate G7 RMI-IIOP implementation state**:
+This repository is in **post-G7 optional-service gate state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -99,6 +99,9 @@ This repository is in **Gate G7 RMI-IIOP implementation state**:
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
+- optional Trading, Event, Notification, Transaction, Security, and Time
+  Services are split into separately traceable human-gated design tasks, with
+  no service behavior implemented by that split;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 

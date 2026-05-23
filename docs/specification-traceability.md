@@ -65,6 +65,12 @@ G1; implementation tasks must narrow them further when a feature is designed.
 | NAM-13-STRINGIFIED | NAM-13 section 2.4, Stringified Names |
 | NAM-13-URLS | NAM-13 section 2.5, URL schemes |
 | NAM-13-LIGHTWEIGHT | NAM-13 section 3, Lightweight Naming Service |
+| TRADE-10 | Trading Object Service 1.0, formal/00-06-27 |
+| EVNT-12 | Event Service 1.2, formal/04-10-02 |
+| NOT-11 | Notification Service 1.1, formal/04-10-13 |
+| TRANS-14 | Transaction Service 1.4, formal/03-09-02 |
+| SEC-18 | Security Service 1.8, formal/02-03-11 |
+| TIME-11 | Time Service 1.1, formal/02-05-06 |
 
 ## Required fields
 

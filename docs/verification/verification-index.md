@@ -10,4 +10,5 @@
 - `interop-matrix.md`
 - `native-image-matrix.md`
 - `offline-build-validation.md`
+- `optional-services-review.md`
 - `reference-behavior-capture.md`

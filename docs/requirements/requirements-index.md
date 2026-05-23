@@ -9,6 +9,7 @@ Requirement files:
 - `offline-build-requirements.md`
 - `documentation-requirements.md`
 - `security-requirements.md`
+- `service-requirements.md`
 - `build-requirements.md`
 - `requirement-template.md`
 

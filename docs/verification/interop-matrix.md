@@ -107,4 +107,12 @@ inputs above.
 - code set negotiation;
 - Portable Interceptors;
 - RMI-IIOP;
-- services where applicable.
+- optional services only after each service gate defines its scenario, report
+  fields, cache requirements, and live execution prerequisites.
+
+## Optional service lanes
+
+G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time
+Services into separate human-gated design tasks. No optional service currently
+has a live peer lane, structured report schema, or pass/fail evidence. Future
+service gates must add those details before any peer execution is required.

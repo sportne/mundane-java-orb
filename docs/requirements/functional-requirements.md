@@ -21,5 +21,5 @@
 | REQ-DYN-001 | Implement Any, TypeCode, DynamicAny, DII, and DSI. | draft | corba-any, corba-typecode, corba-dynamic | CORBA-IF-TYPECODE, CORBA-IF-DII, CORBA-IF-DSI, CORBA-IF-DYNANY |
 | REQ-INT-001 | Implement Portable Interceptors. | draft | corba-interceptors | CORBA-IF-PI |
 | REQ-NAM-001 | Implement CosNaming client and server. | draft | corba-naming-api, corba-naming-server | NAM-13-SERVICE, NAM-13-COSNAMING, NAM-13-CONTEXT, NAM-13-ITERATOR, NAM-13-STRINGIFIED |
-| REQ-SVC-001 | Provide separately staged modules for Trading, Event, Notification, Transaction, Security, and Time services. | draft | corba-services-core | Operational staging requirement; service-specific specs require separate ADRs |
+| REQ-SVC-001 | Provide separately staged modules for Trading, Event, Notification, Transaction, Security, and Time services. | draft | corba-services-core | TRADE-10, EVNT-12, NOT-11, TRANS-14, SEC-18, TIME-11; service-specific specs require separate human-gated ADRs |
 | REQ-RMI-001 | Implement RMI-IIOP and Java-to-IDL only after dedicated compatibility design approval. | draft | corba-rmi-iiop | JAV2I-14-RMI-IDL; ADR-0013 accepted the design gate and G7 roadmap tasks stage implementation |

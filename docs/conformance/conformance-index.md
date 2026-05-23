@@ -9,6 +9,7 @@ Conformance matrix files:
 - `idl-4.2-matrix.md`
 - `idl-to-java-matrix.md`
 - `naming-service-matrix.md`
+- `optional-services-matrix.md`
 
 ## Status values
 
