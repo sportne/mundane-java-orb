@@ -1,18 +1,24 @@
 package io.github.mundanej.mjo.codegen;
 
 import io.github.mundanej.mjo.idl.ast.IdlDeclaration;
+import io.github.mundanej.mjo.idl.ast.IdlDeclarator;
 import io.github.mundanej.mjo.idl.ast.IdlEnum;
 import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameter;
 import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
+import io.github.mundanej.mjo.idl.ast.IdlTypedef;
+import io.github.mundanej.mjo.idl.ast.IdlUnion;
+import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
 import io.github.mundanej.mjo.idl.java.mapping.IdlJavaMapper;
 import io.github.mundanej.mjo.idl.java.mapping.JavaMappedType;
+import io.github.mundanej.mjo.idl.java.mapping.JavaMappedTypeKind;
 import io.github.mundanej.mjo.idl.java.mapping.JavaMappingMode;
 import io.github.mundanej.mjo.idl.java.mapping.JavaMappingModel;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticModel;
@@ -287,8 +293,23 @@ public final class JavaDescriptorSourceGenerator {
           + escapeJava(javaPrimitiveName(idlType))
           + "\", Optional.empty())";
     }
-    DescriptorDeclaration declaration = descriptorModel.resolve(idlType, modules);
-    return typeReference(declaration.kind(), declaration.idlScopedName(), declaration.javaName());
+    if (idlType.startsWith("string<") || idlType.startsWith("wstring<")) {
+      return "new IdlTypeReference(IdlTypeKind.PRIMITIVE, \""
+          + escapeJava(idlType)
+          + "\", \"java.lang.String\", Optional.empty())";
+    }
+    if (idlType.startsWith("sequence<")) {
+      return "new IdlTypeReference(IdlTypeKind.PRIMITIVE, \""
+          + escapeJava(idlType)
+          + "\", \"java.lang.Object[]\", Optional.empty())";
+    }
+    return descriptorModel
+        .resolve(idlType, modules)
+        .map(
+            declaration ->
+                typeReference(
+                    declaration.kind(), declaration.idlScopedName(), declaration.javaName()))
+        .orElseGet(() -> descriptorModel.fallbackTypeReference(idlType, modules));
   }
 
   private static String typeReference(IdlSymbolKind kind, String idlScopedName, String javaName) {
@@ -309,6 +330,7 @@ public final class JavaDescriptorSourceGenerator {
       case STRUCT -> "IdlTypeKind.STRUCT";
       case ENUM -> "IdlTypeKind.ENUM";
       case EXCEPTION -> "IdlTypeKind.EXCEPTION";
+      case TYPEDEF, UNION -> "IdlTypeKind.PRIMITIVE";
       default -> throw new IllegalArgumentException("Unsupported descriptor kind: " + kind);
     };
   }
@@ -474,7 +496,22 @@ public final class JavaDescriptorSourceGenerator {
       return new DescriptorModel(semanticModel, List.copyOf(declarations), Map.copyOf(byName));
     }
 
-    private DescriptorDeclaration resolve(String idlName, List<String> modules) {
+    private java.util.Optional<DescriptorDeclaration> resolve(
+        String idlName, List<String> modules) {
+      IdlSymbol symbol = resolveSymbol(idlName, modules);
+      return java.util.Optional.ofNullable(declarationsByIdlName.get(symbol.qualifiedName()));
+    }
+
+    private String fallbackTypeReference(String idlName, List<String> modules) {
+      IdlSymbol symbol = resolveSymbol(idlName, modules);
+      return "new IdlTypeReference(IdlTypeKind.PRIMITIVE, \""
+          + escapeJava(symbol.qualifiedName())
+          + "\", \"java.lang.Object\", Optional.of(RepositoryId.parse(\""
+          + repositoryId(symbol.qualifiedName())
+          + "\")))";
+    }
+
+    private IdlSymbol resolveSymbol(String idlName, List<String> modules) {
       IdlSymbol symbol;
       if (idlName.startsWith("::")) {
         symbol = symbol(idlName);
@@ -493,12 +530,7 @@ public final class JavaDescriptorSourceGenerator {
           throw new IllegalArgumentException("Unresolved IDL name in descriptor model: " + idlName);
         }
       }
-      DescriptorDeclaration declaration = declarationsByIdlName.get(symbol.qualifiedName());
-      if (declaration == null) {
-        throw new IllegalArgumentException(
-            "Resolved IDL name is not a generated descriptor type: " + idlName);
-      }
-      return declaration;
+      return symbol;
     }
 
     private IdlSymbol symbol(String qualifiedName) {
@@ -527,6 +559,21 @@ public final class JavaDescriptorSourceGenerator {
           output.add(exceptionDescriptor(exception, modules, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlInterface idlInterface) {
           output.add(interfaceDescriptor(idlInterface, modules, javaTypes.get(index[0]++)));
+        } else if (declaration instanceof IdlTypedef typedef) {
+          for (int typedefIndex = 0; typedefIndex < typedef.declarators().size(); typedefIndex++) {
+            output.add(
+                typedefDescriptor(
+                    typedef,
+                    typedef.declarators().get(typedefIndex),
+                    modules,
+                    javaTypes.get(index[0]++)));
+          }
+        } else if (declaration instanceof IdlUnion union) {
+          output.add(unionDescriptor(union, modules, javaTypes.get(index[0]++)));
+        } else if (declaration instanceof IdlInterfaceForward
+            && index[0] < javaTypes.size()
+            && javaTypes.get(index[0]).kind() == JavaMappedTypeKind.INTERFACE_FORWARD) {
+          index[0]++;
         }
       }
     }
@@ -589,9 +636,46 @@ public final class JavaDescriptorSourceGenerator {
           operations);
     }
 
+    private static DescriptorDeclaration typedefDescriptor(
+        IdlTypedef typedef,
+        IdlDeclarator declarator,
+        List<String> modules,
+        JavaMappedType javaType) {
+      return new DescriptorDeclaration(
+          IdlSymbolKind.TYPEDEF,
+          absoluteName(modules, declarator.name()),
+          javaType.name().qualifiedName(),
+          List.copyOf(modules),
+          javaType,
+          List.of(new FieldDescriptor("value", typedef.type().name())),
+          List.of(),
+          List.of());
+    }
+
+    private static DescriptorDeclaration unionDescriptor(
+        IdlUnion union, List<String> modules, JavaMappedType javaType) {
+      return new DescriptorDeclaration(
+          IdlSymbolKind.UNION,
+          absoluteName(modules, union.name()),
+          javaType.name().qualifiedName(),
+          List.copyOf(modules),
+          javaType,
+          unionFields(union.cases()),
+          List.of(),
+          List.of());
+    }
+
     private static List<FieldDescriptor> fields(List<IdlField> fields) {
       return fields.stream()
           .map(field -> new FieldDescriptor(field.name(), field.type().name()))
+          .toList();
+    }
+
+    private static List<FieldDescriptor> unionFields(List<IdlUnionCase> cases) {
+      return cases.stream()
+          .map(
+              unionCase ->
+                  new FieldDescriptor(unionCase.declarator().name(), unionCase.type().name()))
           .toList();
     }
 

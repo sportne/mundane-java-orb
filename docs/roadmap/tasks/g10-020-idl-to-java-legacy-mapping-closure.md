@@ -1,7 +1,7 @@
 # G10-020 IDL To Java Legacy Mapping Closure
 
 Task ID: G10-020-IDL-TO-JAVA-LEGACY-MAPPING-CLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-IDLJ-002, REQ-IDLJ-004, REQ-NATIVE-002, REQ-INTEROP-009
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008, ADR-0010

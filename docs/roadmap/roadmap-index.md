@@ -125,8 +125,8 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g10-000-pre-1-0-interop-task-set.md` - complete
 - `tasks/g10-010-idl-4-2-grammar-closure.md` - complete
-- `tasks/g10-020-idl-to-java-legacy-mapping-closure.md` - ready-for-implementation
-- `tasks/g10-030-omg-api-compatibility-surface.md` - blocked
+- `tasks/g10-020-idl-to-java-legacy-mapping-closure.md` - complete
+- `tasks/g10-030-omg-api-compatibility-surface.md` - ready-for-implementation
 - `tasks/g10-040-cdr-giop-ior-wire-closure.md` - blocked
 - `tasks/g10-050-network-orb-poa-dispatch.md` - blocked
 - `tasks/g10-060-network-naming-and-urls.md` - blocked

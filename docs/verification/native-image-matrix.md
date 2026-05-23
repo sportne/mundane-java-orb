@@ -101,3 +101,13 @@ The optional single-smoke command is:
 ```bash
 ./gradlew :modules:corba-native-image:nativeRmiIiopSmoke
 ```
+
+## G10-020 IDL-to-Java closure evidence
+
+G10-020 keeps the expanded legacy IDL-to-Java source surface closed-world and
+source-level auditable. Generated helpers, holders, abstract stubs, abstract POA
+placeholders, alias markers, union value classes, and descriptor/codec sources
+compile without reflection metadata, dynamic proxies, Java serialization
+metadata, service-loader discovery, runtime bytecode generation, process
+execution, internal JDK APIs, `Unsafe`, or `org.omg.*` dependencies. No Native
+Image metadata files are introduced by this task.

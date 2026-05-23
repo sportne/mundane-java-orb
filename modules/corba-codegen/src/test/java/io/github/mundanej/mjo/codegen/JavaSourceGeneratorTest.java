@@ -48,11 +48,7 @@ final class JavaSourceGeneratorTest {
   private static final List<String> FORBIDDEN_GENERATED_SOURCE_TOKENS =
       List.of(
           "org.omg",
-          "Helper",
-          "Holder",
-          "Stub",
           "Skeleton",
-          "POA",
           "io.github.mundanej.mjo.cdr",
           "io.github.mundanej.mjo.orb",
           "java.lang.reflect",
@@ -85,10 +81,21 @@ final class JavaSourceGeneratorTest {
     assertEquals(
         List.of(
             "demo/Bad.java",
+            "demo/BadHelper.java",
+            "demo/BadHolder.java",
             "demo/Color.java",
+            "demo/ColorHelper.java",
+            "demo/ColorHolder.java",
             "demo/IdlConstants.java",
+            "demo/LongHolder.java",
             "demo/Point.java",
-            "demo/Shape.java"),
+            "demo/PointHelper.java",
+            "demo/PointHolder.java",
+            "demo/Shape.java",
+            "demo/ShapeHelper.java",
+            "demo/ShapeHolder.java",
+            "demo/ShapePOA.java",
+            "demo/_ShapeStub.java"),
         legacySources.stream().map(GeneratedJavaSource::sourcePath).toList());
     GoldenAssertions.assertTextEquals(
         "legacy constants",
@@ -183,7 +190,20 @@ final class JavaSourceGeneratorTest {
 
     List<GeneratedJavaSource> sources = generator.generate(model);
 
-    assertEquals(List.of("Bad.java", "Point.java", "Shape.java"), sourcePaths(sources));
+    assertEquals(
+        List.of(
+            "Bad.java",
+            "BadHelper.java",
+            "BadHolder.java",
+            "Point.java",
+            "PointHelper.java",
+            "PointHolder.java",
+            "Shape.java",
+            "ShapeHelper.java",
+            "ShapeHolder.java",
+            "ShapePOA.java",
+            "_ShapeStub.java"),
+        sourcePaths(sources));
     GoldenAssertions.assertTextEquals(
         "default package value object",
         """
@@ -227,7 +247,14 @@ final class JavaSourceGeneratorTest {
     allSources.addAll(legacySources);
     allSources.addAll(modernSources);
 
-    assertEquals(List.of("hello/Greeter.java"), sourcePaths(legacySources));
+    assertEquals(
+        List.of(
+            "hello/Greeter.java",
+            "hello/GreeterHelper.java",
+            "hello/GreeterHolder.java",
+            "hello/GreeterPOA.java",
+            "hello/_GreeterStub.java"),
+        sourcePaths(legacySources));
     assertEquals(List.of("modern/hello/Greeter.java"), sourcePaths(modernSources));
     GoldenAssertions.assertTextEquals(
         "hello legacy Greeter",
@@ -250,7 +277,15 @@ final class JavaSourceGeneratorTest {
         generator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
 
     assertEquals(
-        List.of("example/calc/Calculator.java", "example/calc/CalculatorProblem.java"),
+        List.of(
+            "example/calc/Calculator.java",
+            "example/calc/CalculatorHelper.java",
+            "example/calc/CalculatorHolder.java",
+            "example/calc/CalculatorPOA.java",
+            "example/calc/CalculatorProblem.java",
+            "example/calc/CalculatorProblemHelper.java",
+            "example/calc/CalculatorProblemHolder.java",
+            "example/calc/_CalculatorStub.java"),
         sourcePaths(sources));
     GoldenAssertions.assertTextEquals(
         "RMI generated IDL Calculator",
@@ -310,8 +345,70 @@ final class JavaSourceGeneratorTest {
         generator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
 
     assertEquals(
-        List.of("demo/IdlConstants.java", "demo/IdlConstants_.java"),
+        List.of(
+            "demo/IdlConstants.java",
+            "demo/IdlConstantsHelper.java",
+            "demo/IdlConstantsHolder.java",
+            "demo/IdlConstants_.java"),
         sources.stream().map(GeneratedJavaSource::sourcePath).toList());
+    compile(sources);
+  }
+
+  @Test
+  void generatesCompileSafeLegacyG10Surfaces() throws Exception {
+    List<GeneratedJavaSource> sources =
+        generator.generate(
+            mapper.map(
+                semanticModel("g10-peer.idl", g10PeerStyleIdl()),
+                JavaMappingMode.LEGACY_COMPATIBILITY));
+
+    assertEquals(
+        List.of(
+            "g10/Base.java",
+            "g10/BaseHelper.java",
+            "g10/BaseHolder.java",
+            "g10/BasePOA.java",
+            "g10/Choice.java",
+            "g10/ChoiceHelper.java",
+            "g10/ChoiceHolder.java",
+            "g10/Count.java",
+            "g10/CountHelper.java",
+            "g10/CountHolder.java",
+            "g10/Forward.java",
+            "g10/ForwardHelper.java",
+            "g10/ForwardHolder.java",
+            "g10/IdlConstants.java",
+            "g10/Matrix.java",
+            "g10/MatrixHelper.java",
+            "g10/MatrixHolder.java",
+            "g10/Names.java",
+            "g10/NamesHelper.java",
+            "g10/NamesHolder.java",
+            "g10/Problem.java",
+            "g10/ProblemHelper.java",
+            "g10/ProblemHolder.java",
+            "g10/Sequence_string_32__Holder.java",
+            "g10/Service.java",
+            "g10/ServiceHelper.java",
+            "g10/ServiceHolder.java",
+            "g10/ServicePOA.java",
+            "g10/_BaseStub.java",
+            "g10/_ServiceStub.java"),
+        sourcePaths(sources));
+    String service = sourceText(sources, "g10/Service.java");
+    assertContains(service, "public interface Service extends g10.Base, g10.Forward");
+    assertContains(
+        service,
+        "void submit(java.lang.String[] names, g10.ChoiceHolder result, g10.CountHolder count) throws g10.Problem;");
+    assertContains(service, "void collect(g10.Sequence_string_32__Holder values);");
+    assertContains(sourceText(sources, "g10/CountHolder.java"), "public int value;");
+    assertContains(
+        sourceText(sources, "g10/Sequence_string_32__Holder.java"),
+        "public java.lang.String[] value;");
+    assertContains(
+        sourceText(sources, "g10/_ServiceStub.java"), "public abstract class _ServiceStub");
+    assertNoForbiddenGeneratedSourceTokens(
+        sources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat));
     compile(sources);
   }
 
@@ -411,6 +508,29 @@ final class JavaSourceGeneratorTest {
     return Files.readString(
         findRepositoryRoot()
             .resolve("modules/corba-rmi-iiop/src/test/resources/rmi-generated-idl/calculator.idl"));
+  }
+
+  private static String g10PeerStyleIdl() {
+    return """
+        module G10 {
+          const unsigned long LIMIT = 4;
+          interface Forward;
+          typedef sequence<string<32>, LIMIT> Names;
+          typedef long Matrix[2][LIMIT], Count;
+          union Choice switch (long) {
+            case 0:
+            case 1: string<16> text;
+            default: Names names;
+          };
+          exception Problem { string reason; };
+          interface Base { void ping(); };
+          interface Service : Base, Forward {
+            attribute Count counts[LIMIT];
+            void submit(in Names names, out Choice result, inout Count count) raises (Problem);
+            void collect(out sequence<string<32>> values);
+          };
+        };
+        """;
   }
 
   private static Path findRepositoryRoot() {

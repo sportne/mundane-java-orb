@@ -3,15 +3,22 @@ package io.github.mundanej.mjo.idl.java.mapping;
 import io.github.mundanej.mjo.idl.ast.IdlAttribute;
 import io.github.mundanej.mjo.idl.ast.IdlConstant;
 import io.github.mundanej.mjo.idl.ast.IdlDeclaration;
+import io.github.mundanej.mjo.idl.ast.IdlDeclarator;
 import io.github.mundanej.mjo.idl.ast.IdlEnum;
 import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameter;
+import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
+import io.github.mundanej.mjo.idl.ast.IdlTypeReference;
+import io.github.mundanej.mjo.idl.ast.IdlTypedef;
+import io.github.mundanej.mjo.idl.ast.IdlUnion;
+import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
 import io.github.mundanej.mjo.idl.semantics.IdlConstantValue;
 import io.github.mundanej.mjo.idl.semantics.IdlSemanticModel;
 import io.github.mundanej.mjo.idl.semantics.IdlSymbol;
@@ -19,6 +26,7 @@ import io.github.mundanej.mjo.idl.semantics.IdlSymbolKind;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -102,17 +110,39 @@ public final class IdlJavaMapper {
     private final IdlSemanticModel semanticModel;
     private final JavaMappingMode mode;
     private final List<JavaMappedType> types = new ArrayList<>();
+    private final List<JavaMappedType> syntheticHolders = new ArrayList<>();
     private final List<JavaMappedConstantScope> constantScopes = new ArrayList<>();
+    private final Set<String> fullInterfaceNames = new LinkedHashSet<>();
+    private final Set<String> syntheticHolderNames = new LinkedHashSet<>();
 
     private Mapper(IdlSemanticModel semanticModel, JavaMappingMode mode) {
       this.semanticModel = semanticModel;
       this.mode = mode;
+      collectFullInterfaceNames(semanticModel.translationUnit().declarations(), List.of());
     }
 
     private JavaMappingModel map() {
       mapDeclarations(semanticModel.translationUnit().declarations(), List.of());
+      List<JavaMappedType> allTypes = new ArrayList<>(types);
+      allTypes.addAll(syntheticHolders);
       return new JavaMappingModel(
-          mode, semanticModel.translationUnit().span().start().sourceName(), types, constantScopes);
+          mode,
+          semanticModel.translationUnit().span().start().sourceName(),
+          allTypes,
+          constantScopes);
+    }
+
+    private void collectFullInterfaceNames(
+        List<IdlDeclaration> declarations, List<String> modules) {
+      for (IdlDeclaration declaration : declarations) {
+        if (declaration instanceof IdlModule module) {
+          List<String> childModules = new ArrayList<>(modules);
+          childModules.add(module.name());
+          collectFullInterfaceNames(module.declarations(), childModules);
+        } else if (declaration instanceof IdlInterface idlInterface) {
+          fullInterfaceNames.add(absoluteName(modules, idlInterface.name()));
+        }
+      }
     }
 
     private void mapDeclarations(List<IdlDeclaration> declarations, List<String> modules) {
@@ -138,8 +168,16 @@ public final class IdlJavaMapper {
         types.add(mapEnum(idlEnum, modules));
       } else if (declaration instanceof IdlExceptionDeclaration exception) {
         types.add(mapException(exception, modules));
+      } else if (declaration instanceof IdlTypedef typedef) {
+        types.addAll(mapTypedef(typedef, modules));
+      } else if (declaration instanceof IdlUnion union) {
+        types.add(mapUnion(union, modules));
       } else if (declaration instanceof IdlInterface idlInterface) {
         types.add(mapInterface(idlInterface, modules));
+      } else if (declaration instanceof IdlInterfaceForward forward) {
+        if (!fullInterfaceNames.contains(absoluteName(modules, forward.name()))) {
+          types.add(mapInterfaceForward(forward, modules));
+        }
       }
     }
 
@@ -149,6 +187,35 @@ public final class IdlJavaMapper {
       return new JavaMappedType(
           JavaMappedTypeKind.STRUCT,
           mappedTypeName(struct.name(), modules),
+          fields,
+          List.of(),
+          List.of(),
+          List.of());
+    }
+
+    private List<JavaMappedType> mapTypedef(IdlTypedef typedef, List<String> modules) {
+      List<JavaMappedType> mapped = new ArrayList<>();
+      for (IdlDeclarator declarator : typedef.declarators()) {
+        mapped.add(
+            new JavaMappedType(
+                JavaMappedTypeKind.TYPEDEF,
+                mappedTypeName(declarator.name(), modules),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                mapType(typedef.type(), declarator, modules)));
+      }
+      return mapped;
+    }
+
+    private JavaMappedType mapUnion(IdlUnion union, List<String> modules) {
+      List<JavaMappedField> fields =
+          union.cases().stream().map(unionCase -> mapUnionCase(unionCase, modules)).toList();
+      return new JavaMappedType(
+          JavaMappedTypeKind.UNION,
+          mappedTypeName(union.name(), modules),
           fields,
           List.of(),
           List.of(),
@@ -193,11 +260,30 @@ public final class IdlJavaMapper {
           List.of(),
           List.of(),
           operations,
-          attributes);
+          attributes,
+          idlInterface.baseInterfaces().stream().map(base -> mapType(base, modules)).toList(),
+          "");
+    }
+
+    private JavaMappedType mapInterfaceForward(IdlInterfaceForward forward, List<String> modules) {
+      return new JavaMappedType(
+          JavaMappedTypeKind.INTERFACE_FORWARD,
+          mappedTypeName(forward.name(), modules),
+          List.of(),
+          List.of(),
+          List.of(),
+          List.of());
     }
 
     private JavaMappedField mapField(IdlField field, List<String> modules) {
-      return new JavaMappedField(mapType(field.type().name(), modules), memberName(field.name()));
+      return new JavaMappedField(
+          mapType(field.type(), field.declarator(), modules), memberName(field.name()));
+    }
+
+    private JavaMappedField mapUnionCase(IdlUnionCase unionCase, List<String> modules) {
+      return new JavaMappedField(
+          mapType(unionCase.type(), unionCase.declarator(), modules),
+          memberName(unionCase.declarator().name()));
     }
 
     private JavaMappedOperation mapOperation(IdlOperation operation, List<String> modules) {
@@ -215,14 +301,21 @@ public final class IdlJavaMapper {
     }
 
     private JavaMappedParameter mapParameter(IdlParameter parameter, List<String> modules) {
-      return new JavaMappedParameter(
-          mapType(parameter.type().name(), modules), memberName(parameter.name()));
+      String javaType =
+          parameter.direction() == IdlParameterDirection.IN
+              ? mapType(parameter.type(), modules)
+              : holderType(parameter.type(), modules);
+      return new JavaMappedParameter(javaType, memberName(parameter.name()), parameter.direction());
     }
 
     private List<JavaMappedAttribute> mapAttribute(IdlAttribute attribute, List<String> modules) {
-      String javaType = mapType(attribute.type().name(), modules);
-      return attribute.names().stream()
-          .map(name -> new JavaMappedAttribute(javaType, memberName(name), attribute.readonly()))
+      return attribute.declarators().stream()
+          .map(
+              declarator ->
+                  new JavaMappedAttribute(
+                      mapType(attribute.type(), declarator, modules),
+                      memberName(declarator.name()),
+                      attribute.readonly()))
           .toList();
     }
 
@@ -276,7 +369,25 @@ public final class IdlJavaMapper {
       return Optional.empty();
     }
 
+    private String mapType(IdlTypeReference type, List<String> modules) {
+      return switch (type.kind()) {
+        case NAMED -> mapType(type.name(), modules);
+        case BOUNDED_STRING -> "java.lang.String";
+        case SEQUENCE -> mapType(type.elementType().orElseThrow(), modules) + "[]";
+      };
+    }
+
+    private String mapType(IdlTypeReference type, IdlDeclarator declarator, List<String> modules) {
+      return appendArrayDimensions(mapType(type, modules), declarator.dimensions().size());
+    }
+
     private String mapType(String idlType, List<String> modules) {
+      if (idlType.startsWith("sequence<")) {
+        return "java.lang.Object[]";
+      }
+      if (idlType.startsWith("string<") || idlType.startsWith("wstring<")) {
+        return "java.lang.String";
+      }
       return switch (idlType) {
         case "void" -> "void";
         case "boolean" -> "boolean";
@@ -299,17 +410,92 @@ public final class IdlJavaMapper {
 
     private String mapUserType(String idlType, List<String> modules) {
       IdlSymbol symbol = resolveSymbol(idlType, modules);
+      if (symbol.kind() == IdlSymbolKind.TYPEDEF) {
+        return mappedAliasType(symbol);
+      }
       if (!Set.of(
               IdlSymbolKind.STRUCT,
               IdlSymbolKind.ENUM,
               IdlSymbolKind.EXCEPTION,
-              IdlSymbolKind.INTERFACE)
+              IdlSymbolKind.INTERFACE,
+              IdlSymbolKind.UNION)
           .contains(symbol.kind())) {
         throw new IllegalArgumentException("IDL type is not a generated Java type: " + idlType);
       }
       List<String> idlParts = splitAbsolute(symbol.qualifiedName());
       return mappedTypeName(idlParts.getLast(), idlParts.subList(0, idlParts.size() - 1))
           .qualifiedName();
+    }
+
+    private String holderType(IdlTypeReference type, List<String> modules) {
+      String name =
+          type.kind() == io.github.mundanej.mjo.idl.ast.IdlTypeReferenceKind.NAMED
+              ? holderType(type.name(), modules)
+              : syntheticHolder(type.name() + "Holder", mapType(type, modules), modules);
+      return name;
+    }
+
+    private String holderType(String idlType, List<String> modules) {
+      if (primitiveJavaType(idlType).isPresent()) {
+        return syntheticHolder(
+            typeName(idlType) + "Holder", primitiveJavaType(idlType).orElseThrow(), modules);
+      }
+      IdlSymbol symbol = resolveSymbol(idlType, modules);
+      if (symbol.kind() == IdlSymbolKind.TYPEDEF
+          || symbol.kind() == IdlSymbolKind.STRUCT
+          || symbol.kind() == IdlSymbolKind.ENUM
+          || symbol.kind() == IdlSymbolKind.EXCEPTION
+          || symbol.kind() == IdlSymbolKind.INTERFACE
+          || symbol.kind() == IdlSymbolKind.UNION) {
+        List<String> idlParts = splitAbsolute(symbol.qualifiedName());
+        JavaMappedName mapped =
+            mappedTypeName(idlParts.getLast(), idlParts.subList(0, idlParts.size() - 1));
+        return new JavaMappedName(mapped.packageName(), mapped.simpleName() + "Holder")
+            .qualifiedName();
+      }
+      return syntheticHolder(typeName(idlType) + "Holder", mapType(idlType, modules), modules);
+    }
+
+    private String syntheticHolder(String baseName, String valueType, List<String> modules) {
+      JavaMappedName holderName = new JavaMappedName(packageName(modules), typeName(baseName));
+      if (syntheticHolderNames.add(holderName.qualifiedName())) {
+        syntheticHolders.add(
+            new JavaMappedType(
+                JavaMappedTypeKind.HOLDER,
+                holderName,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of(),
+                valueType));
+      }
+      return holderName.qualifiedName();
+    }
+
+    private static String appendArrayDimensions(String javaType, int dimensions) {
+      return javaType + "[]".repeat(Math.max(0, dimensions));
+    }
+
+    private static Optional<String> primitiveJavaType(String idlType) {
+      return switch (idlType) {
+        case "void" -> Optional.of("void");
+        case "boolean" -> Optional.of("boolean");
+        case "char", "wchar" -> Optional.of("char");
+        case "octet", "uint8" -> Optional.of("short");
+        case "short", "int16" -> Optional.of("short");
+        case "unsigned short", "uint16" -> Optional.of("int");
+        case "long", "int32" -> Optional.of("int");
+        case "unsigned long", "uint32" -> Optional.of("long");
+        case "long long", "int64" -> Optional.of("long");
+        case "unsigned long long", "uint64" -> Optional.of("java.math.BigInteger");
+        case "float" -> Optional.of("float");
+        case "double" -> Optional.of("double");
+        case "long double" -> Optional.of("java.math.BigDecimal");
+        case "string", "wstring" -> Optional.of("java.lang.String");
+        case "any", "Object", "ValueBase" -> Optional.of("java.lang.Object");
+        default -> Optional.empty();
+      };
     }
 
     private IdlSymbol resolveSymbol(String idlName, List<String> modules) {
@@ -324,6 +510,18 @@ public final class IdlJavaMapper {
         }
       }
       throw new IllegalArgumentException("Unresolved IDL name in valid semantic model: " + idlName);
+    }
+
+    private String mappedAliasType(IdlSymbol symbol) {
+      List<String> idlParts = splitAbsolute(symbol.qualifiedName());
+      String javaName =
+          mappedTypeName(idlParts.getLast(), idlParts.subList(0, idlParts.size() - 1))
+              .qualifiedName();
+      return types.stream()
+          .filter(type -> type.name().qualifiedName().equals(javaName))
+          .map(JavaMappedType::aliasType)
+          .findFirst()
+          .orElseGet(() -> mapType(symbol.resolvedTypeName().orElseThrow(), List.of()));
     }
 
     private IdlSymbol symbol(String qualifiedName) {

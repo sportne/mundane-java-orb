@@ -150,12 +150,18 @@ final class IdljCliTest {
               const unsigned long LIMIT = 4;
               interface Forward;
               typedef sequence<string<32>, LIMIT> Names;
+              typedef long Matrix[2][LIMIT], Count;
               union Choice switch (long) {
-                case 0: string<16> text;
+                case 0:
+                case 1: string<16> text;
                 default: Names names;
               };
-              interface Service : Forward {
-                void submit(in Names names, out Choice result);
+              exception Problem { string reason; };
+              interface Base { void ping(); };
+              interface Service : Base, Forward {
+                attribute Count counts[LIMIT];
+                void submit(in Names names, out Choice result, inout Count count) raises (Problem);
+                void collect(out sequence<string<32>> values);
               };
             };
             """);

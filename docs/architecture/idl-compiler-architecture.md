@@ -123,17 +123,20 @@ explicitly mode-specific:
   namespace.
 
 G6-160 covers modules, interfaces, operations, attributes, structs, enums,
-exceptions, and constants for the parser-approved minimal subset. Generated
-source is deterministic, includes source IDL identity and mapping metadata, and
-compiles without `org.omg.*`, ORB runtime APIs, CDR codecs, repository IDs,
-helpers, holders, stubs, skeletons, POA classes, reflection, dynamic class
-loading, or Native Image metadata.
+exceptions, and constants for the parser-approved minimal subset. G10-020
+extends the compile-safe legacy mapping model for the pre-1.0 IDL corpus:
+typedef aliases, sequence and fixed-array Java array spellings, unions,
+forward-only interfaces, inherited interfaces, holder-based `out` and `inout`
+parameters, and legacy-named helper, holder, abstract stub, and abstract POA
+placeholder sources. Generated source is deterministic, includes source IDL
+identity and mapping metadata, and compiles without `org.omg.*`, ORB runtime
+APIs, runtime CDR behavior, reflection, dynamic class loading, or Native Image
+metadata.
 
 G7-050 adds compatibility tests proving the approved RMI generated-IDL fixture
 continues to map through this IDL-to-Java model and compile through the existing
-source renderer. The RMI-specific helper, holder, stub, tie, skeleton
-placeholder, and binding-descriptor surfaces are generated in
-`corba-rmi-iiop`, not by the generic IDL compiler pipeline.
+source renderer. RMI-specific tie and binding-descriptor surfaces remain
+generated in `corba-rmi-iiop`, not by the generic IDL compiler pipeline.
 
 ## Descriptor And Codec Boundary
 
@@ -145,8 +148,9 @@ itself remains a source renderer and does not depend on protocol/runtime
 packages.
 
 The G6-220 codec classes are intentionally nonfunctional. They expose stable
-`IdlCodec<T>` fields and fail with `UnsupportedOperationException` until G6-320
-adds bounded CDR string, sequence, array, and encapsulation handling. The pass
-does not add CLI generation commands, ORB invocation behavior, GIOP/IIOP
-transport, runtime registries, reflection metadata, helpers, holders, stubs,
-skeletons, or POA artifacts.
+`IdlCodec<T>` fields and fail with `UnsupportedOperationException` until later
+wire tasks add full peer-facing CDR behavior. G10-020 keeps descriptors and
+codecs compile-safe for alias, sequence, array, and union references within the
+current `corba-typecode` API limits. The pass does not add CLI generation
+commands, ORB invocation behavior, GIOP/IIOP transport, runtime registries,
+reflection metadata, runtime skeletons, or real POA artifacts.

@@ -1,7 +1,7 @@
 # G10-030 OMG API Compatibility Surface
 
 Task ID: G10-030-OMG-API-COMPATIBILITY-SURFACE
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-DYN-001, REQ-NAM-001, REQ-IDLJ-002, REQ-INTEROP-009
 ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0007, ADR-0008
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Add the minimal source-compatible 
 Tests to add/update: API construction, exception/value contracts, source compatibility compile tests, architecture boundary tests, and Native Image source-policy tests.
 Documentation to update: Module boundaries, conformance matrices, roadmap index, README ready-task status, this task, and G10-040 status when complete.
 Commands to run: ./gradlew :modules:corba-omg-api:test :modules:corba-architecture-tests:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-020 is complete; generated code and peer fixture code compile against the compatibility APIs without moving runtime ownership into `corba-omg-api`; optional services stay deferred.
+Acceptance criteria: Generated code and peer fixture code compile against the compatibility APIs without moving runtime ownership into `corba-omg-api`; optional services stay deferred.
 Rollback notes: Revert API, architecture test, and documentation changes together.

@@ -51,13 +51,20 @@ final class IdlJavaMapperTest {
     assertEquals("mapping-test.idl", legacy.sourceName());
     assertEquals(
         List.of("demo.Color", "demo.Point", "demo.Bad", "demo.Shape"),
-        legacy.types().stream().map(type -> type.name().qualifiedName()).toList());
+        legacy.types().stream()
+            .filter(type -> type.kind() != JavaMappedTypeKind.HOLDER)
+            .map(type -> type.name().qualifiedName())
+            .toList());
     assertEquals(
         List.of("demo.IdlConstants"),
         legacy.constantScopes().stream().map(scope -> scope.name().qualifiedName()).toList());
     assertEquals(
         List.of("modern.demo.Color", "modern.demo.Point", "modern.demo.Bad", "modern.demo.Shape"),
-        modern.types().stream().map(type -> type.name().qualifiedName()).toList());
+        modern.types().stream()
+            .filter(type -> type.kind() != JavaMappedTypeKind.HOLDER)
+            .map(type -> type.name().qualifiedName())
+            .toList());
+    assertEquals("demo.LongHolder", legacy.types().getLast().name().qualifiedName());
 
     JavaMappedType shape = legacy.types().get(3);
     assertEquals(JavaMappedTypeKind.INTERFACE, shape.kind());
@@ -301,6 +308,43 @@ final class IdlJavaMapperTest {
   }
 
   @Test
+  void mapsG10LegacyGrammarClosureSurface() {
+    JavaMappingModel model =
+        mapper.map(semanticModel(g10PeerStyleIdl()), JavaMappingMode.LEGACY_COMPATIBILITY);
+
+    assertEquals(
+        List.of(
+            JavaMappedTypeKind.INTERFACE_FORWARD,
+            JavaMappedTypeKind.TYPEDEF,
+            JavaMappedTypeKind.TYPEDEF,
+            JavaMappedTypeKind.TYPEDEF,
+            JavaMappedTypeKind.UNION,
+            JavaMappedTypeKind.EXCEPTION,
+            JavaMappedTypeKind.INTERFACE,
+            JavaMappedTypeKind.INTERFACE),
+        model.types().stream()
+            .filter(type -> type.kind() != JavaMappedTypeKind.HOLDER)
+            .map(JavaMappedType::kind)
+            .toList());
+    assertEquals("g10.Names", model.types().get(1).name().qualifiedName());
+    assertEquals("java.lang.String[]", model.types().get(1).aliasType());
+    assertEquals("int[][]", model.types().get(2).aliasType());
+    assertEquals(
+        List.of("java.lang.String", "java.lang.String[]"),
+        model.types().get(4).fields().stream().map(JavaMappedField::javaType).toList());
+
+    JavaMappedType service = model.types().get(7);
+    assertEquals(List.of("g10.Base", "g10.Forward"), service.baseInterfaces());
+    assertEquals("int[]", service.attributes().getFirst().javaType());
+    assertEquals(
+        List.of("java.lang.String[]", "g10.ChoiceHolder", "g10.CountHolder"),
+        service.operations().getFirst().parameters().stream()
+            .map(JavaMappedParameter::javaType)
+            .toList());
+    assertEquals("g10.Sequence_string_32__Holder", model.types().getLast().name().qualifiedName());
+  }
+
+  @Test
   void avoidsConstantHolderNameCollisionsWithGeneratedTypes() {
     JavaMappingModel model =
         mapper.map(
@@ -352,6 +396,29 @@ final class IdlJavaMapperTest {
     } catch (IOException exception) {
       throw new IllegalStateException("Unable to read RMI generated IDL fixture", exception);
     }
+  }
+
+  private static String g10PeerStyleIdl() {
+    return """
+        module G10 {
+          const unsigned long LIMIT = 4;
+          interface Forward;
+          typedef sequence<string<32>, LIMIT> Names;
+          typedef long Matrix[2][LIMIT], Count;
+          union Choice switch (long) {
+            case 0:
+            case 1: string<16> text;
+            default: Names names;
+          };
+          exception Problem { string reason; };
+          interface Base { void ping(); };
+          interface Service : Base, Forward {
+            attribute Count counts[LIMIT];
+            void submit(in Names names, out Choice result, inout Count count) raises (Problem);
+            void collect(out sequence<string<32>> values);
+          };
+        };
+        """;
   }
 
   private static Path findRepositoryRoot() {

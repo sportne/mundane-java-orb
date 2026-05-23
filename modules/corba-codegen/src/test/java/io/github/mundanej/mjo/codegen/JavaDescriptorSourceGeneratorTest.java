@@ -265,6 +265,47 @@ final class JavaDescriptorSourceGeneratorTest {
     compile(compileSources);
   }
 
+  @Test
+  void generatedG10IdlFixtureMapsThroughDescriptorAndCodegenPaths() throws Exception {
+    IdlSemanticModel semanticModel = semanticModel("g10-peer.idl", g10PeerStyleIdl());
+
+    List<GeneratedJavaSource> descriptorSources =
+        generator.generate(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY);
+    List<GeneratedJavaSource> compileSources = new ArrayList<>(descriptorSources);
+    compileSources.addAll(
+        sourceGenerator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY)));
+
+    assertEquals(
+        List.of(
+            "g10/codec/BaseCodec.java",
+            "g10/codec/ChoiceCodec.java",
+            "g10/codec/CountCodec.java",
+            "g10/codec/MatrixCodec.java",
+            "g10/codec/NamesCodec.java",
+            "g10/codec/ProblemCodec.java",
+            "g10/codec/ServiceCodec.java",
+            "g10/metadata/BaseDescriptor.java",
+            "g10/metadata/ChoiceDescriptor.java",
+            "g10/metadata/CountDescriptor.java",
+            "g10/metadata/GeneratedInterfaceRepository.java",
+            "g10/metadata/MatrixDescriptor.java",
+            "g10/metadata/NamesDescriptor.java",
+            "g10/metadata/ProblemDescriptor.java",
+            "g10/metadata/ServiceDescriptor.java"),
+        sourcePaths(descriptorSources));
+    String descriptorText =
+        descriptorSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat);
+    assertNoForbiddenGeneratedSourceTokens(descriptorText);
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:G10/Service:1.0\")");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:G10/Choice:1.0\")");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:G10/Names:1.0\")");
+    assertContains(descriptorText, "public static final IdlCodec<g10.Choice> VALUE");
+    assertContains(descriptorText, "public static final IdlCodec<g10.Names> VALUE");
+    assertContains(descriptorText, "new IdlFieldDescriptor(\"value\"");
+    assertContains(descriptorText, "IdlParameterMode.INOUT");
+    compile(compileSources);
+  }
+
   private IdlSemanticModel semanticModel(String sourceName, String source) {
     IdlParseResult parseResult = parser.parse(sourceName, source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
@@ -334,6 +375,29 @@ final class JavaDescriptorSourceGeneratorTest {
   private static Path rmiGeneratedIdlFixture() {
     return findRepositoryRoot()
         .resolve("modules/corba-rmi-iiop/src/test/resources/rmi-generated-idl/calculator.idl");
+  }
+
+  private static String g10PeerStyleIdl() {
+    return """
+        module G10 {
+          const unsigned long LIMIT = 4;
+          interface Forward;
+          typedef sequence<string<32>, LIMIT> Names;
+          typedef long Matrix[2][LIMIT], Count;
+          union Choice switch (long) {
+            case 0:
+            case 1: string<16> text;
+            default: Names names;
+          };
+          exception Problem { string reason; };
+          interface Base { void ping(); };
+          interface Service : Base, Forward {
+            attribute Count counts[LIMIT];
+            void submit(in Names names, out Choice result, inout Count count) raises (Problem);
+            void collect(out sequence<string<32>> values);
+          };
+        };
+        """;
   }
 
   private void compile(List<GeneratedJavaSource> sources) throws Exception {
