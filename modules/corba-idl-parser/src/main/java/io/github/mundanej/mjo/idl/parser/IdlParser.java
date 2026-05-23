@@ -4,14 +4,17 @@ import io.github.mundanej.mjo.common.Diagnostic;
 import io.github.mundanej.mjo.common.DiagnosticCode;
 import io.github.mundanej.mjo.common.DiagnosticSeverity;
 import io.github.mundanej.mjo.common.SourceSpan;
+import io.github.mundanej.mjo.idl.ast.IdlArrayDimension;
 import io.github.mundanej.mjo.idl.ast.IdlAttribute;
 import io.github.mundanej.mjo.idl.ast.IdlConstant;
 import io.github.mundanej.mjo.idl.ast.IdlConstantExpression;
 import io.github.mundanej.mjo.idl.ast.IdlDeclaration;
+import io.github.mundanej.mjo.idl.ast.IdlDeclarator;
 import io.github.mundanej.mjo.idl.ast.IdlEnum;
 import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
@@ -20,6 +23,10 @@ import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTranslationUnit;
 import io.github.mundanej.mjo.idl.ast.IdlTypeReference;
+import io.github.mundanej.mjo.idl.ast.IdlTypedef;
+import io.github.mundanej.mjo.idl.ast.IdlUnion;
+import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
+import io.github.mundanej.mjo.idl.ast.IdlUnionLabel;
 import io.github.mundanej.mjo.idl.lexer.IdlToken;
 import io.github.mundanej.mjo.idl.lexer.IdlTokenKind;
 import io.github.mundanej.mjo.idl.preprocessor.IdlPreprocessResult;
@@ -83,13 +90,11 @@ public final class IdlParser {
             "local",
             "native",
             "porttype",
-            "typedef",
             "typeid",
             "typename",
             "typeprefix",
-            "union",
             "valuetype");
-    private static final Set<String> UNSUPPORTED_TYPE_KEYWORDS = Set.of("fixed", "map", "sequence");
+    private static final Set<String> UNSUPPORTED_TYPE_KEYWORDS = Set.of("fixed", "map");
     private static final Set<String> SINGLE_TOKEN_TYPE_KEYWORDS =
         Set.of(
             "any",
@@ -116,6 +121,7 @@ public final class IdlParser {
     private final List<IdlToken> tokens;
     private final List<Diagnostic> diagnostics;
     private int current;
+    private int pendingGreaterThanClosers;
 
     private Parser(List<IdlToken> tokens, List<Diagnostic> diagnostics) {
       this.tokens = List.copyOf(Objects.requireNonNull(tokens, "tokens"));
@@ -166,6 +172,12 @@ public final class IdlParser {
       if (matchKeyword("const")) {
         return parseConstant(previous());
       }
+      if (matchKeyword("typedef")) {
+        return parseTypedef(previous());
+      }
+      if (matchKeyword("union")) {
+        return parseUnion(previous());
+      }
       if (isUnsupportedDeclarationStart(current())) {
         emitUnsupported("unsupported declaration: " + current().lexeme(), current());
         synchronizeDeclaration();
@@ -205,22 +217,22 @@ public final class IdlParser {
       return new IdlModule(identifierText(name), declarations, span(start, end));
     }
 
-    private IdlInterface parseInterface(IdlToken start) {
+    private IdlDeclaration parseInterface(IdlToken start) {
       IdlToken name = consumeIdentifier("interface name");
       if (name == null) {
         synchronizeDeclaration();
         return null;
       }
       if (match(IdlTokenKind.SEMICOLON)) {
-        emitUnsupported(
-            "interface forward declarations are not part of the minimal parser slice", name);
-        return null;
+        return new IdlInterfaceForward(identifierText(name), span(start, previous()));
       }
+      List<String> bases = List.of();
       if (match(IdlTokenKind.COLON)) {
-        emitUnsupported(
-            "interface inheritance is not part of the minimal parser slice", previous());
-        synchronizeDeclaration();
-        return null;
+        bases = parseInterfaceBases();
+        if (bases == null) {
+          synchronizeDeclaration();
+          return null;
+        }
       }
       if (consume(IdlTokenKind.LEFT_BRACE, "'{' after interface name") == null) {
         synchronizeDeclaration();
@@ -238,7 +250,19 @@ public final class IdlParser {
         synchronizeDeclaration();
         return null;
       }
-      return new IdlInterface(identifierText(name), members, span(start, end));
+      return new IdlInterface(identifierText(name), bases, members, span(start, end));
+    }
+
+    private List<String> parseInterfaceBases() {
+      List<String> bases = new ArrayList<>();
+      do {
+        ScopedName scopedName = parseScopedName();
+        if (scopedName == null) {
+          return null;
+        }
+        bases.add(scopedName.name());
+      } while (match(IdlTokenKind.COMMA));
+      return bases;
     }
 
     private List<IdlInterfaceMember> parseInterfaceMember() {
@@ -275,27 +299,17 @@ public final class IdlParser {
         synchronizeDeclaration();
         return null;
       }
-      List<String> names = new ArrayList<>();
-      IdlToken name = parseSimpleDeclaratorName();
-      if (name == null) {
+      List<IdlDeclarator> declarators = parseDeclarators();
+      if (declarators == null) {
         synchronizeDeclaration();
         return null;
-      }
-      names.add(identifierText(name));
-      while (match(IdlTokenKind.COMMA)) {
-        name = parseSimpleDeclaratorName();
-        if (name == null) {
-          synchronizeDeclaration();
-          return null;
-        }
-        names.add(identifierText(name));
       }
       IdlToken end = consume(IdlTokenKind.SEMICOLON, "';' after attribute declaration");
       if (end == null) {
         synchronizeDeclaration();
         return null;
       }
-      return new IdlAttribute(readonly, type, names, span(start, end));
+      return IdlAttribute.withDeclarators(readonly, type, declarators, span(start, end));
     }
 
     private IdlOperation parseOperation() {
@@ -445,19 +459,19 @@ public final class IdlParser {
         return null;
       }
       List<IdlField> fields = new ArrayList<>();
-      IdlToken name = parseSimpleDeclaratorName();
-      if (name == null) {
+      IdlDeclarator declarator = parseDeclarator();
+      if (declarator == null) {
         synchronizeDeclaration();
         return null;
       }
-      fields.add(new IdlField(type, identifierText(name), span(type.span(), name)));
+      fields.add(new IdlField(type, declarator, span(type.span(), declarator.span())));
       while (match(IdlTokenKind.COMMA)) {
-        name = parseSimpleDeclaratorName();
-        if (name == null) {
+        declarator = parseDeclarator();
+        if (declarator == null) {
           synchronizeDeclaration();
           return null;
         }
-        fields.add(new IdlField(type, identifierText(name), span(type.span(), name)));
+        fields.add(new IdlField(type, declarator, span(type.span(), declarator.span())));
       }
       if (consume(IdlTokenKind.SEMICOLON, "';' after field declaration") == null) {
         synchronizeDeclaration();
@@ -505,7 +519,7 @@ public final class IdlParser {
         synchronizeDeclaration();
         return null;
       }
-      IdlConstantExpression expression = parseConstantExpression();
+      IdlConstantExpression expression = parseConstantExpressionUntil(IdlTokenKind.SEMICOLON);
       IdlToken end = consume(IdlTokenKind.SEMICOLON, "';' after constant declaration");
       if (expression == null || end == null) {
         synchronizeDeclaration();
@@ -514,8 +528,93 @@ public final class IdlParser {
       return new IdlConstant(type, identifierText(name), expression, span(start, end));
     }
 
-    private IdlConstantExpression parseConstantExpression() {
-      if (check(IdlTokenKind.SEMICOLON)) {
+    private IdlTypedef parseTypedef(IdlToken start) {
+      IdlTypeReference type = parseType(false);
+      List<IdlDeclarator> declarators = parseDeclarators();
+      IdlToken end = consume(IdlTokenKind.SEMICOLON, "';' after typedef declaration");
+      if (type == null || declarators == null || end == null) {
+        synchronizeDeclaration();
+        return null;
+      }
+      return new IdlTypedef(type, declarators, span(start, end));
+    }
+
+    private IdlUnion parseUnion(IdlToken start) {
+      IdlToken name = consumeIdentifier("union name");
+      if (name == null
+          || consumeKeyword("switch", "'switch' after union name") == null
+          || consume(IdlTokenKind.LEFT_PAREN, "'(' after switch") == null) {
+        synchronizeDeclaration();
+        return null;
+      }
+      IdlTypeReference discriminatorType = parseType(false);
+      if (discriminatorType == null
+          || consume(IdlTokenKind.RIGHT_PAREN, "')' after union discriminator") == null
+          || consume(IdlTokenKind.LEFT_BRACE, "'{' after union discriminator") == null) {
+        synchronizeDeclaration();
+        return null;
+      }
+      List<IdlUnionCase> cases = new ArrayList<>();
+      while (!check(IdlTokenKind.RIGHT_BRACE) && !isAtEnd()) {
+        IdlUnionCase unionCase = parseUnionCase();
+        if (unionCase == null) {
+          synchronizeDeclaration();
+          return null;
+        }
+        cases.add(unionCase);
+      }
+      IdlToken close = consume(IdlTokenKind.RIGHT_BRACE, "'}' after union body");
+      IdlToken end = consume(IdlTokenKind.SEMICOLON, "';' after union declaration");
+      if (cases.isEmpty() || close == null || end == null) {
+        synchronizeDeclaration();
+        return null;
+      }
+      return new IdlUnion(identifierText(name), discriminatorType, cases, span(start, end));
+    }
+
+    private IdlUnionCase parseUnionCase() {
+      IdlToken start = current();
+      List<IdlUnionLabel> labels = new ArrayList<>();
+      while (checkKeyword("case") || checkKeyword("default")) {
+        IdlUnionLabel label = parseUnionLabel();
+        if (label == null) {
+          return null;
+        }
+        labels.add(label);
+      }
+      if (labels.isEmpty()) {
+        emitUnexpected("union case label");
+        return null;
+      }
+      IdlTypeReference type = parseType(false);
+      IdlDeclarator declarator = parseDeclarator();
+      IdlToken end = consume(IdlTokenKind.SEMICOLON, "';' after union member");
+      if (type == null || declarator == null || end == null) {
+        return null;
+      }
+      return new IdlUnionCase(labels, type, declarator, span(start, end));
+    }
+
+    private IdlUnionLabel parseUnionLabel() {
+      IdlToken start = current();
+      if (matchKeyword("default")) {
+        IdlToken colon = consume(IdlTokenKind.COLON, "':' after default");
+        return colon == null ? null : IdlUnionLabel.defaultLabel(span(start, colon));
+      }
+      if (!matchKeyword("case")) {
+        emitUnexpected("case or default");
+        return null;
+      }
+      IdlConstantExpression expression = parseConstantExpressionUntil(IdlTokenKind.COLON);
+      IdlToken colon = consume(IdlTokenKind.COLON, "':' after case label");
+      if (expression == null || colon == null) {
+        return null;
+      }
+      return IdlUnionLabel.caseLabel(expression, span(start, colon));
+    }
+
+    private IdlConstantExpression parseConstantExpressionUntil(IdlTokenKind delimiter) {
+      if (expressionDelimiterReached(delimiter)) {
         emitUnexpected("constant expression");
         return null;
       }
@@ -523,9 +622,13 @@ public final class IdlParser {
       IdlToken last = start;
       int parenDepth = 0;
       int bracketDepth = 0;
+      int angleDepth = 0;
       List<String> lexemes = new ArrayList<>();
       while (!isAtEnd()) {
-        if (parenDepth == 0 && bracketDepth == 0 && check(IdlTokenKind.SEMICOLON)) {
+        if (parenDepth == 0
+            && bracketDepth == 0
+            && angleDepth == 0
+            && expressionDelimiterReached(delimiter)) {
           break;
         }
         if (match(IdlTokenKind.LEFT_PAREN)) {
@@ -536,6 +639,10 @@ public final class IdlParser {
           bracketDepth++;
         } else if (match(IdlTokenKind.RIGHT_BRACKET)) {
           bracketDepth = Math.max(0, bracketDepth - 1);
+        } else if (match(IdlTokenKind.LESS_THAN)) {
+          angleDepth++;
+        } else if (match(IdlTokenKind.GREATER_THAN)) {
+          angleDepth = Math.max(0, angleDepth - 1);
         } else {
           advance();
         }
@@ -565,11 +672,16 @@ public final class IdlParser {
         advance();
         IdlToken end = previous();
         if (check(IdlTokenKind.LESS_THAN)) {
-          emitUnsupportedType(
-              "bounded or parameterized type is not part of the minimal parser slice", current());
-          return null;
+          if (!primitiveType.equals("string") && !primitiveType.equals("wstring")) {
+            emitUnsupportedType("bounded type is only valid for string or wstring", current());
+            return null;
+          }
+          return parseBoundedStringType(primitiveType, start);
         }
         return new IdlTypeReference(primitiveType, span(start, end));
+      }
+      if (matchKeyword("sequence")) {
+        return parseSequenceType(start);
       }
       if (isUnsupportedTypeStart(current())) {
         emitUnsupportedType("unsupported type: " + current().lexeme(), current());
@@ -580,6 +692,42 @@ public final class IdlParser {
         return null;
       }
       return new IdlTypeReference(scopedName.name(), scopedName.span());
+    }
+
+    private IdlTypeReference parseSequenceType(IdlToken start) {
+      if (consume(IdlTokenKind.LESS_THAN, "'<' after sequence") == null) {
+        return null;
+      }
+      IdlTypeReference elementType = parseType(false);
+      if (elementType == null) {
+        return null;
+      }
+      IdlConstantExpression bound = null;
+      if (match(IdlTokenKind.COMMA)) {
+        bound = parseConstantExpressionUntil(IdlTokenKind.GREATER_THAN);
+        if (bound == null) {
+          return null;
+        }
+      }
+      IdlToken end = consumeGreaterThan("'>' after sequence type");
+      if (end == null) {
+        return null;
+      }
+      return bound == null
+          ? IdlTypeReference.sequence(elementType, span(start, end))
+          : IdlTypeReference.sequence(elementType, bound, span(start, end));
+    }
+
+    private IdlTypeReference parseBoundedStringType(String keyword, IdlToken start) {
+      if (consume(IdlTokenKind.LESS_THAN, "'<' after " + keyword) == null) {
+        return null;
+      }
+      IdlConstantExpression bound = parseConstantExpressionUntil(IdlTokenKind.GREATER_THAN);
+      IdlToken end = consumeGreaterThan("'>' after " + keyword + " bound");
+      if (bound == null || end == null) {
+        return null;
+      }
+      return IdlTypeReference.boundedString(keyword, bound, span(start, end));
     }
 
     private IdlTypeReference parseUnsignedType(IdlToken start) {
@@ -629,19 +777,39 @@ public final class IdlParser {
       return new ScopedName(name.toString(), span(start, end));
     }
 
-    private IdlToken parseSimpleDeclaratorName() {
+    private List<IdlDeclarator> parseDeclarators() {
+      List<IdlDeclarator> declarators = new ArrayList<>();
+      IdlDeclarator declarator = parseDeclarator();
+      if (declarator == null) {
+        return null;
+      }
+      declarators.add(declarator);
+      while (match(IdlTokenKind.COMMA)) {
+        declarator = parseDeclarator();
+        if (declarator == null) {
+          return null;
+        }
+        declarators.add(declarator);
+      }
+      return declarators;
+    }
+
+    private IdlDeclarator parseDeclarator() {
       IdlToken name = consumeIdentifier("declarator name");
       if (name == null) {
         return null;
       }
-      if (check(IdlTokenKind.LEFT_BRACKET)) {
-        emitDiagnostic(
-            IdlParserDiagnosticCodes.UNSUPPORTED_DECLARATOR,
-            "array declarators are not part of the minimal parser slice",
-            current().span());
-        return null;
+      List<IdlArrayDimension> dimensions = new ArrayList<>();
+      while (match(IdlTokenKind.LEFT_BRACKET)) {
+        IdlToken dimensionStart = previous();
+        IdlConstantExpression size = parseConstantExpressionUntil(IdlTokenKind.RIGHT_BRACKET);
+        IdlToken end = consume(IdlTokenKind.RIGHT_BRACKET, "']' after array dimension");
+        if (size == null || end == null) {
+          return null;
+        }
+        dimensions.add(new IdlArrayDimension(size, span(dimensionStart, end)));
       }
-      return name;
+      return new IdlDeclarator(identifierText(name), dimensions, span(name, previous()));
     }
 
     private IdlToken consumeIdentifier(String label) {
@@ -660,6 +828,22 @@ public final class IdlParser {
       return null;
     }
 
+    private IdlToken consumeGreaterThan(String expectation) {
+      if (pendingGreaterThanClosers > 0) {
+        pendingGreaterThanClosers--;
+        return previous();
+      }
+      if (check(IdlTokenKind.GREATER_THAN)) {
+        return advance();
+      }
+      if (check(IdlTokenKind.SHIFT_RIGHT)) {
+        pendingGreaterThanClosers++;
+        return advance();
+      }
+      emitUnexpected(expectation);
+      return null;
+    }
+
     private IdlToken consumeKeyword(String keyword, String expectation) {
       if (checkKeyword(keyword)) {
         return advance();
@@ -672,6 +856,7 @@ public final class IdlParser {
       return (allowVoid && checkKeyword("void"))
           || checkKeyword("unsigned")
           || checkKeyword("long")
+          || checkKeyword("sequence")
           || singleTokenTypeName(current()) != null
           || isUnsupportedTypeStart(current())
           || check(IdlTokenKind.IDENTIFIER)
@@ -714,6 +899,11 @@ public final class IdlParser {
 
     private boolean check(IdlTokenKind kind) {
       return current().kind() == kind;
+    }
+
+    private boolean expressionDelimiterReached(IdlTokenKind delimiter) {
+      return check(delimiter)
+          || (delimiter == IdlTokenKind.GREATER_THAN && check(IdlTokenKind.SHIFT_RIGHT));
     }
 
     private boolean checkKeyword(String keyword) {
@@ -796,8 +986,8 @@ public final class IdlParser {
       return new SourceSpan(start.span().start(), end.span().end());
     }
 
-    private static SourceSpan span(SourceSpan start, IdlToken end) {
-      return new SourceSpan(start.start(), end.span().end());
+    private static SourceSpan span(SourceSpan start, SourceSpan end) {
+      return new SourceSpan(start.start(), end.end());
     }
 
     private static String identifierText(IdlToken token) {

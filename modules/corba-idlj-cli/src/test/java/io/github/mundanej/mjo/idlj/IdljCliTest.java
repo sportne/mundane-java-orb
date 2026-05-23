@@ -61,13 +61,13 @@ final class IdljCliTest {
 
   @Test
   void returnsValidationFailureForParserDiagnostics() throws Exception {
-    Path source = write("parser-error.idl", "typedef long Count;\n");
+    Path source = write("parser-error.idl", "native Handle;\n");
 
     CliRun result = run("validate", source.toString());
 
     assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
     assertEquals("", result.stdout());
-    assertTrue(result.stderr().contains("ERROR IDL-0302: unsupported declaration: typedef"));
+    assertTrue(result.stderr().contains("ERROR IDL-0302: unsupported declaration: native"));
     assertTrue(result.stderr().startsWith(source + ":1:1: "));
   }
 
@@ -127,7 +127,7 @@ final class IdljCliTest {
 
   @Test
   void preservesFileAndDiagnosticEncounterOrder() throws Exception {
-    Path parserError = write("a-parser.idl", "typedef long Count;\n");
+    Path parserError = write("a-parser.idl", "native Handle;\n");
     Path semanticError =
         write("b-semantic.idl", "module Bad { struct Point { long x; short X; }; };\n");
 
@@ -138,6 +138,29 @@ final class IdljCliTest {
     assertTrue(result.stderr().indexOf(semanticError.toString()) >= 0);
     assertTrue(
         result.stderr().indexOf(parserError.toString()) < result.stderr().indexOf("IDL-0400"));
+  }
+
+  @Test
+  void validatesG10GrammarClosureSliceWithoutGeneration() throws Exception {
+    Path source =
+        write(
+            "g10.idl",
+            """
+            module G10 {
+              const unsigned long LIMIT = 4;
+              interface Forward;
+              typedef sequence<string<32>, LIMIT> Names;
+              union Choice switch (long) {
+                case 0: string<16> text;
+                default: Names names;
+              };
+              interface Service : Forward {
+                void submit(in Names names, out Choice result);
+              };
+            };
+            """);
+
+    assertQuietSuccess(run("validate", "--quiet", source.toString()));
   }
 
   @Test

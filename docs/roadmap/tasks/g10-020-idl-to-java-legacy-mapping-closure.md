@@ -1,7 +1,7 @@
 # G10-020 IDL To Java Legacy Mapping Closure
 
 Task ID: G10-020-IDL-TO-JAVA-LEGACY-MAPPING-CLOSURE
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-IDLJ-002, REQ-IDLJ-004, REQ-NATIVE-002, REQ-INTEROP-009
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Generate legacy-compatible helpers
 Tests to add/update: Golden-source, compile-test, mapper, codegen, CLI, downstream sample, Native Image source-policy, and hostile-input tests for the expanded generated surface.
 Documentation to update: IDL compiler architecture, IDL-to-Java conformance matrix, Native Image matrix, roadmap index, README ready-task status, this task, and G10-030 status when complete.
 Commands to run: ./gradlew :modules:corba-idl-java-mapping:test :modules:corba-codegen:test :modules:corba-idlj-cli:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-010 is complete; generated Java for the G10 IDL subset compiles deterministically, avoids runtime classpath scanning/reflection metadata, and produces descriptor/codec surfaces usable by later ORB and interop tasks.
+Acceptance criteria: Generated Java for the G10 IDL subset compiles deterministically, avoids runtime classpath scanning/reflection metadata, and produces descriptor/codec surfaces usable by later ORB and interop tasks.
 Rollback notes: Revert mapping, generated-source, fixture, and documentation changes together.

@@ -1,7 +1,7 @@
 # G10-010 IDL 4.2 Grammar Closure
 
 Task ID: G10-010-IDL-4.2-GRAMMAR-CLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-IDL-001, REQ-IDL-003, REQ-SEC-003, REQ-INTEROP-009
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008

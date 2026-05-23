@@ -26,5 +26,11 @@ public final class IdlSemanticDiagnosticCodes {
   /** A reference differs from the defining identifier only by case. */
   public static final DiagnosticCode CASE_MISMATCH = new DiagnosticCode("IDL-0406");
 
+  /** An interface inheritance list is invalid or cyclic. */
+  public static final DiagnosticCode INVALID_INHERITANCE = new DiagnosticCode("IDL-0407");
+
+  /** A union case label is invalid for its discriminator. */
+  public static final DiagnosticCode INVALID_UNION_LABEL = new DiagnosticCode("IDL-0408");
+
   private IdlSemanticDiagnosticCodes() {}
 }

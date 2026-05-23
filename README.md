@@ -166,7 +166,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-010-idl-4-2-grammar-closure.md` is the next
+`docs/roadmap/tasks/g10-020-idl-to-java-legacy-mapping-closure.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

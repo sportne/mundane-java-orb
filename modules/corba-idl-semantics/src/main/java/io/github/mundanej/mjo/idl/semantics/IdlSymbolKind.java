@@ -12,6 +12,10 @@ public enum IdlSymbolKind {
   ATTRIBUTE,
   /** IDL struct type. */
   STRUCT,
+  /** IDL typedef alias. */
+  TYPEDEF,
+  /** IDL union type. */
+  UNION,
   /** IDL struct or exception field. */
   FIELD,
   /** IDL enum type. */

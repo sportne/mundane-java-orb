@@ -6,11 +6,14 @@ import io.github.mundanej.mjo.common.DiagnosticSeverity;
 import io.github.mundanej.mjo.common.SourceSpan;
 import io.github.mundanej.mjo.idl.ast.IdlAttribute;
 import io.github.mundanej.mjo.idl.ast.IdlConstant;
+import io.github.mundanej.mjo.idl.ast.IdlConstantExpression;
 import io.github.mundanej.mjo.idl.ast.IdlDeclaration;
+import io.github.mundanej.mjo.idl.ast.IdlDeclarator;
 import io.github.mundanej.mjo.idl.ast.IdlEnum;
 import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
@@ -18,6 +21,11 @@ import io.github.mundanej.mjo.idl.ast.IdlParameter;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTranslationUnit;
 import io.github.mundanej.mjo.idl.ast.IdlTypeReference;
+import io.github.mundanej.mjo.idl.ast.IdlTypeReferenceKind;
+import io.github.mundanej.mjo.idl.ast.IdlTypedef;
+import io.github.mundanej.mjo.idl.ast.IdlUnion;
+import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
+import io.github.mundanej.mjo.idl.ast.IdlUnionLabel;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -101,12 +109,21 @@ public final class IdlSemanticAnalyzer {
     private final IdentityHashMap<IdlInterface, Scope> interfaceScopes = new IdentityHashMap<>();
     private final IdentityHashMap<IdlOperation, Scope> operationScopes = new IdentityHashMap<>();
     private final IdentityHashMap<IdlStruct, Scope> structScopes = new IdentityHashMap<>();
+    private final IdentityHashMap<IdlUnion, Scope> unionScopes = new IdentityHashMap<>();
     private final IdentityHashMap<IdlExceptionDeclaration, Scope> exceptionScopes =
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlEnum, Scope> enumScopes = new IdentityHashMap<>();
+    private final IdentityHashMap<IdlInterfaceForward, MutableSymbol> interfaceForwardSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlInterface, MutableSymbol> interfaceSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlTypedef, List<MutableSymbol>> typedefSymbols =
+        new IdentityHashMap<>();
     private final IdentityHashMap<IdlConstant, MutableSymbol> constantSymbols =
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlField, MutableSymbol> fieldSymbols = new IdentityHashMap<>();
+    private final IdentityHashMap<IdlUnionCase, MutableSymbol> unionCaseSymbols =
+        new IdentityHashMap<>();
     private final IdentityHashMap<IdlOperation, MutableSymbol> operationSymbols =
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlParameter, MutableSymbol> parameterSymbols =
@@ -115,6 +132,8 @@ public final class IdlSemanticAnalyzer {
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlEnum, List<MutableSymbol>> enumeratorSymbols =
         new IdentityHashMap<>();
+    private final Map<MutableSymbol, List<MutableSymbol>> interfaceBaseGraph = new HashMap<>();
+    private final List<MutableSymbol> interfaceBaseValidationOrder = new ArrayList<>();
     private int nextOrder;
 
     private Analyzer(IdlTranslationUnit translationUnit) {
@@ -124,6 +143,7 @@ public final class IdlSemanticAnalyzer {
     private IdlSemanticResult analyze() {
       collectDeclarations(translationUnit.declarations(), globalScope);
       validateDeclarations(translationUnit.declarations(), globalScope, new HashMap<>());
+      validateInterfaceCycles();
       if (hasErrors()) {
         return new IdlSemanticResult(Optional.empty(), diagnostics);
       }
@@ -149,6 +169,10 @@ public final class IdlSemanticAnalyzer {
         }
       } else if (declaration instanceof IdlStruct struct) {
         collectStruct(struct, scope);
+      } else if (declaration instanceof IdlUnion union) {
+        collectUnion(union, scope);
+      } else if (declaration instanceof IdlTypedef typedef) {
+        collectTypedef(typedef, scope);
       } else if (declaration instanceof IdlEnum idlEnum) {
         collectEnum(idlEnum, scope);
       } else if (declaration instanceof IdlExceptionDeclaration exception) {
@@ -166,6 +190,11 @@ public final class IdlSemanticAnalyzer {
         }
       } else if (declaration instanceof IdlInterface idlInterface) {
         collectInterface(idlInterface, scope);
+      } else if (declaration instanceof IdlInterfaceForward forward) {
+        MutableSymbol symbol = defineInterface(scope, forward.name(), forward.span(), true);
+        if (symbol != null) {
+          interfaceForwardSymbols.put(forward, symbol);
+        }
       }
     }
 
@@ -190,6 +219,46 @@ public final class IdlSemanticAnalyzer {
           fieldSymbols.put(field, fieldSymbol);
         }
       }
+    }
+
+    private void collectUnion(IdlUnion union, Scope scope) {
+      MutableSymbol symbol =
+          define(scope, IdlSymbolKind.UNION, union.name(), Optional.empty(), union.span());
+      if (symbol == null) {
+        return;
+      }
+      Scope unionScope = new Scope(scope, symbol.qualifiedName);
+      symbol.childScope = unionScope;
+      unionScopes.put(union, unionScope);
+      for (IdlUnionCase unionCase : union.cases()) {
+        MutableSymbol fieldSymbol =
+            define(
+                unionScope,
+                IdlSymbolKind.FIELD,
+                unionCase.declarator().name(),
+                Optional.of(unionCase.type().name()),
+                unionCase.declarator().span());
+        if (fieldSymbol != null) {
+          unionCaseSymbols.put(unionCase, fieldSymbol);
+        }
+      }
+    }
+
+    private void collectTypedef(IdlTypedef typedef, Scope scope) {
+      List<MutableSymbol> symbolsForTypedef = new ArrayList<>();
+      for (IdlDeclarator declarator : typedef.declarators()) {
+        MutableSymbol symbol =
+            define(
+                scope,
+                IdlSymbolKind.TYPEDEF,
+                declarator.name(),
+                Optional.of(typedef.type().name()),
+                declarator.span());
+        if (symbol != null) {
+          symbolsForTypedef.add(symbol);
+        }
+      }
+      typedefSymbols.put(typedef, symbolsForTypedef);
     }
 
     private void collectEnum(IdlEnum idlEnum, Scope scope) {
@@ -239,17 +308,13 @@ public final class IdlSemanticAnalyzer {
 
     private void collectInterface(IdlInterface idlInterface, Scope scope) {
       MutableSymbol symbol =
-          define(
-              scope,
-              IdlSymbolKind.INTERFACE,
-              idlInterface.name(),
-              Optional.empty(),
-              idlInterface.span());
+          defineInterface(scope, idlInterface.name(), idlInterface.span(), false);
       if (symbol == null) {
         return;
       }
       Scope interfaceScope = new Scope(scope, symbol.qualifiedName);
       symbol.childScope = interfaceScope;
+      interfaceSymbols.put(idlInterface, symbol);
       interfaceScopes.put(idlInterface, interfaceScope);
       for (IdlInterfaceMember member : idlInterface.members()) {
         collectInterfaceMember(member, interfaceScope);
@@ -321,6 +386,28 @@ public final class IdlSemanticAnalyzer {
       return symbol;
     }
 
+    private MutableSymbol defineInterface(
+        Scope scope, String name, SourceSpan span, boolean forwardDeclaration) {
+      String key = key(name);
+      MutableSymbol existing = scope.symbolsByLowerName.get(key);
+      if (existing == null) {
+        return define(scope, IdlSymbolKind.INTERFACE, name, Optional.empty(), span);
+      }
+      if (!existing.name.equals(name)) {
+        emit(
+            IdlSemanticDiagnosticCodes.DUPLICATE_NAME,
+            "Duplicate IDL name in scope: " + name,
+            span);
+        return null;
+      }
+      if (existing.kind == IdlSymbolKind.INTERFACE
+          && (forwardDeclaration || existing.childScope == null)) {
+        return existing;
+      }
+      emit(IdlSemanticDiagnosticCodes.DUPLICATE_NAME, "Duplicate IDL name in scope: " + name, span);
+      return null;
+    }
+
     private void validateDeclarations(
         List<IdlDeclaration> declarations,
         Scope scope,
@@ -338,30 +425,38 @@ public final class IdlSemanticAnalyzer {
           validateDeclarations(module.declarations(), moduleScope, availableValues);
         }
       } else if (declaration instanceof IdlStruct struct) {
-        validateFields(struct.fields(), structScopes.get(struct));
+        validateFields(struct.fields(), structScopes.get(struct), availableValues);
+      } else if (declaration instanceof IdlUnion union) {
+        validateUnion(union, unionScopes.get(union), availableValues);
+      } else if (declaration instanceof IdlTypedef typedef) {
+        validateTypedef(typedef, scope, availableValues);
       } else if (declaration instanceof IdlEnum idlEnum) {
         validateEnum(idlEnum, availableValues);
       } else if (declaration instanceof IdlExceptionDeclaration exception) {
-        validateFields(exception.fields(), exceptionScopes.get(exception));
+        validateFields(exception.fields(), exceptionScopes.get(exception), availableValues);
       } else if (declaration instanceof IdlConstant constant) {
         validateConstant(constant, scope, availableValues);
       } else if (declaration instanceof IdlInterface idlInterface) {
         Scope interfaceScope = interfaceScopes.get(idlInterface);
         if (interfaceScope != null) {
+          validateInterfaceInheritance(idlInterface, scope);
           for (IdlInterfaceMember member : idlInterface.members()) {
-            validateInterfaceMember(member, interfaceScope);
+            validateInterfaceMember(member, interfaceScope, availableValues);
           }
         }
       }
     }
 
-    private void validateFields(List<IdlField> fields, Scope scope) {
+    private void validateFields(
+        List<IdlField> fields, Scope scope, Map<String, MutableSymbol> availableValues) {
       if (scope == null) {
         return;
       }
       Scope typeLookupScope = scope.parent;
       for (IdlField field : fields) {
-        ResolvedType resolvedType = resolveType(field.type(), typeLookupScope, false);
+        ResolvedType resolvedType =
+            resolveType(field.type(), typeLookupScope, false, availableValues);
+        validateDeclaratorDimensions(field.declarator(), typeLookupScope, availableValues);
         MutableSymbol symbol = fieldSymbols.get(field);
         if (symbol != null && resolvedType != null) {
           symbol.resolvedTypeName = Optional.of(resolvedType.name());
@@ -386,7 +481,7 @@ public final class IdlSemanticAnalyzer {
     private void validateConstant(
         IdlConstant constant, Scope scope, Map<String, MutableSymbol> availableValues) {
       MutableSymbol symbol = constantSymbols.get(constant);
-      ResolvedType resolvedType = resolveType(constant.type(), scope, false);
+      ResolvedType resolvedType = resolveType(constant.type(), scope, false, availableValues);
       if (symbol != null && resolvedType != null) {
         symbol.resolvedTypeName = Optional.of(resolvedType.name());
       }
@@ -402,30 +497,222 @@ public final class IdlSemanticAnalyzer {
           });
     }
 
-    private void validateInterfaceMember(IdlInterfaceMember member, Scope scope) {
+    private void validateTypedef(
+        IdlTypedef typedef, Scope scope, Map<String, MutableSymbol> availableValues) {
+      ResolvedType resolvedType = resolveType(typedef.type(), scope, false, availableValues);
+      for (IdlDeclarator declarator : typedef.declarators()) {
+        validateDeclaratorDimensions(declarator, scope, availableValues);
+      }
+      if (resolvedType == null) {
+        return;
+      }
+      for (MutableSymbol symbol : typedefSymbols.getOrDefault(typedef, List.of())) {
+        symbol.resolvedTypeName = Optional.of(resolvedType.name());
+      }
+    }
+
+    private void validateUnion(
+        IdlUnion union, Scope unionScope, Map<String, MutableSymbol> availableValues) {
+      if (unionScope == null) {
+        return;
+      }
+      Scope typeLookupScope = unionScope.parent;
+      ResolvedType discriminatorType =
+          resolveType(union.discriminatorType(), typeLookupScope, false, availableValues);
+      if (discriminatorType == null || !validUnionDiscriminator(discriminatorType)) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL,
+            "Union discriminator must be integer, char, boolean, enum, or typedef thereof",
+            union.discriminatorType().span());
+        return;
+      }
+      boolean defaultSeen = false;
+      List<String> labels = new ArrayList<>();
+      for (IdlUnionCase unionCase : union.cases()) {
+        for (IdlUnionLabel label : unionCase.labels()) {
+          if (label.defaultLabel()) {
+            if (defaultSeen) {
+              emit(
+                  IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL,
+                  "Union may contain only one default label",
+                  label.span());
+            }
+            defaultSeen = true;
+          } else {
+            String labelKey =
+                validateUnionCaseLabel(label, discriminatorType, typeLookupScope, availableValues);
+            if (!labelKey.isBlank() && labels.contains(labelKey)) {
+              emit(
+                  IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL,
+                  "Duplicate union case label: " + labelKey,
+                  label.span());
+            }
+            labels.add(labelKey);
+          }
+        }
+        ResolvedType memberType =
+            resolveType(unionCase.type(), typeLookupScope, false, availableValues);
+        validateDeclaratorDimensions(unionCase.declarator(), typeLookupScope, availableValues);
+        MutableSymbol symbol = unionCaseSymbols.get(unionCase);
+        if (symbol != null && memberType != null) {
+          symbol.resolvedTypeName = Optional.of(memberType.name());
+        }
+      }
+    }
+
+    private String validateUnionCaseLabel(
+        IdlUnionLabel label,
+        ResolvedType discriminatorType,
+        Scope scope,
+        Map<String, MutableSymbol> availableValues) {
+      IdlConstantExpression expression = label.expression().orElseThrow();
+      Optional<IdlConstantValue> value =
+          evaluateExpression(expression, discriminatorType, scope, availableValues);
+      if (value.isEmpty()) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL,
+            "Union case label is not valid for discriminator type: " + discriminatorType.name(),
+            label.span());
+        return "";
+      }
+      return value.orElseThrow().toString();
+    }
+
+    private void validateInterfaceInheritance(IdlInterface idlInterface, Scope scope) {
+      MutableSymbol interfaceSymbol = interfaceSymbols.get(idlInterface);
+      if (interfaceSymbol == null) {
+        return;
+      }
+      List<MutableSymbol> bases = new ArrayList<>();
+      for (String baseName : idlInterface.baseInterfaces()) {
+        Optional<MutableSymbol> resolved =
+            resolveName(
+                scope, baseName, idlInterface.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+        if (resolved.isEmpty()) {
+          continue;
+        }
+        MutableSymbol base = resolved.orElseThrow();
+        if (base.kind != IdlSymbolKind.INTERFACE) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Interface base must resolve to an interface: " + baseName,
+              idlInterface.span());
+          continue;
+        }
+        if (base == interfaceSymbol) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Interface cannot inherit from itself: " + baseName,
+              idlInterface.span());
+          continue;
+        }
+        bases.add(base);
+      }
+      interfaceBaseGraph.put(interfaceSymbol, bases);
+      if (!interfaceBaseValidationOrder.contains(interfaceSymbol)) {
+        interfaceBaseValidationOrder.add(interfaceSymbol);
+      }
+    }
+
+    private void validateInterfaceCycles() {
+      for (MutableSymbol symbol : interfaceBaseValidationOrder) {
+        detectInterfaceCycle(symbol, symbol, new ArrayList<>());
+      }
+    }
+
+    private boolean detectInterfaceCycle(
+        MutableSymbol root, MutableSymbol current, List<MutableSymbol> path) {
+      if (path.contains(current)) {
+        return false;
+      }
+      path.add(current);
+      for (MutableSymbol base : interfaceBaseGraph.getOrDefault(current, List.of())) {
+        if (base == root) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Interface inheritance cycle includes: " + root.qualifiedName,
+              root.span);
+          return true;
+        }
+        if (detectInterfaceCycle(root, base, path)) {
+          return true;
+        }
+      }
+      path.removeLast();
+      return false;
+    }
+
+    private void validateDeclaratorDimensions(
+        IdlDeclarator declarator, Scope scope, Map<String, MutableSymbol> availableValues) {
+      for (var dimension : declarator.dimensions()) {
+        validatePositiveIntegerExpression(
+            dimension.size(), scope, availableValues, dimension.span());
+      }
+    }
+
+    private void validateTypeBound(
+        IdlTypeReference type, Scope scope, Map<String, MutableSymbol> availableValues) {
+      type.bound()
+          .ifPresent(
+              bound ->
+                  validatePositiveIntegerExpression(bound, scope, availableValues, bound.span()));
+      type.elementType().ifPresent(element -> validateTypeBound(element, scope, availableValues));
+    }
+
+    private void validatePositiveIntegerExpression(
+        IdlConstantExpression expression,
+        Scope scope,
+        Map<String, MutableSymbol> availableValues,
+        SourceSpan span) {
+      ResolvedType unsignedLong =
+          new ResolvedType("unsigned long", ResolvedTypeKind.BUILTIN, Optional.empty());
+      Optional<IdlConstantValue> value =
+          evaluateExpression(expression, unsignedLong, scope, availableValues);
+      if (value.isEmpty()) {
+        return;
+      }
+      if (value.orElseThrow() instanceof IdlConstantValue.IntegerValue integer
+          && integer.value().signum() > 0) {
+        return;
+      }
+      emit(
+          IdlSemanticDiagnosticCodes.INVALID_CONSTANT_VALUE,
+          "IDL bounds and array dimensions must be positive integer constants",
+          span);
+    }
+
+    private void validateInterfaceMember(
+        IdlInterfaceMember member, Scope scope, Map<String, MutableSymbol> availableValues) {
       if (member instanceof IdlAttribute attribute) {
-        ResolvedType resolvedType = resolveType(attribute.type(), scope.parent, false);
+        ResolvedType resolvedType =
+            resolveType(attribute.type(), scope.parent, false, availableValues);
         if (resolvedType != null) {
           for (MutableSymbol symbol : attributeSymbols.getOrDefault(attribute, List.of())) {
             symbol.resolvedTypeName = Optional.of(resolvedType.name());
           }
         }
+        for (IdlDeclarator declarator : attribute.declarators()) {
+          validateDeclaratorDimensions(declarator, scope.parent, availableValues);
+        }
       } else if (member instanceof IdlOperation operation) {
-        validateOperation(operation, scope);
+        validateOperation(operation, scope, availableValues);
       }
     }
 
-    private void validateOperation(IdlOperation operation, Scope interfaceScope) {
+    private void validateOperation(
+        IdlOperation operation, Scope interfaceScope, Map<String, MutableSymbol> availableValues) {
       Scope operationScope = operationScopes.get(operation);
       MutableSymbol operationSymbol = operationSymbols.get(operation);
       Scope typeLookupScope = interfaceScope.parent;
-      ResolvedType returnType = resolveType(operation.returnType(), typeLookupScope, true);
+      ResolvedType returnType =
+          resolveType(operation.returnType(), typeLookupScope, true, availableValues);
       if (operationSymbol != null && returnType != null) {
         operationSymbol.resolvedTypeName = Optional.of(returnType.name());
       }
       if (operationScope != null) {
         for (IdlParameter parameter : operation.parameters()) {
-          ResolvedType parameterType = resolveType(parameter.type(), typeLookupScope, false);
+          ResolvedType parameterType =
+              resolveType(parameter.type(), typeLookupScope, false, availableValues);
           MutableSymbol parameterSymbol = parameterSymbols.get(parameter);
           if (parameterSymbol != null && parameterType != null) {
             parameterSymbol.resolvedTypeName = Optional.of(parameterType.name());
@@ -486,11 +773,34 @@ public final class IdlSemanticAnalyzer {
       };
     }
 
+    private Optional<IdlConstantValue> evaluateExpression(
+        IdlConstantExpression expression,
+        ResolvedType resolvedType,
+        Scope scope,
+        Map<String, MutableSymbol> availableValues) {
+      ConstantCategory category = constantCategory(resolvedType);
+      if (category == ConstantCategory.INVALID) {
+        return Optional.empty();
+      }
+      ExpressionEvaluator evaluator =
+          new ExpressionEvaluator(expression.lexemes(), expression.span(), scope, availableValues);
+      return switch (category) {
+        case INTEGER -> evaluator.evaluateInteger(resolvedType.name());
+        case FLOATING -> evaluator.evaluateFloating(resolvedType.name());
+        case BOOLEAN -> evaluator.evaluateBoolean(resolvedType.name());
+        case CHARACTER -> evaluator.evaluateCharacter(resolvedType.name());
+        case STRING -> evaluator.evaluateString(resolvedType.name());
+        case ENUM -> evaluator.evaluateEnum(resolvedType.name());
+        case INVALID -> Optional.empty();
+      };
+    }
+
     private ConstantCategory constantCategory(ResolvedType resolvedType) {
       if (resolvedType.kind() == ResolvedTypeKind.ENUM) {
         return ConstantCategory.ENUM;
       }
-      if (resolvedType.kind() != ResolvedTypeKind.BUILTIN) {
+      if (resolvedType.kind() != ResolvedTypeKind.BUILTIN
+          && resolvedType.kind() != ResolvedTypeKind.TYPEDEF) {
         return ConstantCategory.INVALID;
       }
       String name = resolvedType.name();
@@ -512,7 +822,32 @@ public final class IdlSemanticAnalyzer {
       return ConstantCategory.INVALID;
     }
 
-    private ResolvedType resolveType(IdlTypeReference type, Scope scope, boolean allowVoid) {
+    private boolean validUnionDiscriminator(ResolvedType resolvedType) {
+      ConstantCategory category = constantCategory(resolvedType);
+      return category == ConstantCategory.INTEGER
+          || category == ConstantCategory.CHARACTER
+          || category == ConstantCategory.BOOLEAN
+          || category == ConstantCategory.ENUM;
+    }
+
+    private ResolvedType resolveType(
+        IdlTypeReference type,
+        Scope scope,
+        boolean allowVoid,
+        Map<String, MutableSymbol> availableValues) {
+      if (type.kind() == IdlTypeReferenceKind.SEQUENCE) {
+        ResolvedType elementType =
+            resolveType(type.elementType().orElseThrow(), scope, false, availableValues);
+        validateTypeBound(type, scope, availableValues);
+        return elementType == null
+            ? null
+            : new ResolvedType(type.name(), ResolvedTypeKind.SEQUENCE, Optional.empty());
+      }
+      if (type.kind() == IdlTypeReferenceKind.BOUNDED_STRING) {
+        validateTypeBound(type, scope, availableValues);
+        String name = type.name().startsWith("wstring<") ? "wstring" : "string";
+        return new ResolvedType(name, ResolvedTypeKind.BUILTIN, Optional.empty());
+      }
       if (type.name().equals("void")) {
         if (allowVoid) {
           return new ResolvedType("void", ResolvedTypeKind.BUILTIN, Optional.empty());
@@ -540,7 +875,11 @@ public final class IdlSemanticAnalyzer {
             type.span());
         return null;
       }
-      return new ResolvedType(symbol.qualifiedName, kind, Optional.of(symbol));
+      String resolvedName =
+          symbol.kind == IdlSymbolKind.TYPEDEF
+              ? symbol.resolvedTypeName.orElse(symbol.qualifiedName)
+              : symbol.qualifiedName;
+      return new ResolvedType(resolvedName, kind, Optional.of(symbol));
     }
 
     private Optional<MutableSymbol> resolveName(
@@ -608,6 +947,8 @@ public final class IdlSemanticAnalyzer {
         case EXCEPTION -> ResolvedTypeKind.EXCEPTION;
         case INTERFACE -> ResolvedTypeKind.INTERFACE;
         case STRUCT -> ResolvedTypeKind.STRUCT;
+        case TYPEDEF -> ResolvedTypeKind.TYPEDEF;
+        case UNION -> ResolvedTypeKind.UNION;
         default -> ResolvedTypeKind.INVALID;
       };
     }
@@ -1124,7 +1465,10 @@ public final class IdlSemanticAnalyzer {
     ENUM,
     EXCEPTION,
     INTERFACE,
+    SEQUENCE,
     STRUCT,
+    TYPEDEF,
+    UNION,
     INVALID
   }
 

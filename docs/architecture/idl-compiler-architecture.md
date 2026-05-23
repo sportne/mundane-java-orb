@@ -64,20 +64,28 @@ The semantic analyzer owns the first syntax-to-symbol pass after parsing. It
 accepts an `IdlTranslationUnit`, never reparses source text, and emits either a
 deterministic `IdlSemanticModel` or stable `IDL-04xx` diagnostics.
 
-The G6-140 model covers the parser-approved subset only:
+The semantic model covers the parser-approved subset only. G10-010 extends the
+front end for the non-optional pre-1.0 interop IDL corpus:
 
 - module, interface, operation, attribute, struct, field, enum, enumerator,
-  exception, constant, and parameter symbols;
+  exception, constant, parameter, typedef, and union symbols;
 - absolute qualified names using IDL `::` spelling;
-- builtin primitive type references and user-defined struct, enum, exception,
-  and interface type references;
+- builtin primitive type references, bounded `string`/`wstring`,
+  `sequence<T>` and `sequence<T, bound>`, fixed-array declarators, and
+  user-defined struct, union, enum, exception, interface, and typedef type
+  references;
 - case-insensitive duplicate detection within each semantic scope;
 - simple declaration-order constant evaluation;
-- `raises(...)` validation against previously declared exceptions.
+- `raises(...)` validation against previously declared exceptions;
+- interface forward declarations, interface inheritance, and inheritance-cycle
+  diagnostics;
+- union discriminator, case/default label, duplicate-label, and member-type
+  validation.
 
 The analyzer uses two-pass collection for type names so fields, attributes,
-operation returns, and parameters may refer to types declared later in the same
-translation unit. Constant references and `raises(...)` targets remain
+operation returns, parameters, typedefs, unions, and recursive type references
+may refer to types declared later in the same translation unit. Constant
+references, array/sequence/string bounds, and `raises(...)` targets remain
 declaration-order constrained in this slice.
 
 The semantic model is deliberately not a compiler back end. Repository ID

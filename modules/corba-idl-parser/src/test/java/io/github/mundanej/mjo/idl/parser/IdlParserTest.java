@@ -14,11 +14,14 @@ import io.github.mundanej.mjo.idl.ast.IdlEnum;
 import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTranslationUnit;
+import io.github.mundanej.mjo.idl.ast.IdlTypedef;
+import io.github.mundanej.mjo.idl.ast.IdlUnion;
 import io.github.mundanej.mjo.idl.lexer.IdlDiagnosticCodes;
 import io.github.mundanej.mjo.idl.lexer.IdlToken;
 import io.github.mundanej.mjo.idl.preprocessor.IdlPreprocessResult;
@@ -193,7 +196,7 @@ final class IdlParserTest {
   @Test
   void reportsUnsupportedDeclarationsTypesDeclaratorsAndPragmas() {
     IdlParseResult unsupportedDeclarations =
-        parser.parse("unsupported.idl", "typedef long Count; union Choice; valuetype Value;");
+        parser.parse("unsupported.idl", "native Handle; component C; valuetype Value;");
 
     assertTrue(unsupportedDeclarations.hasErrors());
     assertEquals(
@@ -204,19 +207,84 @@ final class IdlParserTest {
         diagnosticCodes(unsupportedDeclarations));
     assertTrue(unsupportedDeclarations.translationUnit().isEmpty());
 
-    IdlParseResult unsupportedType =
-        parser.parse("sequence.idl", "struct Bad { sequence<long> values; };");
+    IdlParseResult unsupportedType = parser.parse("fixed.idl", "struct Bad { fixed value; };");
     assertEquals(
         List.of(IdlParserDiagnosticCodes.UNSUPPORTED_TYPE), diagnosticCodes(unsupportedType));
 
     IdlParseResult unsupportedDeclarator =
-        parser.parse("array.idl", "struct Bad { long values[4]; };");
+        parser.parse("bad-array.idl", "struct Bad { long values[]; };");
     assertEquals(
-        List.of(IdlParserDiagnosticCodes.UNSUPPORTED_DECLARATOR),
-        diagnosticCodes(unsupportedDeclarator));
+        List.of(IdlParserDiagnosticCodes.UNEXPECTED_TOKEN), diagnosticCodes(unsupportedDeclarator));
 
     IdlParseResult pragma = parser.parse("pragma.idl", "#pragma prefix \"example\"\n");
     assertEquals(List.of(IdlParserDiagnosticCodes.UNSUPPORTED_CONSTRUCT), diagnosticCodes(pragma));
+  }
+
+  @Test
+  void parsesG10GrammarClosureConstructs() {
+    IdlParseResult result =
+        parser.parse(
+            "g10.idl",
+            """
+            module G10 {
+              const unsigned long LIMIT = 4;
+              interface Forward;
+              typedef sequence<string<32>, LIMIT> Names;
+              typedef long Matrix[2][LIMIT], Count;
+              union Choice switch (long) {
+                case 0:
+                case 1: string<16> text;
+                default: Names names;
+              };
+              interface Base { void ping(); };
+              interface Service : Base, Forward {
+                attribute Count counts[LIMIT];
+                void submit(in Names names, out Choice result);
+              };
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlModule module = (IdlModule) result.translationUnit().orElseThrow().declarations().getFirst();
+    assertEquals("G10", module.name());
+    assertTrue(module.declarations().get(1) instanceof IdlInterfaceForward);
+
+    IdlTypedef names = (IdlTypedef) module.declarations().get(2);
+    assertEquals("sequence<string<32>, LIMIT>", names.type().name());
+    assertEquals("Names", names.declarators().getFirst().name());
+
+    IdlTypedef matrix = (IdlTypedef) module.declarations().get(3);
+    assertEquals(
+        List.of("Matrix", "Count"), matrix.declarators().stream().map(d -> d.name()).toList());
+    assertEquals(2, matrix.declarators().getFirst().dimensions().size());
+
+    IdlUnion union = (IdlUnion) module.declarations().get(4);
+    assertEquals("Choice", union.name());
+    assertEquals(2, union.cases().size());
+    assertEquals(2, union.cases().getFirst().labels().size());
+
+    IdlInterface service = (IdlInterface) module.declarations().get(6);
+    assertEquals(List.of("Base", "Forward"), service.baseInterfaces());
+    IdlAttribute attribute = (IdlAttribute) service.members().getFirst();
+    assertEquals(1, attribute.declarators().getFirst().dimensions().size());
+  }
+
+  @Test
+  void parsesNestedSequencesWhenClosersShareShiftToken() {
+    IdlParseResult result =
+        parser.parse(
+            "nested-sequence.idl",
+            """
+            module G10 {
+              const unsigned long LIMIT = 4;
+              typedef sequence<sequence<long, LIMIT>> Nested;
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlModule module = (IdlModule) result.translationUnit().orElseThrow().declarations().getFirst();
+    IdlTypedef nested = (IdlTypedef) module.declarations().get(1);
+    assertEquals("sequence<sequence<long, LIMIT>>", nested.type().name());
   }
 
   @Test
@@ -288,8 +356,8 @@ final class IdlParserTest {
   void hostileParserInputsProduceBoundedDiagnostics() {
     String[] hostileInputs = {
       "module Broken { interface I { void op(in long value); };",
-      "interface Bad { void op(in sequence<long> value); };",
-      "struct Bad { long values[999999999]; };",
+      "interface Bad { void op(in sequence<long value); };",
+      "struct Bad { long values[]; };",
       "#if 2\ninterface Bad;\n#endif\n",
       "$ $ $ $"
     };

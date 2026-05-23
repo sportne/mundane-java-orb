@@ -146,6 +146,145 @@ final class IdlSemanticAnalyzerTest {
   }
 
   @Test
+  void analyzesG10GrammarClosureConstructs() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module G10 {
+              const unsigned long LIMIT = 4;
+              interface Forward;
+              typedef sequence<string<32>, LIMIT> Names;
+              typedef long Matrix[2][LIMIT], Count;
+              union Choice switch (long) {
+                case 0:
+                case 1: string<16> text;
+                default: Names names;
+              };
+              interface Base { void ping(); };
+              interface Service : Base, Forward {
+                attribute Count counts[LIMIT];
+                void submit(in Names names, out Choice result);
+              };
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlSemanticModel model = result.model().orElseThrow();
+    assertEquals(
+        List.of(
+            "::G10::Forward",
+            "::G10::Names",
+            "::G10::Matrix",
+            "::G10::Count",
+            "::G10::Choice",
+            "::G10::Choice::text",
+            "::G10::Choice::names",
+            "::G10::Base",
+            "::G10::Service"),
+        model.symbols().stream()
+            .filter(
+                symbol ->
+                    symbol.kind() == IdlSymbolKind.INTERFACE
+                        || symbol.kind() == IdlSymbolKind.TYPEDEF
+                        || symbol.kind() == IdlSymbolKind.UNION
+                        || symbol.qualifiedName().startsWith("::G10::Choice::"))
+            .map(IdlSymbol::qualifiedName)
+            .toList());
+    assertEquals(
+        "sequence<string<32>, LIMIT>",
+        model.findSymbol("::G10::Names").orElseThrow().resolvedTypeName().orElseThrow());
+    assertEquals(
+        "::G10::Choice",
+        model
+            .findSymbol("::G10::Service::submit::result")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+  }
+
+  @Test
+  void rejectsInvalidG10InheritanceBoundsAndUnionLabels() {
+    IdlSemanticResult badBound =
+        analyze("module Bad { typedef long Values[0]; interface I { void op(); }; };");
+    assertTrue(
+        diagnosticCodes(badBound).contains(IdlSemanticDiagnosticCodes.INVALID_CONSTANT_VALUE));
+
+    IdlSemanticResult badInheritance =
+        analyze("module Bad { struct S { long v; }; interface I : S { void op(); }; };");
+    assertEquals(
+        List.of(IdlSemanticDiagnosticCodes.INVALID_INHERITANCE), diagnosticCodes(badInheritance));
+
+    IdlSemanticResult cyclicInheritance =
+        analyze("module Bad { interface A : B {}; interface B : A {}; };");
+    assertTrue(
+        diagnosticCodes(cyclicInheritance)
+            .contains(IdlSemanticDiagnosticCodes.INVALID_INHERITANCE));
+
+    IdlSemanticResult duplicateUnionLabel =
+        analyze(
+            """
+            module Bad {
+              union Choice switch (long) {
+                case 1: long a;
+                case 1: long b;
+              };
+            };
+            """);
+    assertTrue(
+        diagnosticCodes(duplicateUnionLabel)
+            .contains(IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL));
+  }
+
+  @Test
+  void validatesNestedSequenceTypesWithAdjacentClosers() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module G10 {
+              const unsigned long LIMIT = 4;
+              typedef sequence<sequence<long, LIMIT>> Nested;
+              interface UsesNested {
+                void op(in Nested values);
+              };
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertEquals(
+        "sequence<sequence<long, LIMIT>>",
+        result
+            .model()
+            .orElseThrow()
+            .findSymbol("::G10::Nested")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+  }
+
+  @Test
+  void reportsInheritanceCyclesInDeclarationOrder() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module Bad {
+              interface A : B {};
+              interface B : A {};
+            };
+            """);
+
+    assertEquals(
+        List.of(
+            "Interface inheritance cycle includes: ::Bad::A",
+            "Interface inheritance cycle includes: ::Bad::B"),
+        result.diagnostics().stream()
+            .filter(
+                diagnostic ->
+                    diagnostic.code().equals(IdlSemanticDiagnosticCodes.INVALID_INHERITANCE))
+            .map(Diagnostic::message)
+            .toList());
+  }
+
+  @Test
   void semanticResultsAndModelsAreImmutableValues() {
     IdlSemanticResult result = analyze("module Demo { const long VALUE = 42; };");
     IdlSemanticModel model = result.model().orElseThrow();

@@ -138,6 +138,106 @@ final class IdlAstValueTest {
     assertEquals(first, declaration);
   }
 
+  @Test
+  void recordsG10GrammarValueNodes() {
+    SourceSpan span = span();
+    IdlConstantExpression four = new IdlConstantExpression(List.of("4"), span);
+    IdlArrayDimension dimension = new IdlArrayDimension(four, span);
+    IdlDeclarator array = new IdlDeclarator("values", List.of(dimension), span);
+    IdlTypeReference boundedString = IdlTypeReference.boundedString("string", four, span);
+    IdlTypeReference sequence = IdlTypeReference.sequence(boundedString, four, span);
+    IdlTypedef typedef = new IdlTypedef(sequence, List.of(array), span);
+    IdlUnionLabel label = IdlUnionLabel.caseLabel(four, span);
+    IdlUnionCase unionCase = new IdlUnionCase(List.of(label), sequence, array, span);
+    IdlUnion union =
+        new IdlUnion("Choice", new IdlTypeReference("long", span), List.of(unionCase), span);
+    IdlInterfaceForward forward = new IdlInterfaceForward("Forward", span);
+    IdlInterface child = new IdlInterface("Child", List.of("Forward"), List.of(), span);
+
+    assertEquals("sequence<string<4>, 4>", typedef.type().name());
+    assertEquals(List.of(dimension), array.dimensions());
+    assertEquals("Choice", union.name());
+    assertEquals(false, label.defaultLabel());
+    assertEquals("Forward", forward.name());
+    assertEquals(List.of("Forward"), child.baseInterfaces());
+    assertThrows(UnsupportedOperationException.class, () -> typedef.declarators().clear());
+    assertThrows(UnsupportedOperationException.class, () -> union.cases().clear());
+    assertThrows(UnsupportedOperationException.class, () -> child.baseInterfaces().clear());
+  }
+
+  @Test
+  void rejectsInvalidG10GrammarValueNodes() {
+    SourceSpan span = span();
+    IdlConstantExpression one = new IdlConstantExpression(List.of("1"), span);
+    IdlTypeReference longType = new IdlTypeReference("long", span);
+    IdlDeclarator declarator = new IdlDeclarator("value", span);
+    IdlUnionCase validCase =
+        new IdlUnionCase(List.of(IdlUnionLabel.caseLabel(one, span)), longType, declarator, span);
+
+    assertThrows(NullPointerException.class, () -> new IdlArrayDimension(null, span));
+    assertThrows(NullPointerException.class, () -> new IdlArrayDimension(one, null));
+    assertThrows(IllegalArgumentException.class, () -> new IdlDeclarator(" ", span));
+    assertThrows(NullPointerException.class, () -> new IdlDeclarator("value", null, span));
+    assertThrows(NullPointerException.class, () -> new IdlDeclarator("value", List.of(), null));
+    assertThrows(IllegalArgumentException.class, () -> new IdlInterfaceForward("", span));
+    assertThrows(NullPointerException.class, () -> new IdlInterfaceForward("Forward", null));
+    assertThrows(NullPointerException.class, () -> new IdlTypedef(null, List.of(declarator), span));
+    assertThrows(IllegalArgumentException.class, () -> new IdlTypedef(longType, List.of(), span));
+    assertThrows(
+        NullPointerException.class, () -> new IdlTypedef(longType, List.of(declarator), null));
+    assertThrows(
+        IllegalArgumentException.class, () -> new IdlUnion(" ", longType, List.of(), span));
+    assertThrows(
+        NullPointerException.class, () -> new IdlUnion("U", null, List.of(validCase), span));
+    assertThrows(
+        IllegalArgumentException.class, () -> new IdlUnion("U", longType, List.of(), span));
+    assertThrows(
+        NullPointerException.class, () -> new IdlUnion("U", longType, List.of(validCase), null));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new IdlUnionCase(List.of(), longType, declarator, span));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new IdlUnionCase(List.of(IdlUnionLabel.caseLabel(one, span)), null, declarator, span));
+    assertThrows(
+        NullPointerException.class,
+        () -> new IdlUnionCase(List.of(IdlUnionLabel.caseLabel(one, span)), longType, null, span));
+    assertThrows(
+        NullPointerException.class,
+        () ->
+            new IdlUnionCase(
+                List.of(IdlUnionLabel.caseLabel(one, span)), longType, declarator, null));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new IdlUnionLabel(true, java.util.Optional.of(one), span));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> new IdlUnionLabel(false, java.util.Optional.empty(), span));
+    assertThrows(
+        IllegalArgumentException.class, () -> IdlTypeReference.boundedString("char", one, span));
+    assertThrows(NullPointerException.class, () -> IdlTypeReference.sequence(null, span));
+    assertThrows(NullPointerException.class, () -> IdlTypeReference.sequence(longType, null, span));
+    assertThrows(NullPointerException.class, () -> IdlTypeReference.sequence(longType, one, null));
+  }
+
+  @Test
+  void g10GrammarValuesExposeEqualityBranches() {
+    SourceSpan span = span();
+    IdlTypeReference first = IdlTypeReference.sequence(new IdlTypeReference("long", span), span);
+    IdlTypeReference second = IdlTypeReference.sequence(new IdlTypeReference("long", span), span);
+    IdlAttribute attribute = new IdlAttribute(false, first, List.of("values"), span);
+
+    assertEquals(first, first);
+    assertEquals(first, second);
+    assertEquals(first.hashCode(), second.hashCode());
+    assertEquals(false, first.equals(new IdlTypeReference("short", span)));
+    assertEquals(false, attribute.declarators().getFirst().array());
+    assertEquals(attribute, new IdlAttribute(false, first, List.of("values"), span));
+    assertEquals(
+        attribute.hashCode(), new IdlAttribute(false, first, List.of("values"), span).hashCode());
+  }
+
   private static SourceSpan span() {
     SourcePosition start = new SourcePosition("value.idl", 1, 1, 0);
     SourcePosition end = new SourcePosition("value.idl", 1, 1, 0);
