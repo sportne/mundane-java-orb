@@ -94,6 +94,13 @@ Until those prerequisite tasks complete, `basic-idl` and `rmi-iiop` remain the
 only existing peer lanes, and live peer pass/fail results are not a 1.0.0
 compatibility claim.
 
+G10-060 adds deterministic local evidence for the Naming Service lane before
+live peer execution: `NetworkNamingServiceTest` starts a bounded loopback IIOP
+Naming Service, exchanges object and context IORs, resolves remote
+`corbaloc`/`corbaname` URLs, and verifies missing-name classification without
+external peers. Live Naming pass/fail evidence remains blocked until the G10
+native-image, real-peer harness, and full execution tasks complete.
+
 ## Required directions
 
 | Client | Server | Required |

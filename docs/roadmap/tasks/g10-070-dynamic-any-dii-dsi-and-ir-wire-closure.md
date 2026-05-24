@@ -1,7 +1,7 @@
 # G10-070 DynamicAny DII DSI And IR Wire Closure
 
 Task ID: G10-070-DYNAMIC-ANY-DII-DSI-AND-IR-WIRE-CLOSURE
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-DYN-001, REQ-ORB-001, REQ-IDLJ-004, REQ-NATIVE-002, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Extend local Any, TypeCode, Dynami
 Tests to add/update: DynamicAny, DII, DSI, Interface Repository, Any/TypeCode wire, generated metadata, network loopback, Native Image, and hostile-input tests.
 Documentation to update: Dynamic CORBA design, conformance rows, interop matrix, roadmap index, README ready-task status, this task, and G10-100 status when complete.
 Commands to run: ./gradlew :modules:corba-dynamic:test :modules:corba-any:test :modules:corba-typecode:test :modules:corba-interface-repository:test :modules:corba-orb-core:test :modules:corba-iiop:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-050 is complete; dynamic invocation and metadata scenarios can execute over local IIOP without runtime classpath scanning, dynamic proxies, or reflection-only dispatch.
+Acceptance criteria: Dynamic invocation and metadata scenarios can execute over local IIOP without runtime classpath scanning, dynamic proxies, or reflection-only dispatch.
 Rollback notes: Revert dynamic, metadata, wire integration, test, and documentation changes together.

@@ -16,8 +16,7 @@ import org.junit.jupiter.api.Test;
 final class NamingBoundaryTest {
 
   @Test
-  void namingProductionSourcesDoNotIntroduceDynamicDiscoveryTransportOrLegacyApis()
-      throws IOException {
+  void namingProductionSourcesDoNotIntroduceDynamicDiscoveryOrLegacyApis() throws IOException {
     Path repositoryRoot = findRepositoryRoot();
     String source =
         productionSource(repositoryRoot.resolve("modules/corba-naming-api/src/main/java"))
@@ -33,8 +32,6 @@ final class NamingBoundaryTest {
             "java.lang.invoke",
             "java.util.ServiceLoader",
             "Class.forName",
-            "io.github.mundanej.mjo.giop",
-            "io.github.mundanej.mjo.iiop",
             "org.omg.CosNaming",
             "corba-services-core",
             "peer interop");

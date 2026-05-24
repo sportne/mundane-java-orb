@@ -63,6 +63,8 @@ This repository is in **pre-1.0 interoperability completion state**:
   started under approved roadmap tasks;
 - local in-memory CosNaming behavior and `corbaname:rir:` resolution have
   started under approved roadmap tasks;
+- bounded loopback IIOP Naming Service behavior, IOR exchange, and remote
+  `corbaloc`/`corbaname` resolution have started under approved roadmap tasks;
 - approved peer interop gates and environment-gated clean-room report capture
   have started under approved roadmap tasks;
 - centralized GraalVM Native Image smoke binaries for IDL validation,
@@ -169,7 +171,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-060-network-naming-and-urls.md` is the next
+`docs/roadmap/tasks/g10-070-dynamic-any-dii-dsi-and-ir-wire-closure.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

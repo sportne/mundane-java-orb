@@ -20,6 +20,9 @@ dependencies {
     // Local initial references are registered with the in-process ORB.
     api project(':modules:corba-orb-core')
 
+    // G10 network Naming fixtures use the bounded local IIOP transport.
+    api project(':modules:corba-iiop')
+
     // Tests use shared fixture and architecture helper conventions.
     testImplementation project(':modules:corba-testkit')
 }
