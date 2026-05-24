@@ -100,6 +100,10 @@ This repository is in **pre-1.0 interoperability completion state**:
   normal/user/system reply mapping;
 - Portable Interceptor request-flow callbacks and service-context propagation
   over the loopback ORB/IIOP path have started under approved roadmap tasks;
+- RMI-IIOP compatibility now covers explicit sequence payloads, deterministic
+  remote object-reference keys, declared-value member metadata, user-exception
+  payload fields, and remote interface inheritance metadata in local generated
+  binding and bounded CDR/GIOP/IIOP wire paths;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -173,7 +177,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-090-rmi-iiop-compatibility-closure.md` is the next
+`docs/roadmap/tasks/g10-100-native-image-interop-binaries.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

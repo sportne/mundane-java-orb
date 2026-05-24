@@ -145,6 +145,15 @@ service-context propagation, and callback failure diagnostics. Live peer
 Portable Interceptor pass/fail evidence remains blocked until the G10 peer
 harness and full execution tasks complete.
 
+G10-090 records deterministic local RMI-IIOP compatibility evidence before
+live peer execution: explicit Java-to-IDL models and generated bindings preserve
+remote-interface inheritance, bounded CDR payloads carry sequences, remote
+object-reference keys, declared-value members, and user-exception payload
+fields, and the existing loopback wire path returns those payloads without Java
+serialization, classpath scanning, or reflection metadata. Live RMI-IIOP
+pass/fail evidence remains blocked until the G10 native-image, peer harness,
+and full execution tasks complete.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time

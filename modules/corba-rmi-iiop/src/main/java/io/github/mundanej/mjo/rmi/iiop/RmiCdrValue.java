@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -63,6 +64,32 @@ public record RmiCdrValue(RmiIdlTypeReference type, Object value) {
   /** Returns a Java string value mapped to IDL {@code wstring}. */
   public static RmiCdrValue stringValue(String value) {
     return builtin("wstring", Objects.requireNonNull(value, "value"));
+  }
+
+  /** Returns a sequence value with explicit element type metadata. */
+  public static RmiCdrValue sequenceValue(
+      RmiIdlTypeReference elementType, List<RmiCdrValue> values) {
+    return new RmiCdrValue(
+        RmiIdlTypeReference.sequenceOf(Objects.requireNonNull(elementType, "elementType")),
+        List.copyOf(Objects.requireNonNull(values, "values")));
+  }
+
+  /** Returns a remote object-reference value backed by a deterministic object key. */
+  public static RmiCdrValue objectReferenceValue(
+      RmiIdlTypeReference remoteType, RmiIiopObjectKey objectKey) {
+    if (remoteType.kind() != RmiIdlTypeKind.REMOTE_OBJECT) {
+      throw new IllegalArgumentException("remoteType must be REMOTE_OBJECT");
+    }
+    return new RmiCdrValue(remoteType, Objects.requireNonNull(objectKey, "objectKey"));
+  }
+
+  /** Returns a declared value payload with explicit field metadata. */
+  public static RmiCdrValue declaredValue(
+      RmiIdlTypeReference declaredType, RmiCdrDeclaredValue value) {
+    if (declaredType.kind() != RmiIdlTypeKind.DECLARED_VALUE) {
+      throw new IllegalArgumentException("declaredType must be DECLARED_VALUE");
+    }
+    return new RmiCdrValue(declaredType, Objects.requireNonNull(value, "value"));
   }
 
   private static RmiCdrValue builtin(String idlName, Object value) {

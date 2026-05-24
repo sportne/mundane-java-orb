@@ -11,6 +11,9 @@ public enum RmiIdlTypeKind {
   /** IDL scoped reference to a Java value or remote interface type. */
   DECLARED_VALUE,
 
+  /** IDL scoped object reference derived from a Java remote type. */
+  REMOTE_OBJECT,
+
   /** IDL sequence type reference derived from a Java array type. */
   SEQUENCE
 }

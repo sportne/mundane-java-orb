@@ -70,7 +70,7 @@ public final class RmiIiopWireClient implements AutoCloseable {
     }
     if (reply.replyStatus() == GiopReplyStatus.USER_EXCEPTION) {
       RmiCdrUserExceptionPayload payload = codec.decodeUserException(reply, operation);
-      throw new RmiIiopWireUserException(payload.repositoryId());
+      throw new RmiIiopWireUserException(payload.repositoryId(), payload.fields());
     }
     if (reply.replyStatus() == GiopReplyStatus.SYSTEM_EXCEPTION) {
       throw codec.decodeSystemFailure(reply);

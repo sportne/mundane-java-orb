@@ -43,6 +43,11 @@ public record RmiJavaTypeReference(
     return new RmiJavaTypeReference(RmiJavaTypeKind.DECLARED, binaryName);
   }
 
+  /** Returns a Java remote object-reference type by binary name. */
+  public static RmiJavaTypeReference remote(String binaryName) {
+    return new RmiJavaTypeReference(RmiJavaTypeKind.REMOTE, binaryName);
+  }
+
   /** Returns an unsupported Java array type shape. */
   public static RmiJavaTypeReference array(String displayName) {
     return new RmiJavaTypeReference(RmiJavaTypeKind.ARRAY, displayName);

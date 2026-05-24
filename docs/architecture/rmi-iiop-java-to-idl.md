@@ -55,6 +55,7 @@ Java remote interface declaration
   -> local ORB/POA invocation adapters (G7-070)
   -> bounded local JVM CDR/GIOP/IIOP transport (G7-080)
   -> environment-gated black-box peer scenarios and reports (G7-090)
+  -> explicit peer-facing RMI-IIOP compatibility payloads (G10-090)
 ```
 
 No step should depend on runtime classpath scanning. If a later implementation
@@ -91,6 +92,10 @@ The implementation slices should prefer observable, low-risk behavior:
   paths for JacORB, GlassFish ORB, JBoss OpenJDK ORB, and applicable ACE/TAO
   checks without vendoring peer artifacts or requiring live peers in the default
   local gate (started by G7-090);
+- represent peer-facing RMI-IIOP sequences, remote object references, declared
+  values, user-exception payload fields, and remote interface inheritance with
+  explicit metadata and bounded local codecs, without Java serialization,
+  classpath scanning, or reflection metadata (started by G10-090);
 - preserve and validate RMI repository ID forms;
 - prove local adapter and local wire invocation before external peer claims.
 
@@ -138,3 +143,17 @@ entrypoint over explicit metadata and local loopback IIOP, audits the RMI-IIOP
 and Native Image sources for forbidden runtime mechanisms, and records
 deterministic hostile-input and structured-report coverage. Live external peer
 compatibility remains environment-gated and is not claimed by this closure.
+
+After G10-090, the RMI-IIOP compatibility slice can model remote-interface
+inheritance, remote object references, declared value metadata, sequences, and
+user-exception payload fields through explicit Java-to-IDL models, generated
+binding metadata, bounded CDR payloads, and local GIOP/IIOP replies. Remote
+object references are represented by deterministic object keys for local wire
+tests; declared values carry explicit member metadata instead of Java
+serialization state. Generated IDL fixture evidence is limited to exception
+fields and interface inheritance; sequence and declared-value payloads are
+verified through the explicit binding/CDR model until later G10 mapping and
+live-peer tasks expand fixture requirements. This remains local compatibility
+evidence only: live peer pass/fail results, Java serialization marshaling,
+runtime classpath scanning, and reflection-driven adaptation remain out of
+scope.

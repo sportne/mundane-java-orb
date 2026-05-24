@@ -73,9 +73,19 @@ public final class RmiCdrOperationCodec {
   /** Writes the repository ID for an approved empty user exception declared by the operation. */
   public void writeUserException(
       CdrWriter writer, RmiIdlOperation operation, RmiIdlExceptionReference exception) {
+    writeUserException(writer, operation, exception, List.of());
+  }
+
+  /** Writes a declared user exception repository ID and explicit field payload. */
+  public void writeUserException(
+      CdrWriter writer,
+      RmiIdlOperation operation,
+      RmiIdlExceptionReference exception,
+      List<RmiCdrValue> fields) {
     Objects.requireNonNull(writer, "writer");
     Objects.requireNonNull(operation, "operation");
     Objects.requireNonNull(exception, "exception");
+    fields = List.copyOf(Objects.requireNonNull(fields, "fields"));
     if (!operation.exceptions().contains(exception)) {
       throw new RmiCdrMarshalingException(
           RmiJavaDiagnosticCodes.CDR_UNDECLARED_EXCEPTION_REPOSITORY_ID,
@@ -85,6 +95,7 @@ public final class RmiCdrOperationCodec {
               + operation.name());
     }
     writer.writeString(repositoryIdFor(exception));
+    valueCodec.writeMembers(writer, exception.fields(), fields);
   }
 
   /** Reads and validates the repository ID for an approved empty user exception payload. */
@@ -102,7 +113,8 @@ public final class RmiCdrOperationCodec {
           RmiJavaDiagnosticCodes.CDR_UNDECLARED_EXCEPTION_REPOSITORY_ID,
           "Repository ID is not declared for operation " + operation.name() + ": " + repositoryId);
     }
-    return new RmiCdrUserExceptionPayload(exception, repositoryId);
+    return new RmiCdrUserExceptionPayload(
+        exception, repositoryId, valueCodec.readMembers(reader, exception.fields()));
   }
 
   private String repositoryIdFor(RmiIdlExceptionReference exception) {

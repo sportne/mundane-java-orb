@@ -117,6 +117,71 @@ final class RmiGeneratedJavaBindingGeneratorTest {
   }
 
   @Test
+  void generatedBindingsPreserveRemoteInheritanceMetadata() throws Exception {
+    RmiIdlInterface base =
+        new RmiIdlInterface(
+            "BaseRemote", "::example::BaseRemote", Optional.of("example.BaseRemote"), List.of());
+    RmiIdlInterface derived =
+        new RmiIdlInterface(
+            "DerivedRemote",
+            "::example::DerivedRemote",
+            Optional.of("example.DerivedRemote"),
+            List.of(),
+            List.of("::example::BaseRemote"));
+    RmiIdlTranslationUnit translationUnit =
+        new RmiIdlTranslationUnit(
+            List.of(new RmiIdlModule("example", "::example", List.of(), List.of(base, derived))),
+            List.of());
+    RmiGeneratedJavaBindingResult result =
+        generator.generate(
+            translationUnit,
+            new RmiRepositoryIdPlan(
+                List.of(
+                    new RmiRepositoryIdValue(
+                        "example.BaseRemote", "RMI:example.BaseRemote:1111111111111111"),
+                    new RmiRepositoryIdValue(
+                        "example.DerivedRemote", "RMI:example.DerivedRemote:2222222222222222"))));
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertTrue(
+        sourceText(result, "example/DerivedRemote.java")
+            .contains(
+                "public interface DerivedRemote extends example.BaseRemote, java.rmi.Remote"));
+    assertTrue(
+        sourceText(result, "example/DerivedRemoteBindingDescriptor.java")
+            .contains("java.util.List.of(\"::example::BaseRemote\")"));
+    compile(result.sources());
+  }
+
+  @Test
+  void generatedWireAdaptersPreserveRemoteDeclaredAndExceptionPayloads() throws Exception {
+    RmiIdlTranslationUnit translationUnit = explicitPayloadTranslationUnit();
+    RmiGeneratedJavaBindingResult result =
+        generator.generate(translationUnit, explicitPayloadRepositoryIdPlan());
+    List<RmiGeneratedJavaBindingSource> sources = new ArrayList<>(result.sources());
+    sources.add(
+        new RmiGeneratedJavaBindingSource(
+            "example.payload", "PayloadWireSmoke", payloadWireSmokeSource()));
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertTrue(
+        sourceText(result, "example/payload/EchoBindingDescriptor.java")
+            .contains(
+                "new io.github.mundanej.mjo.rmi.iiop.RmiIdlExceptionReference("
+                    + "\"example.payload.PayloadProblem\""));
+    assertTrue(
+        sourceText(result, "example/payload/EchoBindingDescriptor.java")
+            .contains(
+                "new io.github.mundanej.mjo.rmi.iiop.RmiIdlValueMember("
+                    + "\"code\", io.github.mundanej.mjo.rmi.iiop.RmiIdlTypeReference.builtin("
+                    + "\"long\"))"));
+
+    Path classOutput = compile(sources);
+
+    runSmoke(classOutput, "example.payload.PayloadWireSmoke");
+  }
+
+  @Test
   void reportsUnsupportedBindingInputsInModelOrder() {
     RmiIdlTranslationUnit translationUnit =
         new RmiIdlTranslationUnit(
@@ -152,7 +217,7 @@ final class RmiGeneratedJavaBindingGeneratorTest {
     assertEquals(
         List.of(
             RmiJavaDiagnosticCodes.UNSUPPORTED_BINDING_SEQUENCE,
-            RmiJavaDiagnosticCodes.UNSUPPORTED_BINDING_DECLARED_TYPE,
+            RmiJavaDiagnosticCodes.MISSING_BINDING_REPOSITORY_ID,
             RmiJavaDiagnosticCodes.UNSUPPORTED_BINDING_EXCEPTION_SCOPE,
             RmiJavaDiagnosticCodes.MISSING_BINDING_REPOSITORY_ID),
         diagnosticCodes(result));
@@ -285,6 +350,56 @@ final class RmiGeneratedJavaBindingGeneratorTest {
     return result.translationUnit().orElseThrow();
   }
 
+  private static RmiIdlTranslationUnit explicitPayloadTranslationUnit() {
+    RmiIdlTypeReference longType = RmiIdlTypeReference.builtin("long");
+    RmiIdlTypeReference targetType =
+        RmiIdlTypeReference.remoteObject("::example::payload::Target", "example.payload.Target");
+    RmiIdlTypeReference readingType =
+        RmiIdlTypeReference.declaredValue(
+            "::example::payload::Reading",
+            "example.payload.Reading",
+            List.of(new RmiIdlValueMember("sample", longType)));
+    RmiIdlExceptionReference problem =
+        new RmiIdlExceptionReference(
+            "example.payload.PayloadProblem",
+            "::example::payload::PayloadProblem",
+            List.of(new RmiIdlValueMember("code", longType)));
+    RmiIdlInterface target =
+        new RmiIdlInterface(
+            "Target",
+            "::example::payload::Target",
+            Optional.of("example.payload.Target"),
+            List.of());
+    RmiIdlInterface echo =
+        new RmiIdlInterface(
+            "Echo",
+            "::example::payload::Echo",
+            Optional.of("example.payload.Echo"),
+            List.of(
+                new RmiIdlOperation(
+                    "identity",
+                    targetType,
+                    List.of(new RmiIdlParameter("target", targetType)),
+                    List.of()),
+                new RmiIdlOperation(
+                    "reading",
+                    readingType,
+                    List.of(new RmiIdlParameter("value", readingType)),
+                    List.of()),
+                new RmiIdlOperation(
+                    "fail", RmiIdlTypeReference.voidType(), List.of(), List.of(problem))));
+    return new RmiIdlTranslationUnit(
+        List.of(
+            new RmiIdlModule(
+                "example",
+                "::example",
+                List.of(
+                    new RmiIdlModule(
+                        "payload", "::example::payload", List.of(), List.of(target, echo))),
+                List.of())),
+        List.of());
+  }
+
   private static RmiRepositoryIdPlan approvedRepositoryIdPlan() {
     return new RmiRepositoryIdPlan(
         List.of(
@@ -293,6 +408,20 @@ final class RmiGeneratedJavaBindingGeneratorTest {
             new RmiRepositoryIdValue(
                 "example.calc.CalculatorProblem",
                 "RMI:example.calc.CalculatorProblem:2222222222222222")));
+  }
+
+  private static RmiRepositoryIdPlan explicitPayloadRepositoryIdPlan() {
+    return new RmiRepositoryIdPlan(
+        List.of(
+            new RmiRepositoryIdValue(
+                "example.payload.Target", "RMI:example.payload.Target:1111111111111111"),
+            new RmiRepositoryIdValue(
+                "example.payload.Echo", "RMI:example.payload.Echo:2222222222222222"),
+            new RmiRepositoryIdValue(
+                "example.payload.Reading", "RMI:example.payload.Reading:3333333333333333"),
+            new RmiRepositoryIdValue(
+                "example.payload.PayloadProblem",
+                "RMI:example.payload.PayloadProblem:4444444444444444")));
   }
 
   private static String goldenCalculatorInterface() {
@@ -693,6 +822,105 @@ final class RmiGeneratedJavaBindingGeneratorTest {
           private interface ThrowingRemoteCall {
 
             void run() throws Exception;
+          }
+        }
+        """;
+  }
+
+  private static String payloadWireSmokeSource() {
+    return """
+        // Generated test harness for G10-090 explicit RMI-IIOP payload behavior.
+
+        package example.payload;
+
+        public final class PayloadWireSmoke {
+
+          private PayloadWireSmoke() {}
+
+          public static void run() throws Exception {
+            io.github.mundanej.mjo.orb.LocalOrb orb = io.github.mundanej.mjo.orb.LocalOrb.create();
+            io.github.mundanej.mjo.poa.Poa poa = io.github.mundanej.mjo.poa.Poa.createRoot(orb);
+            EchoSkeleton servant =
+                new EchoSkeleton() {
+                  @Override
+                  public io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey identity(
+                      io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey target)
+                      throws java.rmi.RemoteException {
+                    return target;
+                  }
+
+                  @Override
+                  public io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue reading(
+                      io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue value)
+                      throws java.rmi.RemoteException {
+                    return value;
+                  }
+
+                  @Override
+                  public void fail() throws java.rmi.RemoteException, PayloadProblem {
+                    throw new PayloadProblem("boom", 7);
+                  }
+                };
+
+            io.github.mundanej.mjo.orb.LocalObjectReference<Echo> reference =
+                new EchoTie(servant).activate(poa);
+            io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey objectKey =
+                io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey.forLocalObjectReference(reference);
+            io.github.mundanej.mjo.rmi.iiop.RmiIiopWireServerHandler handler =
+                new io.github.mundanej.mjo.rmi.iiop.RmiIiopWireServerHandler(
+                        orb, repositoryIdPlan())
+                    .register(objectKey, reference, EchoBindingDescriptor.RMI_INTERFACE);
+
+            try (io.github.mundanej.mjo.iiop.IiopServer server =
+                    io.github.mundanej.mjo.iiop.IiopServer.bind(
+                        io.github.mundanej.mjo.iiop.IiopEndpoint.loopback(0),
+                        io.github.mundanej.mjo.iiop.IiopOptions.defaults(),
+                        handler);
+                io.github.mundanej.mjo.iiop.IiopClient iiopClient =
+                    io.github.mundanej.mjo.iiop.IiopClient.connect(
+                        server.endpoint(), io.github.mundanej.mjo.iiop.IiopOptions.defaults());
+                io.github.mundanej.mjo.rmi.iiop.RmiIiopWireClient wireClient =
+                    new io.github.mundanej.mjo.rmi.iiop.RmiIiopWireClient(
+                        iiopClient, repositoryIdPlan())) {
+              Echo client = new EchoStub(wireClient, objectKey);
+              io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey targetKey =
+                  io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey.fromString("target-1");
+              require(targetKey.equals(client.identity(targetKey)), "remote object key");
+
+              io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue reading =
+                  new io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue(
+                      "RMI:example.payload.Reading:3333333333333333",
+                      java.util.List.of(
+                          io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.longValue(19)));
+              require(reading.equals(client.reading(reading)), "declared value payload");
+
+              try {
+                client.fail();
+                throw new AssertionError("payload exception was not propagated");
+              } catch (PayloadProblem expected) {
+                require(expected.code == 7, "payload exception field");
+              }
+            }
+          }
+
+          private static io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdPlan repositoryIdPlan() {
+            return new io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdPlan(
+                java.util.List.of(
+                    new io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdValue(
+                        "example.payload.Target", "RMI:example.payload.Target:1111111111111111"),
+                    new io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdValue(
+                        "example.payload.Echo", "RMI:example.payload.Echo:2222222222222222"),
+                    new io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdValue(
+                        "example.payload.Reading", "RMI:example.payload.Reading:3333333333333333"),
+                    new io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdValue(
+                        "example.payload.PayloadProblem",
+                        "RMI:example.payload.PayloadProblem:4444444444444444")));
+          }
+
+          private static void require(boolean condition, String label) {
+            if (!condition) {
+              throw new AssertionError(label);
+            }
           }
         }
         """;

@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -7,13 +8,21 @@ import java.util.Objects;
  *
  * @param javaBinaryName Java exception binary name
  * @param scopedName deterministic IDL scoped name
+ * @param fields explicit user-exception payload fields in IDL order
  */
-public record RmiIdlExceptionReference(String javaBinaryName, String scopedName) {
+public record RmiIdlExceptionReference(
+    String javaBinaryName, String scopedName, List<RmiIdlValueMember> fields) {
 
   /** Creates an immutable exception reference. */
   public RmiIdlExceptionReference {
     javaBinaryName = requireNonBlank(javaBinaryName, "javaBinaryName");
     scopedName = requireNonBlank(scopedName, "scopedName");
+    fields = List.copyOf(Objects.requireNonNull(fields, "fields"));
+  }
+
+  /** Creates an exception reference without payload fields. */
+  public RmiIdlExceptionReference(String javaBinaryName, String scopedName) {
+    this(javaBinaryName, scopedName, List.of());
   }
 
   private static String requireNonBlank(String value, String name) {

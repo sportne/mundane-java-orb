@@ -115,6 +115,9 @@ public final class RmiGeneratedIdlFixtureGenerator {
         for (RmiIdlExceptionReference exception : operation.exceptions()) {
           if (emittedExceptions.add(exception.scopedName())) {
             line(output, indent, "exception " + simpleName(exception.scopedName()) + " {");
+            for (RmiIdlValueMember field : exception.fields()) {
+              line(output, indent + 1, typeName(field.type()) + " " + field.name() + ";");
+            }
             line(output, indent, "};");
           }
         }
@@ -127,7 +130,11 @@ public final class RmiGeneratedIdlFixtureGenerator {
 
   private static void renderInterface(
       RmiIdlInterface idlInterface, List<String> modulePath, int indent, StringBuilder output) {
-    line(output, indent, "interface " + idlInterface.name() + " {");
+    String inheritance =
+        idlInterface.baseScopedNames().isEmpty()
+            ? ""
+            : " : " + String.join(", ", idlInterface.baseScopedNames());
+    line(output, indent, "interface " + idlInterface.name() + inheritance + " {");
     for (RmiIdlOperation operation : idlInterface.operations()) {
       renderOperation(operation, modulePath, indent + 1, output);
     }

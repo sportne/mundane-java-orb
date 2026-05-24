@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -7,13 +8,21 @@ import java.util.Objects;
  *
  * @param exception declared exception reference
  * @param repositoryId RMI repository ID read from or written to the CDR payload
+ * @param fields decoded user-exception field values
  */
-public record RmiCdrUserExceptionPayload(RmiIdlExceptionReference exception, String repositoryId) {
+public record RmiCdrUserExceptionPayload(
+    RmiIdlExceptionReference exception, String repositoryId, List<RmiCdrValue> fields) {
 
   /** Creates an immutable user exception payload descriptor. */
   public RmiCdrUserExceptionPayload {
     Objects.requireNonNull(exception, "exception");
     repositoryId = requireNonBlank(repositoryId, "repositoryId");
+    fields = List.copyOf(Objects.requireNonNull(fields, "fields"));
+  }
+
+  /** Creates an empty user-exception payload descriptor. */
+  public RmiCdrUserExceptionPayload(RmiIdlExceptionReference exception, String repositoryId) {
+    this(exception, repositoryId, List.of());
   }
 
   private static String requireNonBlank(String value, String name) {

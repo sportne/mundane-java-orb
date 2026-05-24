@@ -111,7 +111,16 @@ public final class RmiIiopWireServerHandler implements IiopRequestHandler {
                         RmiJavaDiagnosticCodes.UNDECLARED_WIRE_USER_EXCEPTION,
                         "Undeclared RMI-IIOP user exception: " + javaName));
     return reply(
-        request, GiopReplyStatus.USER_EXCEPTION, codec.encodeUserException(operation, declared));
+        request,
+        GiopReplyStatus.USER_EXCEPTION,
+        codec.encodeUserException(operation, declared, userExceptionFields(exception)));
+  }
+
+  private static List<RmiCdrValue> userExceptionFields(LocalInvocationUserException exception) {
+    if (exception.userException() instanceof RmiIiopUserExceptionPayload payload) {
+      return payload.rmiIiopFields();
+    }
+    return List.of();
   }
 
   private GiopReply systemReply(GiopRequest request, RmiIiopWireException exception) {

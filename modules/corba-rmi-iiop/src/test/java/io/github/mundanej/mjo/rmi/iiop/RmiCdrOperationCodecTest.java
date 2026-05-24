@@ -132,6 +132,61 @@ final class RmiCdrOperationCodecTest {
   }
 
   @Test
+  void roundTripsSequencesRemoteObjectsDeclaredValuesAndExceptionPayloads() {
+    RmiIdlTypeReference longType = RmiIdlTypeReference.builtin("long");
+    RmiIdlTypeReference sequenceType = RmiIdlTypeReference.sequenceOf(longType);
+    RmiIdlTypeReference remoteType =
+        RmiIdlTypeReference.remoteObject("::example::calc::Calculator", "example.calc.Calculator");
+    RmiIdlTypeReference valueType =
+        RmiIdlTypeReference.declaredValue(
+            "::example::calc::Reading",
+            "example.calc.Reading",
+            List.of(
+                new RmiIdlValueMember("label", RmiIdlTypeReference.builtin("wstring")),
+                new RmiIdlValueMember("count", longType)));
+    RmiCdrValue sequence =
+        RmiCdrValue.sequenceValue(
+            longType, List.of(RmiCdrValue.longValue(1), RmiCdrValue.longValue(2)));
+    RmiCdrValue objectReference =
+        RmiCdrValue.objectReferenceValue(remoteType, RmiIiopObjectKey.fromString("remote-1"));
+    RmiCdrDeclaredValue declaredPayload =
+        new RmiCdrDeclaredValue(
+            "RMI:example.calc.Reading:3333333333333333",
+            List.of(RmiCdrValue.stringValue("today"), RmiCdrValue.longValue(7)));
+    RmiCdrValue declaredValue = RmiCdrValue.declaredValue(valueType, declaredPayload);
+    CdrWriter writer = CdrWriter.bigEndian();
+
+    valueCodec.writeValue(writer, sequenceType, sequence);
+    valueCodec.writeValue(writer, remoteType, objectReference);
+    valueCodec.writeValue(writer, valueType, declaredValue);
+    CdrReader reader = CdrReader.bigEndian(writer.toByteArray());
+
+    assertEquals(sequence, valueCodec.readValue(reader, sequenceType));
+    assertEquals(objectReference, valueCodec.readValue(reader, remoteType));
+    assertEquals(declaredValue, valueCodec.readValue(reader, valueType));
+    assertEquals(0, reader.remaining());
+
+    RmiIdlExceptionReference problem =
+        new RmiIdlExceptionReference(
+            "example.calc.CalculatorProblem",
+            "::example::calc::CalculatorProblem",
+            List.of(new RmiIdlValueMember("reason", RmiIdlTypeReference.builtin("wstring"))));
+    RmiIdlOperation operation =
+        new RmiIdlOperation(
+            "describe", RmiIdlTypeReference.voidType(), List.of(), List.of(problem));
+    CdrWriter exceptionWriter = CdrWriter.bigEndian();
+
+    operationCodec.writeUserException(
+        exceptionWriter, operation, problem, List.of(RmiCdrValue.stringValue("bad")));
+    RmiCdrUserExceptionPayload payload =
+        operationCodec.readUserException(
+            CdrReader.bigEndian(exceptionWriter.toByteArray()), operation);
+
+    assertEquals(problem, payload.exception());
+    assertEquals(List.of(RmiCdrValue.stringValue("bad")), payload.fields());
+  }
+
+  @Test
   void roundTripsEmptyDeclaredUserExceptionPayloadByRepositoryId() {
     RmiIdlOperation describe = operation("describe");
     RmiIdlExceptionReference problem = describe.exceptions().getFirst();
@@ -214,20 +269,14 @@ final class RmiCdrOperationCodecTest {
                 RmiIdlTypeReference.builtin("long"),
                 RmiCdrValue.shortValue((short) 1)));
     assertRmiCode(
-        RmiJavaDiagnosticCodes.UNSUPPORTED_CDR_MARSHALING_TYPE,
+        RmiJavaDiagnosticCodes.CDR_VALUE_TYPE_MISMATCH,
         () ->
             valueCodec.writeValue(
                 CdrWriter.bigEndian(),
-                RmiIdlTypeReference.sequenceOf(RmiIdlTypeReference.builtin("long")),
+                RmiIdlTypeReference.remoteObject("::example::Remote", "example.Remote"),
                 new RmiCdrValue(
-                    RmiIdlTypeReference.sequenceOf(RmiIdlTypeReference.builtin("long")),
-                    List.of(RmiCdrValue.longValue(1)))));
-    assertRmiCode(
-        RmiJavaDiagnosticCodes.UNSUPPORTED_CDR_MARSHALING_TYPE,
-        () ->
-            valueCodec.readValue(
-                CdrReader.bigEndian(new byte[0]),
-                RmiIdlTypeReference.declaredValue("::example::Thing", "example.Thing")));
+                    RmiIdlTypeReference.remoteObject("::example::Remote", "example.Remote"),
+                    "not an object key")));
   }
 
   @Test

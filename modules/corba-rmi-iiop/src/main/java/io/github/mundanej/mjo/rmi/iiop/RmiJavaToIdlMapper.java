@@ -127,6 +127,20 @@ public final class RmiJavaToIdlMapper {
         }
       }
     }
+    for (RmiJavaTypeReference baseInterface : declaration.baseInterfaces()) {
+      if (baseInterface.kind() != RmiJavaTypeKind.REMOTE) {
+        emit(
+            diagnostics,
+            RmiJavaDiagnosticCodes.UNSUPPORTED_IDL_TYPE_MAPPING,
+            "Base interface must be an explicit remote type: " + baseInterface.displayName());
+        continue;
+      }
+      validateScopedJavaName(
+          baseInterface.name(),
+          RmiJavaDiagnosticCodes.UNSUPPORTED_IDL_TYPE_MAPPING,
+          "Java base interface cannot be mapped to an IDL scoped name: ",
+          diagnostics);
+    }
   }
 
   private static void collectTypeDiagnostics(
@@ -150,7 +164,8 @@ public final class RmiJavaToIdlMapper {
       collectTypeDiagnostics(type.componentType().orElseThrow(), diagnostics);
       return;
     }
-    if (type.kind() == RmiJavaTypeKind.DECLARED && !"java.lang.String".equals(type.name())) {
+    if ((type.kind() == RmiJavaTypeKind.DECLARED || type.kind() == RmiJavaTypeKind.REMOTE)
+        && !"java.lang.String".equals(type.name())) {
       validateScopedJavaName(
           type.name(),
           RmiJavaDiagnosticCodes.UNSUPPORTED_IDL_TYPE_MAPPING,
@@ -196,7 +211,10 @@ public final class RmiJavaToIdlMapper {
             interfaceName,
             scopedName(binaryParts),
             Optional.of(declaration.binaryName()),
-            mapOperations(declaration.operations()));
+            mapOperations(declaration.operations()),
+            declaration.baseInterfaces().stream()
+                .map(baseInterface -> scopedName(baseInterface.name()))
+                .toList());
     if (modulePath.isEmpty()) {
       return new RmiIdlTranslationUnit(List.of(), List.of(idlInterface));
     }
@@ -254,6 +272,7 @@ public final class RmiJavaToIdlMapper {
       case VOID -> RmiIdlTypeReference.voidType();
       case PRIMITIVE -> RmiIdlTypeReference.builtin(mapPrimitive(type.name()));
       case DECLARED -> mapDeclaredType(type.name());
+      case REMOTE -> RmiIdlTypeReference.remoteObject(scopedName(type.name()), type.name());
       case ARRAY -> RmiIdlTypeReference.sequenceOf(mapType(type.componentType().orElseThrow()));
       case GENERIC, WILDCARD ->
           throw new IllegalArgumentException("Unsupported type should have diagnostics first");

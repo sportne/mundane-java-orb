@@ -172,6 +172,37 @@ final class RmiJavaToIdlMapperTest {
   }
 
   @Test
+  void mapsRemoteObjectReferencesAndInheritanceMetadata() {
+    RmiJavaRemoteInterface declaration =
+        new RmiJavaRemoteInterface(
+            "example.DerivedRemote",
+            true,
+            List.of(
+                RmiJavaOperation.abstractOperation(
+                    "peer",
+                    RmiJavaTypeReference.remote("example.BaseRemote"),
+                    List.of(
+                        new RmiJavaParameter(
+                            "target", RmiJavaTypeReference.remote("example.BaseRemote"))),
+                    List.of(REMOTE_EXCEPTION))),
+            List.of(RmiJavaTypeReference.remote("example.BaseRemote")));
+
+    RmiJavaToIdlResult result = mapper.map(declaration);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    RmiIdlInterface idlInterface =
+        result.translationUnit().orElseThrow().modules().getFirst().interfaces().getFirst();
+    RmiIdlOperation operation = idlInterface.operations().getFirst();
+    assertEquals(List.of("::example::BaseRemote"), idlInterface.baseScopedNames());
+    assertEquals(
+        RmiIdlTypeReference.remoteObject("::example::BaseRemote", "example.BaseRemote"),
+        operation.returnType());
+    assertEquals(
+        RmiIdlTypeReference.remoteObject("::example::BaseRemote", "example.BaseRemote"),
+        operation.parameters().getFirst().type());
+  }
+
+  @Test
   void modelTypeReferencesValidateIncompatibleMetadata() {
     assertThrows(
         IllegalArgumentException.class,
@@ -198,6 +229,14 @@ final class RmiJavaToIdlMapperTest {
                 "::example::Value",
                 Optional.of("example.Value"),
                 Optional.of(RmiIdlTypeReference.builtin("long"))));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            new RmiIdlTypeReference(
+                RmiIdlTypeKind.REMOTE_OBJECT,
+                "::example::Remote",
+                Optional.empty(),
+                Optional.empty()));
   }
 
   @Test

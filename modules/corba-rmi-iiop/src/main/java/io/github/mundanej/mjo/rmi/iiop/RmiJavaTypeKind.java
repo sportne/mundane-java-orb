@@ -11,6 +11,9 @@ public enum RmiJavaTypeKind {
   /** Java declared type binary name. */
   DECLARED,
 
+  /** Java declared remote object reference binary name. */
+  REMOTE,
+
   /** Java array type shape, deferred to G7-020. */
   ARRAY,
 

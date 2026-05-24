@@ -201,12 +201,12 @@ public final class RmiJavaEligibilityChecker {
       }
       return;
     }
-    if (type.kind() == RmiJavaTypeKind.DECLARED) {
+    if (type.kind() == RmiJavaTypeKind.DECLARED || type.kind() == RmiJavaTypeKind.REMOTE) {
       if (!isBinaryName(type.name())) {
         emit(
             diagnostics,
             RmiJavaDiagnosticCodes.UNSUPPORTED_TYPE_REFERENCE,
-            "Declared type is not a valid Java binary name: " + type.displayName());
+            "Declared or remote type is not a valid Java binary name: " + type.displayName());
       }
       return;
     }

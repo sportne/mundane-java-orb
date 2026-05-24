@@ -76,9 +76,15 @@ public final class RmiIiopWireCodec {
 
   /** Encodes an approved empty user exception as a repository ID string. */
   public byte[] encodeUserException(RmiIdlOperation operation, RmiIdlExceptionReference exception) {
+    return encodeUserException(operation, exception, List.of());
+  }
+
+  /** Encodes a declared user exception repository ID and explicit payload fields. */
+  public byte[] encodeUserException(
+      RmiIdlOperation operation, RmiIdlExceptionReference exception, List<RmiCdrValue> fields) {
     try {
       CdrWriter writer = CdrWriter.bigEndian();
-      operationCodec.writeUserException(writer, operation, exception);
+      operationCodec.writeUserException(writer, operation, exception, fields);
       return writer.toByteArray();
     } catch (RuntimeException failure) {
       throw malformed("Could not encode RMI-IIOP user exception for " + operation.name(), failure);

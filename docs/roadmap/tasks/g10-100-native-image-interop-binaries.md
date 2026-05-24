@@ -1,7 +1,7 @@
 # G10-100 Native Image Interop Binaries
 
 Task ID: G10-100-NATIVE-IMAGE-INTEROP-BINARIES
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-NATIVE-001, REQ-NATIVE-002, REQ-NATIVE-003, REQ-NATIVE-004, REQ-INTEROP-002, REQ-INTEROP-004, REQ-INTEROP-009
 ADR IDs: ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Build native client/server smoke b
 Tests to add/update: JVM parity tests, source-level metadata audits, Native Image smoke builds where available, interop report classification tests, and no-metadata regression tests.
 Documentation to update: Native Image design, toolchain matrix, Native Image matrix, interop matrix, roadmap index, README ready-task status, this task, and G10-110 status when complete.
 Commands to run: ./gradlew :modules:corba-native-image:test :modules:corba-native-image:nativeImageBinariesSmoke; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer validate-gates; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-090 is complete; native client/server binaries exist for all G10 interop lanes when Native Image is available; unavailable toolchains produce structured infrastructure reports rather than silent omissions.
+Acceptance criteria: Native client/server binaries exist for all G10 interop lanes when Native Image is available; unavailable toolchains produce structured infrastructure reports rather than silent omissions.
 Rollback notes: Revert native-image build, smoke, interop harness, test, and documentation changes together.

@@ -50,6 +50,61 @@ final class RmiGeneratedIdlFixtureGeneratorTest {
   }
 
   @Test
+  void generatedIdlRendersExceptionFieldsAndInterfaceInheritance() {
+    RmiIdlExceptionReference problem =
+        new RmiIdlExceptionReference(
+            "example.calc.CalculatorProblem",
+            "::example::calc::CalculatorProblem",
+            List.of(new RmiIdlValueMember("code", RmiIdlTypeReference.builtin("long"))));
+    RmiIdlInterface base =
+        new RmiIdlInterface(
+            "BaseCalculator",
+            "::example::calc::BaseCalculator",
+            Optional.of("example.calc.BaseCalculator"),
+            List.of());
+    RmiIdlInterface derived =
+        new RmiIdlInterface(
+            "Calculator",
+            "::example::calc::Calculator",
+            Optional.of("example.calc.Calculator"),
+            List.of(
+                new RmiIdlOperation(
+                    "fail", RmiIdlTypeReference.voidType(), List.of(), List.of(problem))),
+            List.of("::example::calc::BaseCalculator"));
+    RmiIdlTranslationUnit translationUnit =
+        new RmiIdlTranslationUnit(
+            List.of(
+                new RmiIdlModule(
+                    "example",
+                    "::example",
+                    List.of(
+                        new RmiIdlModule(
+                            "calc", "::example::calc", List.of(), List.of(base, derived))),
+                    List.of())),
+            List.of());
+
+    RmiGeneratedIdlResult result = generator.generate(translationUnit);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    assertEquals(
+        """
+        module example {
+          module calc {
+            exception CalculatorProblem {
+              long code;
+            };
+            interface BaseCalculator {
+            };
+            interface Calculator : ::example::calc::BaseCalculator {
+              void fail() raises (CalculatorProblem);
+            };
+          };
+        };
+        """,
+        result.fixture().orElseThrow().idlText());
+  }
+
+  @Test
   void reportsUnsupportedGeneratedIdlInputsInModelOrder() {
     RmiIdlTranslationUnit translationUnit =
         new RmiIdlTranslationUnit(

@@ -154,3 +154,14 @@ Java serialization metadata, process execution, internal JDK APIs, or `Unsafe`
 are introduced. The local evidence covers deterministic callback ordering,
 service-context propagation over the ORB/IIOP loopback path, duplicate
 registration diagnostics, and callback failure reporting.
+
+## G10-090 RMI-IIOP compatibility evidence
+
+G10-090 keeps the expanded RMI-IIOP compatibility surface explicit and
+closed-world friendly. Sequence payloads, remote object-reference keys,
+declared-value member metadata, user-exception payload fields, and
+remote-interface inheritance are represented by immutable model records,
+generated binding metadata, and bounded local CDR/GIOP/IIOP codecs. No
+reflection metadata, dynamic proxies, Java serialization metadata, classpath
+scanning, service-loader discovery, runtime bytecode generation, process
+execution, internal JDK APIs, or `Unsafe` are introduced.

@@ -92,6 +92,33 @@ final class RmiIiopWireIntegrationTest {
   }
 
   @Test
+  void codecCarriesUserExceptionPayloadFieldsOverWireReplies() {
+    RmiIdlExceptionReference problem =
+        new RmiIdlExceptionReference(
+            "example.calc.CalculatorProblem",
+            "::example::calc::CalculatorProblem",
+            List.of(new RmiIdlValueMember("reason", RmiIdlTypeReference.builtin("wstring"))));
+    RmiIdlOperation describe =
+        new RmiIdlOperation(
+            "describe",
+            RmiIdlTypeReference.builtin("wstring"),
+            List.of(new RmiIdlParameter("name", RmiIdlTypeReference.builtin("wstring"))),
+            List.of(problem));
+    GiopReply userReply =
+        new GiopReply(
+            GiopHeader.forType(GiopMessageType.REPLY),
+            12,
+            GiopReplyStatus.USER_EXCEPTION,
+            List.of(),
+            codec.encodeUserException(describe, problem, List.of(RmiCdrValue.stringValue("bad"))));
+
+    RmiCdrUserExceptionPayload payload = codec.decodeUserException(userReply, describe);
+
+    assertEquals(problem, payload.exception());
+    assertEquals(List.of(RmiCdrValue.stringValue("bad")), payload.fields());
+  }
+
+  @Test
   void malformedBodiesAndSystemFailuresUseStableDiagnostics() {
     RmiIdlOperation add = operation("add");
     GiopRequest malformedRequest =

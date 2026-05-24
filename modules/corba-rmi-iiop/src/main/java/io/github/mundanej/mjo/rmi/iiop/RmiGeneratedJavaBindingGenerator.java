@@ -163,13 +163,24 @@ public final class RmiGeneratedJavaBindingGenerator {
           "Generated Java bindings do not emit sequence types in G7-050: " + location);
       return;
     }
-    if (type.kind() == RmiIdlTypeKind.DECLARED_VALUE
+    if (type.kind() == RmiIdlTypeKind.REMOTE_OBJECT
         && !context.interfaceNames().contains(type.name())) {
       emit(
           diagnostics,
           RmiJavaDiagnosticCodes.UNSUPPORTED_BINDING_DECLARED_TYPE,
           "Generated Java bindings do not emit undeclared value/reference types in G7-050: "
               + location);
+    }
+    if ((type.kind() == RmiIdlTypeKind.DECLARED_VALUE
+            || type.kind() == RmiIdlTypeKind.REMOTE_OBJECT)
+        && !context.repositoryIds().containsKey(type.javaBinaryName().orElseThrow())) {
+      emit(
+          diagnostics,
+          RmiJavaDiagnosticCodes.MISSING_BINDING_REPOSITORY_ID,
+          "Missing generated binding repository ID for " + type.javaBinaryName().orElseThrow());
+    }
+    for (RmiIdlValueMember member : type.valueMembers()) {
+      validateType(member.type(), context, location + "." + member.name(), diagnostics);
     }
   }
 
@@ -235,7 +246,12 @@ public final class RmiGeneratedJavaBindingGenerator {
       String packageName, RmiIdlInterface idlInterface) {
     String simpleName = idlInterface.name();
     StringBuilder source = header(packageName);
-    source.append("public interface ").append(simpleName).append(" extends java.rmi.Remote {\n");
+    source
+        .append("public interface ")
+        .append(simpleName)
+        .append(" extends ")
+        .append(remoteInterfaceExtendsClause(idlInterface))
+        .append(" {\n");
     for (RmiIdlOperation operation : idlInterface.operations()) {
       renderMethodSignature(source, operation, ";\n", false);
     }
@@ -250,20 +266,77 @@ public final class RmiGeneratedJavaBindingGenerator {
     source
         .append("public class ")
         .append(simpleName)
-        .append(" extends java.lang.Exception {\n\n")
+        .append(" extends java.lang.Exception")
+        .append(" implements io.github.mundanej.mjo.rmi.iiop.RmiIiopUserExceptionPayload")
+        .append(" {\n\n")
         .append("  private static final long serialVersionUID = 1L;\n\n")
         .append("  public static final String REPOSITORY_ID = \"")
         .append(context.repositoryIds().get(exception.javaBinaryName()))
-        .append("\";\n\n")
-        .append("  public ")
-        .append(simpleName)
-        .append("() {\n")
-        .append("    super();\n")
-        .append("  }\n\n")
-        .append("  public ")
-        .append(simpleName)
-        .append("(String message) {\n")
-        .append("    super(message);\n")
+        .append("\";\n");
+    for (RmiIdlValueMember field : exception.fields()) {
+      source
+          .append("\n")
+          .append("  public ")
+          .append(javaType(field.type()))
+          .append(' ')
+          .append(field.name())
+          .append(";\n");
+    }
+    source.append("\n").append("  public ").append(simpleName).append("() {\n");
+    if (exception.fields().isEmpty()) {
+      source.append("    super();\n");
+    } else {
+      source.append("    this(").append(defaultExceptionArguments(exception)).append(");\n");
+    }
+    source.append("  }\n\n").append("  public ").append(simpleName).append("(String message) {\n");
+    if (exception.fields().isEmpty()) {
+      source.append("    super(message);\n");
+    } else {
+      source
+          .append("    this(message")
+          .append(defaultExceptionFieldArguments(exception))
+          .append(");\n");
+    }
+    source.append("  }\n");
+    if (!exception.fields().isEmpty()) {
+      source
+          .append("\n")
+          .append("  public ")
+          .append(simpleName)
+          .append('(')
+          .append(fieldParameterList(exception.fields()))
+          .append(") {\n")
+          .append("    this(null, ")
+          .append(fieldNameList(exception.fields()))
+          .append(");\n")
+          .append("  }\n\n")
+          .append("  public ")
+          .append(simpleName)
+          .append("(String message, ")
+          .append(fieldParameterList(exception.fields()))
+          .append(") {\n")
+          .append("    super(message);\n");
+      for (RmiIdlValueMember field : exception.fields()) {
+        source
+            .append("    this.")
+            .append(field.name())
+            .append(" = ")
+            .append(field.name())
+            .append(";\n");
+      }
+      source.append("  }\n");
+    }
+    source
+        .append("\n")
+        .append("  @Override\n")
+        .append("  public java.util.List<io.github.mundanej.mjo.rmi.iiop.RmiCdrValue>")
+        .append(" rmiIiopFields() {\n")
+        .append("    return java.util.List.of(")
+        .append(
+            exception.fields().stream()
+                .map(field -> wireValueExpression(field.type(), field.name()))
+                .collect(Collectors.joining(", ")))
+        .append(");\n")
         .append("  }\n")
         .append("}\n");
     return new RmiGeneratedJavaBindingSource(packageName, simpleName, source.toString());
@@ -372,6 +445,12 @@ public final class RmiGeneratedJavaBindingGenerator {
         .append(
             idlInterface.operations().stream()
                 .map(operation -> operationConstantName(operation) + "_RMI_MODEL")
+                .collect(Collectors.joining(", ")))
+        .append("),\n")
+        .append("          java.util.List.of(")
+        .append(
+            idlInterface.baseScopedNames().stream()
+                .map(base -> "\"" + base + "\"")
                 .collect(Collectors.joining(", ")))
         .append("));\n\n")
         .append(
@@ -610,7 +689,9 @@ public final class RmiGeneratedJavaBindingGenerator {
           .append(".REPOSITORY_ID.equals(exception.repositoryId())) {\n")
           .append("          throw new ")
           .append(simpleName)
-          .append("(exception.getMessage());\n")
+          .append('(')
+          .append(exceptionPayloadArguments(exception))
+          .append(");\n")
           .append("        }\n");
     }
     source
@@ -652,6 +733,11 @@ public final class RmiGeneratedJavaBindingGenerator {
       types.putIfAbsent(typeConstantName(operation.returnType()), operation.returnType());
       for (RmiIdlParameter parameter : operation.parameters()) {
         types.putIfAbsent(typeConstantName(parameter.type()), parameter.type());
+      }
+      for (RmiIdlExceptionReference exception : operation.exceptions()) {
+        for (RmiIdlValueMember field : exception.fields()) {
+          types.putIfAbsent(typeConstantName(field.type()), field.type());
+        }
       }
     }
     return List.copyOf(types.values());
@@ -854,6 +940,20 @@ public final class RmiGeneratedJavaBindingGenerator {
                 + ")";
       };
     }
+    if (type.kind() == RmiIdlTypeKind.REMOTE_OBJECT) {
+      return "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.objectReferenceValue("
+          + rmiTypeReferenceExpression(type)
+          + ", "
+          + valueExpression
+          + ")";
+    }
+    if (type.kind() == RmiIdlTypeKind.DECLARED_VALUE) {
+      return "io.github.mundanej.mjo.rmi.iiop.RmiCdrValue.declaredValue("
+          + rmiTypeReferenceExpression(type)
+          + ", "
+          + valueExpression
+          + ")";
+    }
     return "new io.github.mundanej.mjo.rmi.iiop.RmiCdrValue("
         + rmiTypeReferenceExpression(type)
         + ", "
@@ -891,7 +991,10 @@ public final class RmiGeneratedJavaBindingGenerator {
       };
     }
     if (type.kind() == RmiIdlTypeKind.DECLARED_VALUE) {
-      return "(" + javaType(type) + ") " + valueExpression;
+      return "(io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue) " + valueExpression;
+    }
+    if (type.kind() == RmiIdlTypeKind.REMOTE_OBJECT) {
+      return "(io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey) " + valueExpression;
     }
     throw new IllegalArgumentException("Unsupported cast type: " + type.kind());
   }
@@ -900,7 +1003,8 @@ public final class RmiGeneratedJavaBindingGenerator {
     return switch (type.kind()) {
       case VOID -> "void";
       case BUILTIN -> builtinJavaType(type.name());
-      case DECLARED_VALUE -> javaName(type.name());
+      case DECLARED_VALUE -> "io.github.mundanej.mjo.rmi.iiop.RmiCdrDeclaredValue";
+      case REMOTE_OBJECT -> "io.github.mundanej.mjo.rmi.iiop.RmiIiopObjectKey";
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
   }
@@ -924,7 +1028,8 @@ public final class RmiGeneratedJavaBindingGenerator {
     return switch (type.kind()) {
       case VOID -> "io.github.mundanej.mjo.typecode.IdlTypeKind.VOID";
       case BUILTIN -> "io.github.mundanej.mjo.typecode.IdlTypeKind.PRIMITIVE";
-      case DECLARED_VALUE -> "io.github.mundanej.mjo.typecode.IdlTypeKind.INTERFACE";
+      case DECLARED_VALUE -> "io.github.mundanej.mjo.typecode.IdlTypeKind.STRUCT";
+      case REMOTE_OBJECT -> "io.github.mundanej.mjo.typecode.IdlTypeKind.INTERFACE";
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
   }
@@ -933,7 +1038,7 @@ public final class RmiGeneratedJavaBindingGenerator {
     return switch (type.kind()) {
       case VOID -> "void";
       case BUILTIN -> javaType(type);
-      case DECLARED_VALUE -> javaName(type.name());
+      case DECLARED_VALUE, REMOTE_OBJECT -> javaName(type.name());
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
   }
@@ -951,7 +1056,9 @@ public final class RmiGeneratedJavaBindingGenerator {
         + exception.javaBinaryName()
         + "\", \""
         + exception.scopedName()
-        + "\")";
+        + "\", "
+        + rmiValueMemberListExpression(exception.fields())
+        + ")";
   }
 
   private static String rmiTypeReferenceExpression(RmiIdlTypeReference type) {
@@ -964,13 +1071,22 @@ public final class RmiGeneratedJavaBindingGenerator {
               + type.name()
               + "\", \""
               + type.javaBinaryName().orElseThrow()
+              + "\", "
+              + rmiValueMemberListExpression(type.valueMembers())
+              + ")";
+      case REMOTE_OBJECT ->
+          "io.github.mundanej.mjo.rmi.iiop.RmiIdlTypeReference.remoteObject(\""
+              + type.name()
+              + "\", \""
+              + type.javaBinaryName().orElseThrow()
               + "\")";
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
   }
 
   private static String repositoryIdExpression(RmiIdlTypeReference type, BindingContext context) {
-    if (type.kind() != RmiIdlTypeKind.DECLARED_VALUE) {
+    if (type.kind() != RmiIdlTypeKind.DECLARED_VALUE
+        && type.kind() != RmiIdlTypeKind.REMOTE_OBJECT) {
       return "          java.util.Optional.empty()";
     }
     return "          java.util.Optional.of(\n"
@@ -983,9 +1099,91 @@ public final class RmiGeneratedJavaBindingGenerator {
     return switch (type.kind()) {
       case VOID -> "VOID_TYPE";
       case BUILTIN -> upperSnake(type.name()) + "_TYPE";
-      case DECLARED_VALUE -> upperSnake(simpleName(type.name())) + "_TYPE";
+      case DECLARED_VALUE, REMOTE_OBJECT -> upperSnake(simpleName(type.name())) + "_TYPE";
       case SEQUENCE -> throw new IllegalArgumentException("Sequence type should have diagnostics");
     };
+  }
+
+  private static String remoteInterfaceExtendsClause(RmiIdlInterface idlInterface) {
+    List<String> parents =
+        idlInterface.baseScopedNames().stream()
+            .map(RmiGeneratedJavaBindingGenerator::javaName)
+            .toList();
+    if (parents.isEmpty()) {
+      return "java.rmi.Remote";
+    }
+    List<String> allParents = new ArrayList<>(parents);
+    allParents.add("java.rmi.Remote");
+    return String.join(", ", allParents);
+  }
+
+  private static String defaultExceptionArguments(RmiIdlExceptionReference exception) {
+    if (exception.fields().isEmpty()) {
+      return "";
+    }
+    return exception.fields().stream()
+        .map(field -> defaultJavaValue(field.type()))
+        .collect(Collectors.joining(", "));
+  }
+
+  private static String defaultExceptionFieldArguments(RmiIdlExceptionReference exception) {
+    if (exception.fields().isEmpty()) {
+      return "";
+    }
+    return ", " + defaultExceptionArguments(exception);
+  }
+
+  private static String fieldParameterList(List<RmiIdlValueMember> fields) {
+    return fields.stream()
+        .map(field -> javaType(field.type()) + " " + field.name())
+        .collect(Collectors.joining(", "));
+  }
+
+  private static String fieldNameList(List<RmiIdlValueMember> fields) {
+    return fields.stream().map(RmiIdlValueMember::name).collect(Collectors.joining(", "));
+  }
+
+  private static String exceptionPayloadArguments(RmiIdlExceptionReference exception) {
+    if (exception.fields().isEmpty()) {
+      return "exception.getMessage()";
+    }
+    List<String> arguments = new ArrayList<>();
+    arguments.add("exception.getMessage()");
+    for (int index = 0; index < exception.fields().size(); index++) {
+      RmiIdlValueMember field = exception.fields().get(index);
+      arguments.add(castExpression(field.type(), "exception.fields().get(" + index + ").value()"));
+    }
+    return String.join(", ", arguments);
+  }
+
+  private static String rmiValueMemberListExpression(List<RmiIdlValueMember> members) {
+    return members.stream()
+        .map(
+            member ->
+                "new io.github.mundanej.mjo.rmi.iiop.RmiIdlValueMember(\""
+                    + member.name()
+                    + "\", "
+                    + rmiTypeReferenceExpression(member.type())
+                    + ")")
+        .collect(Collectors.joining(", ", "java.util.List.of(", ")"));
+  }
+
+  private static String defaultJavaValue(RmiIdlTypeReference type) {
+    if (type.kind() == RmiIdlTypeKind.BUILTIN) {
+      return switch (type.name()) {
+        case "boolean" -> "false";
+        case "octet" -> "(byte) 0";
+        case "wchar" -> "'\\0'";
+        case "double" -> "0.0d";
+        case "float" -> "0.0f";
+        case "long" -> "0";
+        case "long long" -> "0L";
+        case "short" -> "(short) 0";
+        case "wstring" -> "\"\"";
+        default -> "null";
+      };
+    }
+    return "null";
   }
 
   private static String exceptionTypeConstantName(RmiIdlExceptionReference exception) {
