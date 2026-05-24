@@ -104,6 +104,9 @@ This repository is in **pre-1.0 interoperability completion state**:
   remote object-reference keys, declared-value member metadata, user-exception
   payload fields, and remote interface inheritance metadata in local generated
   binding and bounded CDR/GIOP/IIOP wire paths;
+- Native Image interop smoke coverage now includes aggregate client/server
+  binaries for the completed local G10 interop lanes, plus structured
+  native-lane missing-prerequisite reports for absent native binaries;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -177,7 +180,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-100-native-image-interop-binaries.md` is the next
+`docs/roadmap/tasks/g10-110-real-peer-harness-closure.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

@@ -27,3 +27,10 @@ When running native checks locally or from an agent session:
 
 Native smoke commands should set `JAVA_HOME` and prepend `$JAVA_HOME/bin` to
 `PATH` once a SDKMAN GraalVM candidate is found.
+
+G10-100 keeps the native interop lane deterministic across both toolchain
+states. When Native Image is available, `nativeImageBinariesSmoke` builds and
+runs the aggregate `interopClient` and `interopServer` smoke binaries. When a
+native lane is requested without an executable client or server binary, the
+interop CLI writes a structured `infrastructure-failure` report instead of
+silently skipping the lane.

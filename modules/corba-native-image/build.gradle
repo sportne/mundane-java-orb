@@ -70,6 +70,7 @@ def nativeImageExecutable = providers.environmentVariable('NATIVE_IMAGE')
 
 def nativeSmokeRuntimeClasspath = sourceSets.nativeSmoke.runtimeClasspath
 def nativeSmokeOutputDirectory = layout.buildDirectory.dir('native/g6-910')
+def nativeSmokeReportDirectory = layout.buildDirectory.dir('native/g10-100/reports')
 def nativeSmokeTargets = [
     [
         name: 'idljValidate',
@@ -105,15 +106,104 @@ def nativeSmokeTargets = [
         name: 'rmiIiop',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke',
         binaryName: 'rmi-iiop-native-smoke'
+    ],
+    [
+        name: 'interopClient',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.InteropClientNativeSmoke',
+        binaryName: 'interop-client-native-smoke'
+    ],
+    [
+        name: 'interopServer',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.InteropServerNativeSmoke',
+        binaryName: 'interop-server-native-smoke'
     ]
 ]
+
+def nativeImageIsAvailable = { String executableName ->
+    def candidate = new File(executableName)
+    if (candidate.absolute || executableName.contains(File.separator)) {
+        return candidate.isFile() && candidate.canExecute()
+    }
+    def path = System.getenv('PATH') ?: ''
+    return path.split(File.pathSeparator).any { entry ->
+        def executable = new File(entry, executableName)
+        executable.isFile() && executable.canExecute()
+    }
+}
+
+def writeNativeSmokeReport = { File report, Map<String, Object> values ->
+    report.parentFile.mkdirs()
+    def escaped = values.collect { key, value ->
+        def safeValue = String.valueOf(value).replace('\\', '\\\\').replace('"', '\\"')
+        "  \"${key}\": \"${safeValue}\""
+    }.join(",\n")
+    report.text = "{\n${escaped}\n}\n"
+}
 
 nativeSmokeTargets.each { target ->
     def binary = nativeSmokeOutputDirectory.map { directory ->
         directory.file(target.binaryName).asFile
     }
+    def report = nativeSmokeReportDirectory.map { directory ->
+        directory.file("${target.name}.json").asFile
+    }
+    def successMarker = nativeSmokeReportDirectory.map { directory ->
+        directory.file("${target.name}.success").asFile
+    }
     def compileTaskName = "native${target.name.capitalize()}Compile"
+    def reportTaskName = "native${target.name.capitalize()}Report"
     def runTaskName = "native${target.name.capitalize()}Smoke"
+
+    tasks.register(reportTaskName) {
+        group = 'verification'
+        description = "Writes the ${target.name} Native Image smoke prerequisite report."
+        outputs.file(report)
+
+        doLast {
+            def executableName = nativeImageExecutable.get()
+            if (!nativeImageIsAvailable(executableName)) {
+                writeNativeSmokeReport(report.get(), [
+                    target        : target.name,
+                    status        : 'failed',
+                    classification: 'infrastructure-failure',
+                    prerequisite  : 'native-image',
+                    executable    : executableName,
+                    notes         : 'Native Image executable was not available; binary build was not attempted'
+                ])
+                return
+            }
+            if (!binary.get().isFile()) {
+                writeNativeSmokeReport(report.get(), [
+                    target        : target.name,
+                    status        : 'failed',
+                    classification: 'infrastructure-failure',
+                    prerequisite  : 'native-image',
+                    executable    : executableName,
+                    notes         : 'Native Image executable was available but the binary was not produced'
+                ])
+                return
+            }
+            if (!successMarker.get().isFile()) {
+                writeNativeSmokeReport(report.get(), [
+                    target        : target.name,
+                    status        : 'failed',
+                    classification: 'infrastructure-failure',
+                    prerequisite  : 'native-image-smoke',
+                    executable    : executableName,
+                    notes         : 'Native Image smoke binary was built but did not complete successfully'
+                ])
+                return
+            }
+            writeNativeSmokeReport(report.get(), [
+                target        : target.name,
+                status        : 'passed',
+                classification: 'expected-deferral',
+                prerequisite  : 'native-image',
+                executable    : executableName,
+                notes         : 'Native Image smoke binary was built'
+            ])
+        }
+    }
 
     tasks.register(compileTaskName, Exec) {
         group = 'verification'
@@ -121,6 +211,7 @@ nativeSmokeTargets.each { target ->
         dependsOn tasks.named('nativeSmokeClasses')
         inputs.files(nativeSmokeRuntimeClasspath)
         outputs.file(binary)
+        onlyIf { nativeImageIsAvailable(nativeImageExecutable.get()) }
 
         doFirst {
             nativeSmokeOutputDirectory.get().asFile.mkdirs()
@@ -141,10 +232,17 @@ nativeSmokeTargets.each { target ->
         group = 'verification'
         description = "Runs the ${target.name} Native Image smoke executable."
         dependsOn tasks.named(compileTaskName)
+        finalizedBy tasks.named(reportTaskName)
+        onlyIf { nativeImageIsAvailable(nativeImageExecutable.get()) && binary.get().isFile() }
 
         doFirst {
+            successMarker.get().delete()
             executable = binary.get().absolutePath
             args = []
+        }
+        doLast {
+            successMarker.get().parentFile.mkdirs()
+            successMarker.get().text = 'passed\n'
         }
     }
 }

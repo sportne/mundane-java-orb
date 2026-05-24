@@ -49,6 +49,12 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
     IIOP, `RmiIiopWireServerHandler`, `RmiIiopWireClient`, normal replies,
     empty user exceptions, unknown object keys, and unknown operations for the
     approved G7 RMI-IIOP slice.
+  - `interopClient` composes the approved local client-side interop smoke
+    entrypoints, including IDL validation, generated client invocation, IOR
+    diagnostics, structured report parsing, and RMI-IIOP loopback behavior.
+  - `interopServer` composes the approved local server-side interop smoke
+    entrypoints, including generated server dispatch, local naming,
+    structured report parsing, and RMI-IIOP loopback behavior.
 - `:modules:corba-cdr:nativeCdrSmoke` builds and executes a GraalVM Native
   Image smoke executable for the CDR primitive, string, sequence, and
   encapsulation reader/writer API.
@@ -165,3 +171,15 @@ generated binding metadata, and bounded local CDR/GIOP/IIOP codecs. No
 reflection metadata, dynamic proxies, Java serialization metadata, classpath
 scanning, service-loader discovery, runtime bytecode generation, process
 execution, internal JDK APIs, or `Unsafe` are introduced.
+
+## G10-100 native interop binary evidence
+
+G10-100 adds aggregate Native Image interop client and server smoke binaries for
+the completed local G10 lanes. The binaries are built and run by
+`:modules:corba-native-image:nativeImageBinariesSmoke` when Native Image is
+available. JVM parity tests execute the same entrypoints repeatedly, and the
+interop CLI records structured `infrastructure-failure` reports when requested
+native client or server binaries are absent. No reflection metadata, dynamic
+proxy metadata, Java serialization metadata, classpath scanning,
+service-loader discovery, runtime bytecode generation, process execution in
+production sources, internal JDK APIs, or `Unsafe` are introduced.

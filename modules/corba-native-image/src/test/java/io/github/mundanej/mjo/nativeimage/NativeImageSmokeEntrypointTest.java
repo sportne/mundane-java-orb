@@ -3,7 +3,9 @@ package io.github.mundanej.mjo.nativeimage;
 import io.github.mundanej.mjo.nativeimage.smoke.GeneratedClientNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.GeneratedServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.IdljValidateNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.InteropClientNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.InteropReportNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.InteropServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.IorDiagnosticsNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
@@ -20,6 +22,8 @@ final class NativeImageSmokeEntrypointTest {
     IorDiagnosticsNativeSmoke.main(new String[0]);
     InteropReportNativeSmoke.main(new String[0]);
     RmiIiopNativeSmoke.main(new String[0]);
+    InteropClientNativeSmoke.main(new String[0]);
+    InteropServerNativeSmoke.main(new String[0]);
   }
 
   @Test
@@ -29,6 +33,8 @@ final class NativeImageSmokeEntrypointTest {
       IorDiagnosticsNativeSmoke.main(new String[0]);
       InteropReportNativeSmoke.main(new String[0]);
       RmiIiopNativeSmoke.main(new String[0]);
+      InteropClientNativeSmoke.main(new String[0]);
+      InteropServerNativeSmoke.main(new String[0]);
     }
   }
 }

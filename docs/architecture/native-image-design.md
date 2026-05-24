@@ -32,6 +32,15 @@ runtime, or require reflection/proxy/serialization metadata for the covered
 paths. Unit tests audit the harness and smoke sources for those forbidden
 tokens, and the native matrix records the empty metadata policy.
 
+G10-100 extends the same verification-only harness with aggregate
+`interopClient` and `interopServer` smoke binaries. Those binaries compose the
+completed local interop lanes that are safe to run without external peers:
+validation-only IDL, generated-style local invocation, naming, IOR diagnostics,
+structured interop-report handling, and RMI-IIOP loopback behavior. The interop
+CLI also records deterministic native-lane prerequisite reports when a required
+native client or server binary is missing, so missing GraalVM or binary paths do
+not become silent skips.
+
 ## Native test targets
 
 - `idlj` CLI.

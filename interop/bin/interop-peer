@@ -18,6 +18,7 @@ Usage:
   interop-peer health [--dry-run] <peer>
   interop-peer report [--dry-run] <peer>
   interop-peer run-scenario [--dry-run] [--require-live] <scenario> <peer|all>
+  interop-peer native-lane-report [--dry-run] <scenario> <client|server>
 
 G6-830/G7-090 run approved peer containers when external artifacts and images
 are present. Dry-run commands do not download peer artifacts, build images,
@@ -632,6 +633,89 @@ print(summary_path)
 PY
 }
 
+native_lane_report() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local scenario="${1:-}"
+  local role="${2:-}"
+  [[ -n "${scenario}" && -n "${role}" ]] || fail "native-lane-report requires a scenario and client|server"
+  case "${role}" in
+    client|server) ;;
+    *) fail "native-lane-report role must be client or server" ;;
+  esac
+
+  local reports_dir logs_dir label report_abs stdout_abs stderr_abs binary_env binary idl started ended exit_code status classification message
+  reports_dir="build/interop/native/reports"
+  logs_dir="build/interop/native/logs"
+  label="$(report_label "${scenario}" "native-${role}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  binary_env="MJO_NATIVE_${role^^}_BINARY"
+  binary="${!binary_env:-}"
+  idl="$(scenario_idl "${scenario}")"
+
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would validate ${binary_env} for ${scenario} ${role}"
+    echo "dry-run: would write ${reports_dir}/${label}.json"
+    return
+  fi
+
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "$(dirname "${stderr_abs}")"
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ -z "${binary}" || ! -x "${binary}" ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    printf '%s must point to an executable native interop binary\n' "${binary_env}" >"${stderr_abs}"
+    if [[ "${role}" == "client" ]]; then
+      write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+        "our-native" "our-jvm-jdk21" "native-client" "local-native-image" "${binary_env}" \
+        "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+        "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+        "G10-100 native client binary prerequisite missing"
+    else
+      write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+        "our-jvm-jdk21" "our-native" "native-server" "local-native-image" "${binary_env}" \
+        "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+        "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+        "G10-100 native server binary prerequisite missing"
+    fi
+    return 1
+  fi
+
+  set +e
+  "${binary}" >"${stdout_abs}" 2>"${stderr_abs}"
+  exit_code="$?"
+  set -e
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ "${exit_code}" == "0" ]]; then
+    status="passed"
+    classification="expected-deferral"
+    message="G10-100 native ${role} binary prerequisite satisfied"
+  else
+    status="failed"
+    classification="infrastructure-failure"
+    message="G10-100 native ${role} binary exited with code ${exit_code}"
+  fi
+  if [[ "${role}" == "client" ]]; then
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "our-native" "our-jvm-jdk21" "native-client" "local-native-image" "${binary}" \
+      "${status}" "${classification}" "${exit_code}" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "${message}"
+  else
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "our-native" "native-server" "local-native-image" "${binary}" \
+      "${status}" "${classification}" "${exit_code}" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "${message}"
+  fi
+  return "${exit_code}"
+}
+
 parse_dry_run() {
   local dry_run="false"
   if [[ "${1:-}" == "--dry-run" ]]; then
@@ -805,6 +889,7 @@ main() {
     health) health_peer "$@" ;;
     report) report_peer "$@" ;;
     run-scenario) run_scenario "$@" ;;
+    native-lane-report) native_lane_report "$@" ;;
     *) fail "unknown command '${command}'" ;;
   esac
 }

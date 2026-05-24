@@ -154,6 +154,14 @@ serialization, classpath scanning, or reflection metadata. Live RMI-IIOP
 pass/fail evidence remains blocked until the G10 native-image, peer harness,
 and full execution tasks complete.
 
+G10-100 adds deterministic local Native Image evidence before live peer
+execution. The native-image smoke suite builds and runs aggregate
+`interopClient` and `interopServer` binaries for the completed local G10 lanes
+when GraalVM Native Image is available. The interop CLI also records structured
+native-lane `infrastructure-failure` reports when required native client or
+server binaries are missing. Live peer pass/fail evidence remains blocked until
+the G10 real-peer harness and full execution tasks complete.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time

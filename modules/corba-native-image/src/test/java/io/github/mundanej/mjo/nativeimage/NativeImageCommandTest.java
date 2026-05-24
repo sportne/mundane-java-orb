@@ -80,4 +80,20 @@ final class NativeImageCommandTest {
             "interopReport"),
         NativeImageTargets.g6Targets().stream().map(NativeImageTarget::name).toList());
   }
+
+  @Test
+  void g10TargetCatalogIncludesInteropClientAndServerBinaries() {
+    assertEquals(
+        List.of(
+            "idljValidate",
+            "generatedClient",
+            "generatedServer",
+            "namingServer",
+            "iorDiagnostics",
+            "interopReport",
+            "rmiIiop",
+            "interopClient",
+            "interopServer"),
+        NativeImageTargets.g10Targets().stream().map(NativeImageTarget::name).toList());
+  }
 }

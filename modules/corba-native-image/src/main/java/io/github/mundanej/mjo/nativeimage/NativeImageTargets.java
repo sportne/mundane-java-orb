@@ -18,6 +18,12 @@ public final class NativeImageTargets {
       target("iorDiagnostics", "IorDiagnosticsNativeSmoke", "ior-diagnostics-native-smoke");
   private static final NativeImageTarget INTEROP_REPORT =
       target("interopReport", "InteropReportNativeSmoke", "interop-report-native-smoke");
+  private static final NativeImageTarget RMI_IIOP =
+      target("rmiIiop", "RmiIiopNativeSmoke", "rmi-iiop-native-smoke");
+  private static final NativeImageTarget INTEROP_CLIENT =
+      target("interopClient", "InteropClientNativeSmoke", "interop-client-native-smoke");
+  private static final NativeImageTarget INTEROP_SERVER =
+      target("interopServer", "InteropServerNativeSmoke", "interop-server-native-smoke");
   private static final List<NativeImageTarget> G6_TARGETS =
       List.of(
           IDLJ_VALIDATE,
@@ -26,12 +32,28 @@ public final class NativeImageTargets {
           NAMING_SERVER,
           IOR_DIAGNOSTICS,
           INTEROP_REPORT);
+  private static final List<NativeImageTarget> G10_TARGETS =
+      List.of(
+          IDLJ_VALIDATE,
+          GENERATED_CLIENT,
+          GENERATED_SERVER,
+          NAMING_SERVER,
+          IOR_DIAGNOSTICS,
+          INTEROP_REPORT,
+          RMI_IIOP,
+          INTEROP_CLIENT,
+          INTEROP_SERVER);
 
   private NativeImageTargets() {}
 
   /** Returns the G6-910 smoke binaries in deterministic execution order. */
   public static List<NativeImageTarget> g6Targets() {
     return G6_TARGETS;
+  }
+
+  /** Returns the G10-100 interop smoke binaries in deterministic execution order. */
+  public static List<NativeImageTarget> g10Targets() {
+    return G10_TARGETS;
   }
 
   private static NativeImageTarget target(String name, String mainClassName, String binaryName) {
