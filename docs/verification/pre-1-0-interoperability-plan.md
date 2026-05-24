@@ -32,8 +32,8 @@ G10 is ordered to close prerequisites before live peer execution:
 The final execution task remains blocked until all prerequisite G10 tasks are
 complete.
 
-G10-110 completed the prerequisite harness closure. `G10-120` is therefore the
-next executable task, but it remains environment-gated by the approved cache,
+G10-110 completed the prerequisite harness closure. `G10-120` is the remaining
+release-bar verification task, but it is blocked by the approved cache,
 base-image, peer-image, container-runtime, and Native Image inputs below.
 
 ## Peer And Scenario Policy
@@ -67,6 +67,17 @@ missing digest-pinned base images, missing container runtimes, missing prepared
 peer images, missing real peer commands, failed health checks, or failed peer
 commands. Successful peer commands still require G10-120 evidence before they
 become a 1.0.0 compatibility claim.
+
+## Current G10-120 Attempt
+
+On 2026-05-24, local execution stopped before live peer behavior because
+`INTEROP_ARTIFACT_CACHE` was unset. The required
+`interop/bin/interop-peer validate-gates --require-cache` command failed with
+missing approved cache entries for ACE/TAO, Eclipse GlassFish CORBA ORB,
+JacORB, and JBoss OpenJDK ORB. A `basic-idl` live run attempt wrote structured
+server-lane `infrastructure-failure` reports for all four peers at prerequisite
+validation. These reports are not committed live evidence and do not satisfy the
+1.0.0 release bar.
 
 ## Acceptance
 

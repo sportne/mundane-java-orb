@@ -171,6 +171,15 @@ running JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, or ACE/TAO as
 black-box peers. Live pass/fail evidence remains a G10-120 verification task,
 not a compatibility claim from harness closure alone.
 
+The first G10-120 execution attempt on 2026-05-24 did not reach live peer
+behavior. `validate-gates --require-cache` failed because
+`INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.
+`run-scenario --require-live basic-idl all` produced structured
+`infrastructure-failure` reports for all four peer server lanes at prerequisite
+validation. Full pre-1.0 live interop remains blocked until the approved cache,
+digest-pinned base images, prepared peer images, real peer commands, and native
+lane inputs are present.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time

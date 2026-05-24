@@ -37,6 +37,11 @@ commands, requires prepared images to expose real peer command scripts or
 explicit command environment overrides, and never commits peer source, peer
 binaries, or live outputs.
 
+The 2026-05-24 G10-120 prerequisite attempt confirmed that missing
+`INTEROP_ARTIFACT_CACHE` and missing approved cache entries are classified as
+structured `infrastructure-failure` reports before live peer behavior starts.
+That result is a release blocker, not compatibility evidence.
+
 ## Capture fields
 
 ```json
