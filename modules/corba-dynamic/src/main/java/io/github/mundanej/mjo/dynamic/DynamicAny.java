@@ -19,7 +19,7 @@ public record DynamicAny(AnyValue<?> any) {
   /** Creates a non-null dynamic value. */
   public DynamicAny {
     Objects.requireNonNull(any, "any");
-    DynamicAnyFactory.requireSupported(any.typeCode());
+    DynamicAnyFactory.requireValidAnyPayload(any.typeCode(), any.value());
   }
 
   /** Returns this value's TypeCode. */

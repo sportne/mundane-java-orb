@@ -96,7 +96,11 @@ final class DynamicInvocationTest {
                     List.of(
                         new AnyValue<>(io.github.mundanej.mjo.typecode.IdlTypeCode.LONG, "bad"),
                         DynamicTestFixtures.longAny(1))));
-    assertThrows(DynamicException.class, DynamicTestFixtures::unsupportedOutOperation);
+    assertEquals(
+        List.of(
+            new IdlParameterDescriptor(
+                "value", IdlParameterMode.OUT, DynamicTestFixtures.LONG_REFERENCE)),
+        DynamicTestFixtures.unsupportedOutOperation().outParameters());
     assertThrows(
         BAD_OPERATION.class,
         () ->

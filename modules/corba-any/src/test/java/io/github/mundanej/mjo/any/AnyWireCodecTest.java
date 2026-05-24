@@ -11,6 +11,10 @@ import io.github.mundanej.mjo.ior.IiopVersion;
 import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.TaggedProfile;
+import io.github.mundanej.mjo.repositoryid.RepositoryId;
+import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
+import io.github.mundanej.mjo.typecode.IdlTypeCode;
+import io.github.mundanej.mjo.typecode.IdlTypeKind;
 import io.github.mundanej.mjo.typecode.WireTypeCode;
 import io.github.mundanej.mjo.typecode.WireTypeCodeKind;
 import io.github.mundanej.mjo.typecode.WireTypeCodeMember;
@@ -111,6 +115,44 @@ final class AnyWireCodecTest {
         new AnyWireValue(unionType, new AnyWireUnionValue(1, new AnyWireValue(longType, 12))),
         roundTrip(
             new AnyWireValue(unionType, new AnyWireUnionValue(1, new AnyWireValue(longType, 12)))));
+  }
+
+  @Test
+  void localObjectReferenceCodecRoundTripsIors() {
+    IdlTypeCode serviceType =
+        IdlTypeCode.fromDescriptor(
+            new IdlGeneratedTypeDescriptor(
+                IdlTypeKind.INTERFACE,
+                "::demo::Service",
+                "demo.Service",
+                RepositoryId.parse("IDL:demo/Service:1.0"),
+                List.of(),
+                List.of(),
+                List.of()));
+    Ior ior =
+        new Ior(
+            "IDL:demo/Service:1.0",
+            List.of(
+                TaggedProfile.internetIop(
+                    new IiopProfile(
+                        IiopVersion.V1_2,
+                        "127.0.0.1",
+                        2099,
+                        new ObjectKey(new byte[] {4, 5}),
+                        List.of()))));
+    AnyValueCodec<Ior> objectCodec = AnyCodecs.objectReference(serviceType);
+    CdrWriter writer = new CdrWriter(CdrByteOrder.BIG_ENDIAN);
+
+    objectCodec.write(writer, ior);
+
+    assertEquals(
+        ior, objectCodec.read(new CdrReader(CdrByteOrder.BIG_ENDIAN, writer.toByteArray())));
+    assertEquals(
+        serviceType,
+        objectCodec
+            .readAny(new CdrReader(CdrByteOrder.BIG_ENDIAN, writer.toByteArray()))
+            .typeCode());
+    assertThrows(AnyException.class, () -> AnyCodecs.objectReference(IdlTypeCode.LONG));
   }
 
   @Test

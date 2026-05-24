@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mundanej.mjo.any.AnyValue;
+import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.typecode.IdlTypeCode;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -36,12 +37,17 @@ final class DynamicAnyTest {
         DynamicAnyFactory.sequence(
             IdlTypeCode.sequenceOf(IdlTypeCode.LONG, "sequence<long>", "java.util.List"),
             List.of(number));
+    DynamicAny objectReference =
+        DynamicAnyFactory.value(
+            IdlTypeCode.fromDescriptor(DynamicTestFixtures.SERVICE_DESCRIPTOR),
+            Ior.nullReference());
 
     assertEquals(7, number.value());
     assertEquals("GREEN", color.value());
     assertEquals("failed", problem.member("message").value());
     assertEquals("origin", point.member("label").value());
     assertEquals(7, sequence.element(0).value());
+    assertEquals(Ior.nullReference(), objectReference.value());
   }
 
   @Test
@@ -86,7 +92,7 @@ final class DynamicAnyTest {
             DynamicException.class, () -> DynamicAnyFactory.value(IdlTypeCode.LONG, "bad"));
     DynamicException outOfRangeOctet =
         assertThrows(DynamicException.class, () -> DynamicAnyFactory.value(IdlTypeCode.OCTET, 256));
-    DynamicException unsupportedInterface =
+    DynamicException invalidInterfacePayload =
         assertThrows(
             DynamicException.class,
             () ->
@@ -122,7 +128,7 @@ final class DynamicAnyTest {
     assertEquals(DynamicDiagnosticCodes.INVALID_ARGUMENTS, invalidEnum.code());
     assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, wrongScalarPayload.code());
     assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, outOfRangeOctet.code());
-    assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, unsupportedInterface.code());
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, invalidInterfacePayload.code());
     assertEquals(DynamicDiagnosticCodes.INVALID_ARGUMENTS, missingMember.code());
     assertEquals(DynamicDiagnosticCodes.INVALID_ARGUMENTS, unknownMember.code());
     assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, wrongSequenceElement.code());
@@ -183,8 +189,8 @@ final class DynamicAnyTest {
   }
 
   @Test
-  void directConstructionRejectsUnsupportedTypeCodes() {
-    DynamicException unsupportedInterface =
+  void directConstructionRejectsUnsupportedTypeCodesAndInvalidObjectReferences() {
+    DynamicException invalidInterfacePayload =
         assertThrows(
             DynamicException.class,
             () ->
@@ -196,7 +202,7 @@ final class DynamicAnyTest {
         assertThrows(
             DynamicException.class, () -> new DynamicAny(new AnyValue<>(IdlTypeCode.VOID, "bad")));
 
-    assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, unsupportedInterface.code());
+    assertEquals(DynamicDiagnosticCodes.TYPE_MISMATCH, invalidInterfacePayload.code());
     assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, unsupportedVoid.code());
   }
 }

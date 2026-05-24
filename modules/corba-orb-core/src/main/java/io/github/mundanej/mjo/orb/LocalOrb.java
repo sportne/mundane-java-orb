@@ -4,6 +4,7 @@ import io.github.mundanej.mjo.modern.LocalInvocationDispatcher;
 import io.github.mundanej.mjo.modern.LocalInvocationRequest;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
+import io.github.mundanej.mjo.typecode.IdlParameterMode;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -170,12 +171,17 @@ public final class LocalOrb {
       throw LocalExceptionMapper.badOperation(
           "Operation is not declared by target descriptor: " + operation.name());
     }
-    if (operation.parameters().size() != arguments.size()) {
+    int inputArgumentCount =
+        (int)
+            operation.parameters().stream()
+                .filter(parameter -> parameter.mode() != IdlParameterMode.OUT)
+                .count();
+    if (inputArgumentCount != arguments.size()) {
       throw LocalExceptionMapper.badParam(
           "Operation "
               + operation.name()
               + " expects "
-              + operation.parameters().size()
+              + inputArgumentCount
               + " argument(s), got "
               + arguments.size());
     }

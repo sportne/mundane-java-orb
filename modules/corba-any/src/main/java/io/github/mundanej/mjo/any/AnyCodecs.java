@@ -2,6 +2,7 @@ package io.github.mundanej.mjo.any;
 
 import io.github.mundanej.mjo.cdr.CdrReader;
 import io.github.mundanej.mjo.cdr.CdrWriter;
+import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.typecode.IdlTypeCode;
 import io.github.mundanej.mjo.typecode.IdlTypeCodeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeCodeMember;
@@ -90,6 +91,27 @@ public final class AnyCodecs {
 
   public static AnyValueCodec<String> stringCodec() {
     return scalar(IdlTypeCode.STRING, CdrReader::readString, CdrWriter::writeString);
+  }
+
+  /** Creates an object-reference codec backed by the existing IOR wire model. */
+  public static AnyValueCodec<Ior> objectReference(IdlTypeCode typeCode) {
+    requireKind(typeCode, IdlTypeCodeKind.INTERFACE);
+    return new AnyValueCodec<>() {
+      @Override
+      public IdlTypeCode typeCode() {
+        return typeCode;
+      }
+
+      @Override
+      public Ior read(CdrReader reader) {
+        return Ior.readFrom(reader, io.github.mundanej.mjo.ior.IorLimits.defaults());
+      }
+
+      @Override
+      public void write(CdrWriter writer, Ior value) {
+        Objects.requireNonNull(value, "value").writeTo(writer);
+      }
+    };
   }
 
   /** Creates an enum codec that maps CDR unsigned-long ordinals to IDL constant names. */

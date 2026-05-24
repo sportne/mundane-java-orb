@@ -7,10 +7,12 @@ import io.github.mundanej.mjo.typecode.IdlTypeCode;
 import io.github.mundanej.mjo.typecode.IdlTypeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeReference;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Immutable local Interface Repository backed by explicit generated descriptors. */
 public final class StaticInterfaceRepository implements InterfaceRepository {
@@ -96,6 +98,11 @@ public final class StaticInterfaceRepository implements InterfaceRepository {
 
   @Override
   public IdlTypeCode typeCode(IdlGeneratedTypeDescriptor descriptor) {
+    return typeCode(descriptor, new LinkedHashSet<>());
+  }
+
+  private IdlTypeCode typeCode(
+      IdlGeneratedTypeDescriptor descriptor, Set<RepositoryId> resolvingRepositoryIds) {
     IdlGeneratedTypeDescriptor checked = Objects.requireNonNull(descriptor, "descriptor");
     IdlGeneratedTypeDescriptor registered = requireByRepositoryId(checked.repositoryId());
     if (!registered.equals(checked)) {
@@ -103,10 +110,22 @@ public final class StaticInterfaceRepository implements InterfaceRepository {
           InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE,
           "descriptor does not match registered metadata: " + checked.repositoryId());
     }
-    return IdlTypeCode.fromDescriptor(registered, this::resolveTypeCode);
+    if (!resolvingRepositoryIds.add(registered.repositoryId())) {
+      throw new InterfaceRepositoryException(
+          InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE,
+          "recursive aggregate TypeCode is not representable by local metadata: "
+              + registered.repositoryId());
+    }
+    try {
+      return IdlTypeCode.fromDescriptor(
+          registered, reference -> resolveTypeCode(reference, resolvingRepositoryIds));
+    } finally {
+      resolvingRepositoryIds.remove(registered.repositoryId());
+    }
   }
 
-  private IdlTypeCode resolveTypeCode(IdlTypeReference reference) {
+  private IdlTypeCode resolveTypeCode(
+      IdlTypeReference reference, Set<RepositoryId> resolvingRepositoryIds) {
     Objects.requireNonNull(reference, "reference");
     if (reference.kind() == IdlTypeKind.PRIMITIVE || reference.kind() == IdlTypeKind.VOID) {
       return IdlTypeCode.fromTypeReference(reference);
@@ -119,7 +138,15 @@ public final class StaticInterfaceRepository implements InterfaceRepository {
                     new InterfaceRepositoryException(
                         InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE,
                         "generated reference lacks repository ID: " + reference.idlName()));
-    return typeCode(requireByRepositoryId(repositoryId));
+    if (resolvingRepositoryIds.contains(repositoryId)) {
+      if (reference.kind() == IdlTypeKind.INTERFACE) {
+        return IdlTypeCode.fromTypeReference(reference);
+      }
+      throw new InterfaceRepositoryException(
+          InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE,
+          "recursive aggregate TypeCode is not representable by local metadata: " + repositoryId);
+    }
+    return typeCode(requireByRepositoryId(repositoryId), resolvingRepositoryIds);
   }
 
   private static void validateDescriptor(IdlGeneratedTypeDescriptor descriptor) {

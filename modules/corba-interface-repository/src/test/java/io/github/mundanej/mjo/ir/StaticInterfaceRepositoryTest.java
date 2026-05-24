@@ -256,6 +256,30 @@ final class StaticInterfaceRepositoryTest {
     assertEquals(InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE, exception.code());
   }
 
+  @Test
+  void recursiveAggregateTypeCodesFailWithBoundedDiagnostic() {
+    RepositoryId nodeId = RepositoryId.parse("IDL:demo/Node:1.0");
+    IdlGeneratedTypeDescriptor recursive =
+        new IdlGeneratedTypeDescriptor(
+            IdlTypeKind.STRUCT,
+            "::demo::Node",
+            "demo.Node",
+            nodeId,
+            List.of(
+                new IdlFieldDescriptor(
+                    "next",
+                    new IdlTypeReference(
+                        IdlTypeKind.STRUCT, "::demo::Node", "demo.Node", Optional.of(nodeId)))),
+            List.of(),
+            List.of());
+    StaticInterfaceRepository repository = StaticInterfaceRepository.of(List.of(recursive));
+
+    InterfaceRepositoryException exception =
+        assertThrows(InterfaceRepositoryException.class, () -> repository.typeCode(recursive));
+
+    assertEquals(InterfaceRepositoryDiagnosticCodes.INVALID_REFERENCE, exception.code());
+  }
+
   private static StaticInterfaceRepository repository() {
     return StaticInterfaceRepository.of(List.of(color(), point(), shape()));
   }

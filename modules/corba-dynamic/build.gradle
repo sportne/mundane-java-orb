@@ -16,6 +16,7 @@ dependencies {
     api project(':modules:corba-typecode')
     api project(':modules:corba-modern-api')
     api project(':modules:corba-orb-core')
+    api project(':modules:corba-iiop')
 
     testImplementation project(':modules:corba-testkit')
 }

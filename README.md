@@ -171,7 +171,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-070-dynamic-any-dii-dsi-and-ir-wire-closure.md` is the next
+`docs/roadmap/tasks/g10-080-portable-interceptors.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

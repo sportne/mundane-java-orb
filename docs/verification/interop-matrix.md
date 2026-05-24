@@ -101,6 +101,15 @@ Naming Service, exchanges object and context IORs, resolves remote
 external peers. Live Naming pass/fail evidence remains blocked until the G10
 native-image, real-peer harness, and full execution tasks complete.
 
+G10-070 adds deterministic local evidence for the DynamicAny/DII/DSI/Interface
+Repository lane before live peer execution: `DynamicIiopInvocationCodecTest`
+routes descriptor-backed dynamic requests and replies over loopback IIOP,
+including object-reference Any values and user-exception diagnostics, while
+`StaticInterfaceRepositoryTest` verifies bounded repository lookup and recursive
+reference diagnostics. Live DynamicAny, DII, DSI, and Interface Repository
+pass/fail evidence remains blocked until the G10 native-image, real-peer
+harness, and full execution tasks complete.
+
 ## Required directions
 
 | Client | Server | Required |

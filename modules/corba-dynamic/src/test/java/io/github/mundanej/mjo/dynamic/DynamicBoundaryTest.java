@@ -29,7 +29,6 @@ final class DynamicBoundaryTest {
             "java.lang.invoke",
             "java.util.ServiceLoader",
             "io.github.mundanej.mjo.giop",
-            "io.github.mundanej.mjo.iiop",
             "org.omg.DynamicAny",
             "org.omg.CORBA.Request");
 

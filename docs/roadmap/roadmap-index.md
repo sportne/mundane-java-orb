@@ -130,8 +130,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g10-040-cdr-giop-ior-wire-closure.md` - complete
 - `tasks/g10-050-network-orb-poa-dispatch.md` - complete
 - `tasks/g10-060-network-naming-and-urls.md` - complete
-- `tasks/g10-070-dynamic-any-dii-dsi-and-ir-wire-closure.md` - ready-for-implementation
-- `tasks/g10-080-portable-interceptors.md` - blocked
+- `tasks/g10-070-dynamic-any-dii-dsi-and-ir-wire-closure.md` - complete
+- `tasks/g10-080-portable-interceptors.md` - ready-for-implementation
 - `tasks/g10-090-rmi-iiop-compatibility-closure.md` - blocked
 - `tasks/g10-100-native-image-interop-binaries.md` - blocked
 - `tasks/g10-110-real-peer-harness-closure.md` - blocked

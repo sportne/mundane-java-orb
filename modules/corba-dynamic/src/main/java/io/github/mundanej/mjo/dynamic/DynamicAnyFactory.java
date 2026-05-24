@@ -3,6 +3,7 @@ package io.github.mundanej.mjo.dynamic;
 import io.github.mundanej.mjo.any.AnyAggregateValue;
 import io.github.mundanej.mjo.any.AnyException;
 import io.github.mundanej.mjo.any.AnyValue;
+import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.typecode.IdlTypeCode;
 import io.github.mundanej.mjo.typecode.IdlTypeCodeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeCodeMember;
@@ -102,11 +103,24 @@ public final class DynamicAnyFactory {
 
   static void requireSupported(IdlTypeCode typeCode) {
     Objects.requireNonNull(typeCode, "typeCode");
-    if (typeCode.kind() == IdlTypeCodeKind.INTERFACE || typeCode.kind() == IdlTypeCodeKind.VOID) {
+    if (typeCode.kind() == IdlTypeCodeKind.VOID) {
       throw new DynamicException(
           DynamicDiagnosticCodes.UNSUPPORTED_TYPE,
           "unsupported DynamicAny TypeCode kind: " + typeCode.kind());
     }
+  }
+
+  static void requireValidAnyPayload(IdlTypeCode typeCode, Object value) {
+    requireSupported(typeCode);
+    if (value == null) {
+      throw new DynamicException(
+          DynamicDiagnosticCodes.INVALID_ARGUMENTS, "value must not be null");
+    }
+    if (typeCode.kind() == IdlTypeCodeKind.SEQUENCE) {
+      requireAnySequencePayload(typeCode, value);
+      return;
+    }
+    checkedPayload(typeCode, value);
   }
 
   static Object checkedPayload(IdlTypeCode typeCode, Object value) {
@@ -132,7 +146,8 @@ public final class DynamicAnyFactory {
       case ENUM -> requireEnumLabel(typeCode, value);
       case STRUCT, EXCEPTION -> requireAggregatePayload(typeCode, value);
       case SEQUENCE -> requireSequencePayload(typeCode, value);
-      case INTERFACE, VOID ->
+      case INTERFACE -> requireIor(typeCode, value);
+      case VOID ->
           throw new DynamicException(
               DynamicDiagnosticCodes.UNSUPPORTED_TYPE,
               "unsupported DynamicAny TypeCode kind: " + typeCode.kind());
@@ -284,5 +299,35 @@ public final class DynamicAnyFactory {
       checkedElements.add(checkedPayload(elementType, element));
     }
     return List.copyOf(checkedElements);
+  }
+
+  private static List<AnyValue<?>> requireAnySequencePayload(IdlTypeCode typeCode, Object value) {
+    if (!(value instanceof List<?> elements)) {
+      throw new DynamicException(
+          DynamicDiagnosticCodes.TYPE_MISMATCH,
+          "payload for " + typeCode.kind() + " must be a list");
+    }
+    IdlTypeCode elementType = typeCode.elementType().orElseThrow();
+    List<AnyValue<?>> checkedElements = new ArrayList<>(elements.size());
+    for (Object element : elements) {
+      if (!(element instanceof AnyValue<?> any)) {
+        throw new DynamicException(
+            DynamicDiagnosticCodes.TYPE_MISMATCH,
+            "dynamic sequence payload must contain AnyValue elements");
+      }
+      requireType(elementType, any);
+      checkedPayload(elementType, any.value());
+      checkedElements.add(any);
+    }
+    return List.copyOf(checkedElements);
+  }
+
+  private static Ior requireIor(IdlTypeCode typeCode, Object value) {
+    if (!(value instanceof Ior ior)) {
+      throw new DynamicException(
+          DynamicDiagnosticCodes.TYPE_MISMATCH,
+          "payload for " + typeCode.kind() + " must be an IOR object reference");
+    }
+    return ior;
   }
 }

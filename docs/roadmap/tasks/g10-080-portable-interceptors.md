@@ -1,7 +1,7 @@
 # G10-080 Portable Interceptors
 
 Task ID: G10-080-PORTABLE-INTERCEPTORS
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-ORB-001, REQ-IIOP-001, REQ-SEC-003, REQ-NATIVE-002, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Implement non-optional Portable In
 Tests to add/update: Interceptor API, ORB/IIOP integration, service-context propagation, ordering, failure, hostile-input, Native Image, and architecture boundary tests.
 Documentation to update: Runtime architecture, CORBA conformance rows, interop matrix, Native Image matrix, roadmap index, README ready-task status, this task, and G10-100 status when complete.
 Commands to run: ./gradlew :modules:corba-interceptors:test :modules:corba-orb-core:test :modules:corba-giop:test :modules:corba-iiop:test :modules:corba-omg-api:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-050 is complete; interceptor scenarios propagate service contexts deterministically over the ORB/IIOP path without introducing Security Service policy behavior.
+Acceptance criteria: Interceptor scenarios propagate service contexts deterministically over the ORB/IIOP path without introducing Security Service policy behavior.
 Rollback notes: Revert interceptor, ORB/IIOP integration, API, test, and documentation changes together.
