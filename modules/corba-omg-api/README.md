@@ -4,16 +4,19 @@ Legacy org.omg.* and Cos* compatibility API artifact. The only artifact allowed 
 
 ## Current status
 
-G6 exception mapping work has started here. The module exposes a minimal
-`org.omg.CORBA` exception compatibility surface for local invocation:
+G10-030 expands this module into an API-only legacy compatibility surface for
+non-optional pre-1.0 interop fixtures. It exposes source-compatible
+`org.omg.CORBA`, `org.omg.CORBA.portable`, `org.omg.PortableServer`,
+`org.omg.DynamicAny`, `org.omg.PortableInterceptor`, and `org.omg.CosNaming`
+types needed by generated-style helpers, holders, stubs, POA skeletons, Naming,
+DynamicAny, and interceptor sources.
 
-- `CompletionStatus`;
-- `SystemException` plus the local slice's concrete system exceptions;
-- `UserException` as a checked compatibility base.
-
-This module does not implement ORB initialization, object references, Any,
-TypeCode, helpers, holders, stubs, POA APIs, IIOP transport, or CDR exception
-marshaling.
+This module does not implement ORB initialization, object adaptation, POA
+dispatch, IIOP transport, CDR marshaling, Interface Repository lookup,
+DynamicAny traversal, interceptor registration, Naming behavior, peer execution,
+or optional CORBA Services. Concrete methods that would require runtime
+ownership fail deterministically with `NO_IMPLEMENT` or another compatibility
+system exception.
 
 ## Documentation requirements
 

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -58,6 +60,51 @@ final class SystemExceptionTest {
   }
 
   @Test
+  void g10SystemExceptionsExposeLegacyConstructorSet() throws Exception {
+    IllegalStateException cause = new IllegalStateException("cause");
+    List<Class<? extends SystemException>> exceptionTypes =
+        List.of(
+            BAD_CONTEXT.class,
+            BAD_INV_ORDER.class,
+            BAD_OPERATION.class,
+            BAD_PARAM.class,
+            BAD_QOS.class,
+            BAD_TYPECODE.class,
+            COMM_FAILURE.class,
+            DATA_CONVERSION.class,
+            INITIALIZE.class,
+            INTERNAL.class,
+            INV_OBJREF.class,
+            INV_POLICY.class,
+            MARSHAL.class,
+            NO_IMPLEMENT.class,
+            NO_RESOURCES.class,
+            OBJECT_NOT_EXIST.class,
+            OBJ_ADAPTER.class,
+            TRANSIENT.class,
+            UNKNOWN.class);
+
+    for (Class<? extends SystemException> exceptionType : exceptionTypes) {
+      assertSystemException(exceptionType.getConstructor().newInstance());
+      assertSystemException(exceptionType.getConstructor(String.class).newInstance("message"));
+      assertSystemException(
+          exceptionType
+              .getConstructor(int.class, CompletionStatus.class)
+              .newInstance(11, CompletionStatus.COMPLETED_NO));
+      assertSystemException(
+          exceptionType
+              .getConstructor(String.class, int.class, CompletionStatus.class)
+              .newInstance("message", 12, CompletionStatus.COMPLETED_YES));
+      assertSystemException(
+          exceptionType
+              .getConstructor(String.class, Throwable.class, int.class, CompletionStatus.class)
+              .newInstance("message", cause, 13, CompletionStatus.COMPLETED_MAYBE),
+          cause);
+      assertNullCompletionRejected(exceptionType);
+    }
+  }
+
+  @Test
   void concreteSystemExceptionsRejectNullCompletionStatus() {
     assertThrows(
         NullPointerException.class,
@@ -98,5 +145,18 @@ final class SystemExceptionTest {
   private static void assertSystemException(SystemException exception, Throwable cause) {
     assertSame(cause, exception.getCause());
     assertInstanceOf(SystemException.class, exception);
+  }
+
+  private static void assertNullCompletionRejected(Class<? extends SystemException> exceptionType)
+      throws Exception {
+    InvocationTargetException exception =
+        assertThrows(
+            InvocationTargetException.class,
+            () ->
+                exceptionType
+                    .getConstructor(String.class, int.class, CompletionStatus.class)
+                    .newInstance("message", 0, null));
+
+    assertInstanceOf(NullPointerException.class, exception.getCause());
   }
 }

@@ -111,3 +111,12 @@ compile without reflection metadata, dynamic proxies, Java serialization
 metadata, service-loader discovery, runtime bytecode generation, process
 execution, internal JDK APIs, `Unsafe`, or `org.omg.*` dependencies. No Native
 Image metadata files are introduced by this task.
+
+## G10-030 OMG compatibility API evidence
+
+G10-030 keeps `corba-omg-api` as a source-level compatibility artifact. The
+expanded `org.omg.*` and `org.omg.CosNaming` surfaces compile representative
+generated-style sources without reflection, dynamic proxies, classpath scanning,
+service-loader discovery, Java serialization API use, runtime bytecode
+generation, process execution, internal JDK APIs, or `Unsafe`. No Native Image
+metadata files or runtime discovery hooks are introduced by this task.

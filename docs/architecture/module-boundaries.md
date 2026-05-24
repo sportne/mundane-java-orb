@@ -6,6 +6,9 @@ The repository-wide rule source is `architecture-rule-catalog.md`. This page
 summarizes the module-layering subset of that catalog.
 
 - Only `corba-omg-api` may define `org.omg.*` packages.
+- `corba-omg-api` owns legacy source-compatibility signatures only; runtime
+  ORB, POA, Naming, DynamicAny, interceptor, protocol, and service behavior
+  remains in the implementation modules assigned by roadmap task.
 - Protocol modules must not depend on ORB core.
 - IDL modules must not depend on transport modules.
 - `corba-cdr` must not depend on GIOP, IIOP, ORB, POA, or services.

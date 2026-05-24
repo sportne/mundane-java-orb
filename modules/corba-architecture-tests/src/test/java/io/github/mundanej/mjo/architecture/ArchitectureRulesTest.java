@@ -101,6 +101,24 @@ final class ArchitectureRulesTest {
           "java.io.Serializable",
           "sun.misc.Unsafe",
           "jdk.internal.misc.Unsafe");
+  private static final List<String> FORBIDDEN_OMG_API_SOURCE_TOKENS =
+      List.of(
+          "java.lang.reflect",
+          "java.lang.invoke",
+          "java.lang.reflect.Proxy",
+          "ServiceLoader",
+          "ClassLoader",
+          "ObjectInputStream",
+          "ObjectOutputStream",
+          "Externalizable",
+          "java.io.Serializable",
+          "Runtime.getRuntime",
+          "ProcessBuilder",
+          "System.exit",
+          "sun.misc.Unsafe",
+          "jdk.internal.misc.Unsafe",
+          "sun.",
+          "jdk.internal.");
 
   @BeforeAll
   static void allowEmptyRulesDuringScaffoldPhase() {
@@ -345,6 +363,21 @@ final class ArchitectureRulesTest {
   }
 
   @Test
+  void omgCompatibilityApiMustRemainSourceLevelAndNativeImageFriendly() throws IOException {
+    Path omgSources = MODULES_DIRECTORY.resolve("corba-omg-api/src/main/java");
+    List<Path> violations;
+
+    try (var paths =
+        Files.find(omgSources, Integer.MAX_VALUE, ArchitectureRulesTest::isJavaSourceFile)) {
+      violations = paths.filter(ArchitectureRulesTest::containsForbiddenOmgApiSourceToken).toList();
+    }
+
+    assertTrue(
+        violations.isEmpty(),
+        () -> "corba-omg-api compatibility sources must stay source-level only: " + violations);
+  }
+
+  @Test
   void commonFoundationPackageMustExistOnceImplementationStarts() throws IOException {
     Path commonSources =
         MODULES_DIRECTORY.resolve("corba-common/src/main/java/io/github/mundanej/mjo/common");
@@ -430,6 +463,15 @@ final class ArchitectureRulesTest {
   private static boolean containsForbiddenProductionSourceConstruct(Path sourceFile) {
     try (Stream<String> lines = Files.lines(sourceFile)) {
       return lines.anyMatch(ArchitectureRulesTest::isForbiddenProductionSourceLine);
+    } catch (IOException exception) {
+      throw new IllegalStateException("Could not read " + sourceFile, exception);
+    }
+  }
+
+  private static boolean containsForbiddenOmgApiSourceToken(Path sourceFile) {
+    try (Stream<String> lines = Files.lines(sourceFile)) {
+      return lines.anyMatch(
+          line -> FORBIDDEN_OMG_API_SOURCE_TOKENS.stream().anyMatch(line::contains));
     } catch (IOException exception) {
       throw new IllegalStateException("Could not read " + sourceFile, exception);
     }

@@ -5,6 +5,21 @@ public final class UNKNOWN extends SystemException {
 
   private static final long serialVersionUID = 1L;
 
+  /** Creates an UNKNOWN exception with default minor and completion status. */
+  public UNKNOWN() {
+    this("", 0, CompletionStatus.COMPLETED_NO);
+  }
+
+  /** Creates an UNKNOWN exception with a message. */
+  public UNKNOWN(String message) {
+    this(message, 0, CompletionStatus.COMPLETED_NO);
+  }
+
+  /** Creates an UNKNOWN exception with minor code and completion status. */
+  public UNKNOWN(int minor, CompletionStatus completed) {
+    this("", minor, completed);
+  }
+
   /** Creates an UNKNOWN exception. */
   public UNKNOWN(String message, int minor, CompletionStatus completed) {
     super(message, minor, completed);

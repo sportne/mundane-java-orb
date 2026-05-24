@@ -1,7 +1,7 @@
 # G10-040 CDR GIOP IOR Wire Closure
 
 Task ID: G10-040-CDR-GIOP-IOR-WIRE-CLOSURE
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-CDR-001, REQ-GIOP-001, REQ-IIOP-001, REQ-IOR-001, REQ-IOR-002, REQ-SEC-003, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Complete peer-facing wire behavior
 Tests to add/update: Golden-wire, hostile-input, boundary-limit, CDR/GIOP/IOR/IIOP integration, TLS component, TypeCode/Any wire, and Native Image smoke tests.
 Documentation to update: CDR/GIOP/IIOP architecture, CORBA conformance rows, Native Image matrix, roadmap index, README ready-task status, this task, and G10-050 status when complete.
 Commands to run: ./gradlew :modules:corba-cdr:test :modules:corba-giop:test :modules:corba-ior:test :modules:corba-iiop:test :modules:corba-any:test :modules:corba-typecode:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-030 is complete; new wire constructs round-trip deterministically, reject malformed inputs with stable diagnostics, and provide the transport foundation required by ORB/POA and peer interop tasks.
+Acceptance criteria: New wire constructs round-trip deterministically, reject malformed inputs with stable diagnostics, and provide the transport foundation required by ORB/POA and peer interop tasks.
 Rollback notes: Revert wire codec, transport, TypeCode/Any, test, and documentation changes together.

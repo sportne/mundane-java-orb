@@ -1,8 +1,8 @@
 /**
- * Minimal legacy CORBA compatibility exception API.
+ * Minimal legacy CORBA compatibility API.
  *
- * <p>This package contains only the G6 local-invocation exception surface. It does not implement
- * ORB initialization, object references, Any, TypeCode, helpers, holders, stubs, POA APIs, IIOP
- * transport, or CDR exception marshaling.
+ * <p>This package contains source-compatible G10 API signatures for generated and peer-style
+ * fixture compilation. It does not implement ORB runtime behavior, IIOP transport, CDR marshaling,
+ * dynamic discovery, or service ownership.
  */
 package org.omg.CORBA;

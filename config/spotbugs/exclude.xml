@@ -1,4 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <FindBugsFilter>
     <!-- Add narrow, documented exclusions only. -->
+    <Match>
+        <!-- The historical source-compatible type is required to be named org.omg.CORBA.Object. -->
+        <Class name="org.omg.CORBA.Object" />
+        <Bug pattern="NM_SAME_SIMPLE_NAME_AS_SUPERCLASS" />
+    </Match>
 </FindBugsFilter>
