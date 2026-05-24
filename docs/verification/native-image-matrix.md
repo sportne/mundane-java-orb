@@ -130,3 +130,16 @@ ordinary constructors and bounded CDR APIs only. No reflection metadata, dynamic
 proxy metadata, Java serialization metadata, service-loader discovery, runtime
 bytecode generation, process execution, internal JDK APIs, or `Unsafe` are
 introduced.
+
+## G10-050 network dispatch evidence
+
+G10-050 keeps the ORB/POA IIOP bridge explicit and closed-world friendly.
+`IiopOrbClient`, `IiopOrbServerHandler`, `IiopObjectReference`, and
+`IiopInvocationCodec` use static operation descriptors, caller-supplied codecs,
+existing bounded IIOP/GIOP entrypoints, and direct `LocalOrb` invocation. The
+loopback evidence in `IiopOrbDispatchTest` covers KeyAddr, ProfileAddr, and
+ReferenceAddr routing, normal replies, declared user-exception replies, unknown
+object keys, and system-exception replies. No reflection metadata, dynamic proxy
+metadata, Java serialization metadata, service-loader discovery, runtime
+bytecode generation, process execution, internal JDK APIs, or `Unsafe` are
+introduced.

@@ -93,6 +93,9 @@ This repository is in **pre-1.0 interoperability completion state**:
   invoke through in-process ORB/POA adapters under approved roadmap tasks;
 - bounded local JVM RMI-IIOP wire integration over existing GIOP/IIOP
   request/reply paths has started under approved roadmap tasks;
+- loopback IIOP ORB/POA dispatch for activated local servants has started under
+  approved roadmap tasks, including deterministic target-address routing and
+  normal/user/system reply mapping;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -166,7 +169,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-050-network-orb-poa-dispatch.md` is the next
+`docs/roadmap/tasks/g10-060-network-naming-and-urls.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

@@ -136,6 +136,21 @@ POA/ORB identity, restart rules, or persistent object-reference encoding.
 Network dispatch, peer interoperability, and `org.omg.PortableServer`
 compatibility types also remain outside the G6-630 local slice.
 
+### Network IIOP Dispatch Bridge
+
+G10-050 exposes activated local POA objects through bounded local IIOP by
+encoding `LocalObjectReference.objectId()` as the IIOP object key. The network
+handler resolves the key back to an explicit ORB binding, validates the
+operation descriptor, invokes `LocalOrb`, and maps the result to GIOP normal,
+declared user-exception, or system-exception replies.
+
+The bridge supports transient object references and GIOP KeyAddr, ProfileAddr,
+and ReferenceAddr routing for the implemented local profile. Persistent POA
+references remain rejected or deferred by the existing POA policy rules; G10-050
+does not define durable adapter identity, restart recovery, or persistent IOR
+encoding. Naming, Portable Interceptors, CORBA Security Service policy, and live
+peer behavior remain later G10 tasks.
+
 ### RMI-IIOP Generated Adapters
 
 G7-070 reuses the existing local POA activation and dispatch contracts for
@@ -158,3 +173,4 @@ Java serialization marshaling.
 | `PoaServantManagerTest` | G6-630 implemented | Covers `ServantActivator` and `ServantLocator` lifecycle behavior. |
 | `PoaAdapterActivatorTest` | G6-630 implemented | Covers child POA lookup through an adapter activator. |
 | `RmiGeneratedJavaBindingGeneratorTest` | G7-070 implemented | Covers generated RMI ties and skeletons activating through `Poa.activateServant` and dispatching local calls from generated stubs through `LocalOrb`. |
+| `IiopOrbDispatchTest` | G10-050 implemented | Covers activated POA servant dispatch through loopback IIOP, target-address routing, unknown object keys, system exception replies, and declared user-exception replies. |

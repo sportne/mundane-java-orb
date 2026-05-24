@@ -13,6 +13,15 @@ dependencies {
     // IIOP TCP transports complete GIOP messages over sockets.
     api project(':modules:corba-giop')
 
+    // G10 network dispatch bridges IIOP requests into existing local ORB references.
+    api project(':modules:corba-orb-core')
+
+    // Network object references are represented as standard IOR/IIOP profile values.
+    api project(':modules:corba-ior')
+
     // IIOP diagnostics reuse the shared diagnostic code value type.
     api project(':modules:corba-common')
+
+    // Network dispatch tests activate servants through the local POA.
+    testImplementation project(':modules:corba-poa')
 }

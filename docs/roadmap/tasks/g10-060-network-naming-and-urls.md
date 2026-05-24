@@ -1,7 +1,7 @@
 # G10-060 Network Naming And URLs
 
 Task ID: G10-060-NETWORK-NAMING-AND-URLS
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-NAM-001, REQ-IOR-002, REQ-ORB-001, REQ-IIOP-001, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Add peer-visible Naming Service be
 Tests to add/update: Naming API/server unit tests, networked naming loopback tests, URL parsing/resolution tests, generated fixture tests, missing-name diagnostics, Native Image smoke, and structured interop dry-run tests.
 Documentation to update: Naming conformance matrix, CORBA conformance matrix, interop matrix, roadmap index, README ready-task status, this task, and G10-100 status when complete.
 Commands to run: ./gradlew :modules:corba-naming-api:test :modules:corba-naming-server:test :modules:corba-ior:test :modules:corba-orb-core:test :modules:corba-iiop:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-050 is complete; Naming scenarios can run over network IIOP locally and provide the behavior needed by full peer interop execution.
+Acceptance criteria: Naming scenarios can run over network IIOP locally and provide the behavior needed by full peer interop execution.
 Rollback notes: Revert naming, URL, ORB/IIOP integration, test, and documentation changes together.

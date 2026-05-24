@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -445,18 +446,28 @@ final class IiopTcpTest {
     try (Stream<Path> paths =
         Files.find(
             iiopSources, Integer.MAX_VALUE, (path, attrs) -> path.toString().endsWith(".java"))) {
-      List<String> joinedSources = paths.map(IiopTcpTest::readSource).toList();
-      String source = String.join("\n", joinedSources);
+      List<Path> sourcePaths = paths.toList();
+      String source =
+          sourcePaths.stream().map(IiopTcpTest::readSource).collect(Collectors.joining("\n"));
 
       assertTrue(!source.contains("SSLContext.setDefault"));
       assertTrue(!source.contains("javax.net.ssl.keyStore"));
       assertTrue(!source.contains("javax.net.ssl.trustStore"));
       assertTrue(!source.contains("HttpsURLConnection"));
-      assertTrue(!source.contains("io.github.mundanej.mjo.orb"));
       assertTrue(!source.contains("io.github.mundanej.mjo.poa"));
       assertTrue(!source.contains("java.lang.reflect"));
       assertTrue(!source.contains("ObjectInputStream"));
       assertTrue(!source.contains("ObjectOutputStream"));
+      for (Path path : sourcePaths) {
+        Path fileNamePath = path.getFileName();
+        assertTrue(fileNamePath != null);
+        String filename = fileNamePath.toString();
+        if (!filename.equals("IiopOrbServerHandler.java")
+            && !filename.equals("IiopObjectReference.java")
+            && !filename.equals("IiopInvocationCodec.java")) {
+          assertTrue(!readSource(path).contains("io.github.mundanej.mjo.orb"));
+        }
+      }
     }
   }
 

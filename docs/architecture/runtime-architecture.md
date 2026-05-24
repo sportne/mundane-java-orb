@@ -129,3 +129,34 @@ empty declared user exceptions by repository ID. It uses existing GIOP/IIOP
 transport entrypoints and does not open sockets directly from `corba-rmi-iiop`,
 run external peers, claim peer interoperability, scan classpaths, create dynamic
 proxies, generate runtime bytecode, or use Java serialization marshaling.
+
+## Network ORB/POA IIOP Dispatch Path
+
+G10-050 adds the first non-RMI network dispatch bridge between bounded IIOP
+transport and local ORB/POA activation:
+
+```text
+generated or fixture client
+  -> IiopOrbClient
+  -> GIOP request with KeyAddr/ProfileAddr/ReferenceAddr target
+  -> IiopServer
+  -> IiopOrbServerHandler
+  -> LocalOrb.invoke
+  -> POA active servant dispatcher
+  -> GIOP normal, user-exception, or system-exception reply
+```
+
+The bridge is deliberately syntax/runtime-local. `corba-iiop` owns the network
+object-reference wrapper, operation codec contract, client helper, and server
+handler. `corba-orb-core` and `corba-poa` continue to own object identity,
+lifecycle checks, servant activation, and generated-style dispatch. The bridge
+supports deterministic object-key lookup, GIOP 1.2 target-address variants,
+request-id correlation through existing `IiopClient`/`IiopServer`, declared user
+exception replies by repository ID, and system exception reply bodies. Persistent
+POA references remain deterministically deferred until durable POA/ORB identity
+and restart rules are approved.
+
+This path does not add Naming Service behavior, Portable Interceptors, CORBA
+Security Service policy, RMI-IIOP value semantics, live peer harness execution,
+reflection dispatch, dynamic proxies, runtime bytecode generation, Java
+serialization marshaling, or generated production artifacts.
