@@ -33,8 +33,9 @@ The final execution task remains blocked until all prerequisite G10 tasks are
 complete.
 
 G10-110 completed the prerequisite harness closure. `G10-120` is the remaining
-release-bar verification task, but it is blocked by the approved cache,
-base-image, peer-image, container-runtime, and Native Image inputs below.
+release-bar verification task, but it is blocked until the approved cache,
+base-image, peer-image, container-runtime, Native Image, and direction-coverage
+inputs below can produce the full live matrix.
 
 ## Peer And Scenario Policy
 
@@ -68,7 +69,7 @@ peer images, missing real peer commands, failed health checks, or failed peer
 commands. Successful peer commands still require G10-120 evidence before they
 become a 1.0.0 compatibility claim.
 
-## Current G10-120 Attempt
+## Current G10-120 Attempts
 
 On 2026-05-24, local execution stopped before live peer behavior because
 `INTEROP_ARTIFACT_CACHE` was unset. The required
@@ -78,6 +79,26 @@ JacORB, and JBoss OpenJDK ORB. A `basic-idl` live run attempt wrote structured
 server-lane `infrastructure-failure` reports for all four peers at prerequisite
 validation. These reports are not committed live evidence and do not satisfy the
 1.0.0 release bar.
+
+A follow-up attempt used the approved repo-local ignored cache at
+`/mnt/d/projects/mundane-java-orb/interop/work/artifact-cache`, digest-pinned
+Java and native base images, Docker, and GraalVM Native Image from SDKMAN.
+Cache validation and Native Image binary smoke execution passed. Ignored local
+peer-image smoke runs reached `basic-idl` peer-command success for JacORB,
+JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB after the approved cache
+entries were expanded and GlassFish ran with GMBAL initialization deferred.
+The generated, uncommitted prerequisite reports were written under
+`build/interop/jacorb/reports/`, `build/interop/jboss-openjdk-orb/reports/`,
+and `build/interop/glassfish-orb/reports/`.
+
+That follow-up is still not 1.0.0 compatibility evidence. ACE/TAO still needs a
+real prepared peer image rather than placeholder shell commands. The current
+`run-scenario` harness starts a peer server, checks peer health, and then starts
+a peer client; it does not execute the required our-JVM-client to peer-server,
+our-native-client to peer-server, peer-client to our-JVM-server, or peer-client
+to our-native-server directions. Completing `G10-120` requires maintainer
+approval for the next harness and peer-image direction before additional live
+matrix execution is claimed.
 
 ## Acceptance
 

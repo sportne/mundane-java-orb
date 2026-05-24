@@ -7,6 +7,10 @@ approvalEvidence:
   decisionRecord: G6-820-user-request-2026-05-18
   scope: local black-box interop artifact gates only
   notes: User explicitly supplied approval assumptions for G6-820; redistribution and container publication remain disallowed.
+  additionalDecisionRecords:
+    - id: G10-120-user-approval-2026-05-24-glassfish-runtime-cache
+      scope: local ignored artifact-cache preparation for G10-120 prerequisite smoke only
+      notes: User approved adding GlassFish runtime closure cache entries and using runtime flags that defer GMBAL initialization for local black-box peer-image smoke execution. Redistribution and container publication remain disallowed.
 artifact:
   originKind: maven
   coordinate: "org.glassfish.corba:glassfish-corba:5.0.0"
@@ -34,11 +38,92 @@ cleanRoom:
 cache:
   layout: external-only
   baseImagePolicy: digest-pinned-required
+  approvalEvidence: G10-120-user-approval-2026-05-24-glassfish-runtime-cache
   entries:
     - path: maven/org/glassfish/corba/glassfish-corba/5.0.0/glassfish-corba-5.0.0.pom
       sha256: 37ec06fbf01ebc4074cd0f04fe4ea5049a199c3c4927ce0fd92831ad5a10fe45
       sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/glassfish-corba/5.0.0/glassfish-corba-5.0.0.pom"
       packaging: pom
+    - path: maven/org/glassfish/corba/glassfish-corba-orb/5.0.0/glassfish-corba-orb-5.0.0.jar
+      sha256: c81014f4d88d0d6c366c02a6c2d2730c5067a94eee469d008392037453c277af
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/glassfish-corba-orb/5.0.0/glassfish-corba-orb-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/corba/glassfish-corba-internal-api/5.0.0/glassfish-corba-internal-api-5.0.0.jar
+      sha256: 367879d3bfb14d2f342f8d2674962df709545b9881281d2e82315ded6af4381d
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/glassfish-corba-internal-api/5.0.0/glassfish-corba-internal-api-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/corba/glassfish-corba-omgapi/5.0.0/glassfish-corba-omgapi-5.0.0.jar
+      sha256: 7af9fbf5d51ac417c09f202d78659c3ea9e6342f699771e35a34c474f8f5639b
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/glassfish-corba-omgapi/5.0.0/glassfish-corba-omgapi-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/corba/glassfish-corba-csiv2-idl/5.0.0/glassfish-corba-csiv2-idl-5.0.0.jar
+      sha256: 5f44dcfefacd47c7a4631f78d8a4594ec4fa8984fd86fca6cf2f229d21b80b4b
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/glassfish-corba-csiv2-idl/5.0.0/glassfish-corba-csiv2-idl-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/corba/idlj/5.0.0/idlj-5.0.0.jar
+      sha256: 4261d5d6c02ca028a70de38b71ee26acd537a6d83c9a498514be42b4dd4b430f
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/idlj/5.0.0/idlj-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/corba/rmic/5.0.0/rmic-5.0.0.jar
+      sha256: 4155581610273a59cdad42174e0fd5288aba46cfb096c8ed2319377a76315755
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/corba/rmic/5.0.0/rmic-5.0.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/external/management-api/3.3.0/management-api-3.3.0.jar
+      sha256: 317e5b0ca2e90542f4462eb87e47dc3c23d5b2fa3d992b0d68e6aa14658efda7
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/external/management-api/3.3.0/management-api-3.3.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/gmbal/gmbal-api-only/4.1.0/gmbal-api-only-4.1.0.jar
+      sha256: ef2bef506065c428a21b0f38214ff7bdd8499c8e2829da6dd88b4dda797adcd8
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/gmbal/gmbal-api-only/4.1.0/gmbal-api-only-4.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/gmbal/gmbal/4.1.0/gmbal-4.1.0.jar
+      sha256: cb2e7c6faea5c2bfa01bdc4201e3e68e07041b4c3b55fa36d617ff675d440e51
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/gmbal/gmbal/4.1.0/gmbal-4.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/pfl/pfl-basic/5.1.0/pfl-basic-5.1.0.jar
+      sha256: a77364a32d0d8362a855f60ccb7f0d10e34c47469f46dc4b6768b5ec0e422103
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/pfl/pfl-basic/5.1.0/pfl-basic-5.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/pfl/pfl-basic-tools/5.1.0/pfl-basic-tools-5.1.0.jar
+      sha256: 7af96442bb8adcd7c5d915bb65cd70bc38ec3aa931e0679c791516accdc3ef6f
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/pfl/pfl-basic-tools/5.1.0/pfl-basic-tools-5.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/pfl/pfl-dynamic/5.1.0/pfl-dynamic-5.1.0.jar
+      sha256: e0cd1c4e8b1b4ff326bf4c2bd688f7fa61b37c75d7a955d525767e5f0717e327
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/pfl/pfl-dynamic/5.1.0/pfl-dynamic-5.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/pfl/pfl-tf/5.1.0/pfl-tf-5.1.0.jar
+      sha256: 8a207a1c445859bda4ddd9074e1a2323bfb09e09065da6133ff463fdb7b26ca6
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/pfl/pfl-tf/5.1.0/pfl-tf-5.1.0.jar"
+      packaging: jar
+    - path: maven/org/glassfish/pfl/pfl-tf-tools/5.1.0/pfl-tf-tools-5.1.0.jar
+      sha256: 5d74ea99db99cf674f91a582faa416374c50fa54d7270a08ad888faf81975526
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/glassfish/pfl/pfl-tf-tools/5.1.0/pfl-tf-tools-5.1.0.jar"
+      packaging: jar
+    - path: maven/org/osgi/osgi.core/8.0.0/osgi.core-8.0.0.jar
+      sha256: 41c24d187f67aaaf4745fab78fd1da66de7f37dd82581dbbbc9ba89645ba0166
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/osgi/osgi.core/8.0.0/osgi.core-8.0.0.jar"
+      packaging: jar
+    - path: maven/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar
+      sha256: 8cadd43ac5eb6d09de05faecca38b917a040bb9139c7edeb4cc81c740b713281
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar"
+      packaging: jar
+    - path: maven/org/ow2/asm/asm-analysis/9.7.1/asm-analysis-9.7.1.jar
+      sha256: 85b29371884ba31bb76edf22323c2c24e172c3267a67152eba3d1ccc2e041ef2
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-analysis/9.7.1/asm-analysis-9.7.1.jar"
+      packaging: jar
+    - path: maven/org/ow2/asm/asm-commons/9.7.1/asm-commons-9.7.1.jar
+      sha256: 9a579b54d292ad9be171d4313fd4739c635592c2b5ac3a459bbd1049cddec6a0
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-commons/9.7.1/asm-commons-9.7.1.jar"
+      packaging: jar
+    - path: maven/org/ow2/asm/asm-tree/9.7.1/asm-tree-9.7.1.jar
+      sha256: 9929881f59eb6b840e86d54570c77b59ce721d104e6dfd7a40978991c2d3b41f
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-tree/9.7.1/asm-tree-9.7.1.jar"
+      packaging: jar
+    - path: maven/org/ow2/asm/asm-util/9.7.1/asm-util-9.7.1.jar
+      sha256: f885be71b5c90556f5f1ad1c4f9276b29b96057c497d46666fe4ddbec3cb43c6
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/ow2/asm/asm-util/9.7.1/asm-util-9.7.1.jar"
+      packaging: jar
 realPeerExecution:
   status: blocked-until-g6-830
   notes: G6-820 approves artifact gates only; real peer scenario execution belongs to G6-830.

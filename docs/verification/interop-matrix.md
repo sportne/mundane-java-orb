@@ -176,9 +176,20 @@ behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.
 `run-scenario --require-live basic-idl all` produced structured
 `infrastructure-failure` reports for all four peer server lanes at prerequisite
-validation. Full pre-1.0 live interop remains blocked until the approved cache,
-digest-pinned base images, prepared peer images, real peer commands, and native
-lane inputs are present.
+validation.
+
+A follow-up approved-cache attempt validated the repo-local ignored artifact
+cache, built Native Image client/server smoke binaries with the SDKMAN GraalVM
+toolchain, and reached `basic-idl` peer-command smoke success for JacORB, JBoss
+OpenJDK ORB, and Eclipse GlassFish CORBA ORB using ignored local peer images.
+The uncommitted prerequisite reports were generated under
+`build/interop/jacorb/reports/`, `build/interop/jboss-openjdk-orb/reports/`, and
+`build/interop/glassfish-orb/reports/`. That result remains prerequisite
+evidence only. ACE/TAO still needs a real prepared peer image, and the current
+scenario runner starts peer server/client roles without exercising the required
+our-JVM/our-native versus peer directions.
+Full pre-1.0 live interop remains blocked until maintainers approve the next
+harness and peer-image direction needed to produce the full matrix.
 
 ## Optional service lanes
 

@@ -37,10 +37,16 @@ commands, requires prepared images to expose real peer command scripts or
 explicit command environment overrides, and never commits peer source, peer
 binaries, or live outputs.
 
-The 2026-05-24 G10-120 prerequisite attempt confirmed that missing
+The first 2026-05-24 G10-120 prerequisite attempt confirmed that missing
 `INTEROP_ARTIFACT_CACHE` and missing approved cache entries are classified as
 structured `infrastructure-failure` reports before live peer behavior starts.
-That result is a release blocker, not compatibility evidence.
+A later approved-cache attempt confirmed cache validation, Native Image binary
+smoke execution, and limited `basic-idl` peer-command smoke success for JacORB,
+JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB, with generated reports
+under `build/interop/*/reports/`. That later result is still release-blocking
+prerequisite evidence, not compatibility evidence, because ACE/TAO has no real
+prepared peer image and the current scenario runner does not execute the
+required our-JVM/our-native versus peer client/server directions.
 
 ## Capture fields
 

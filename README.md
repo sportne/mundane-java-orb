@@ -111,10 +111,13 @@ This repository is in **pre-1.0 interoperability completion state**:
   base images, prepared peer images, container runtime availability, scenario
   IDL mounts, IOR/log/report paths, and clean-room failure classification before
   live G10 peer execution;
-- pre-1.0 full live peer execution is blocked until approved external cache,
-  digest-pinned base-image, prepared peer-image, and Native Image lane inputs
-  are present; the latest local G10-120 attempt produced only structured
-  missing-prerequisite reports, not compatibility evidence;
+- pre-1.0 full live peer execution has approved cache and Native Image
+  prerequisites partly exercised, including limited `basic-idl` peer-command
+  smoke success for JacORB, JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB,
+  but remains blocked because ACE/TAO still needs a real prepared peer image and
+  the current scenario runner does not exercise all required our-JVM/our-native
+  versus peer directions;
+- no non-human-gated roadmap task is currently ready for implementation;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -188,10 +191,10 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` is the next
-non-human-gated roadmap task ready for implementation. Its live execution is
-environment-gated by approved peer cache, digest-pinned base-image, prepared
-peer-image, and Native Image lane inputs.
+There is no non-human-gated roadmap task currently ready for implementation.
+`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` is
+`human-gate-blocked` pending maintainer approval for the next peer-image and
+scenario-runner direction needed to produce full pre-1.0 live interop evidence.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant
