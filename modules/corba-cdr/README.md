@@ -29,9 +29,9 @@ Native Image validation:
   Native Image smoke executable for the CDR primitive, string, sequence, and
   encapsulation API when `native-image` is available.
 
-Wide strings, code-set negotiation, TypeCode, Any, GIOP/IIOP transport, IOR
-profiles, ORB/runtime behavior, and generated codec bodies remain future
-roadmap work.
+G10-040 layers wire TypeCode, Any, object-reference, code-set, exception-body,
+and GIOP/IIOP framing helpers above these CDR primitives. ORB/runtime behavior
+and generated codec bodies remain later roadmap work.
 
 ## Documentation requirements
 

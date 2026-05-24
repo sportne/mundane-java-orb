@@ -166,7 +166,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-040-cdr-giop-ior-wire-closure.md` is the next
+`docs/roadmap/tasks/g10-050-network-orb-poa-dispatch.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

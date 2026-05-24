@@ -14,6 +14,9 @@ dependencies {
     api project(':modules:corba-typecode')
     api project(':modules:corba-cdr')
 
+    // G10 wire Any object-reference values are represented by existing IOR values.
+    api project(':modules:corba-ior')
+
     // Any tests use shared architecture and source-boundary helpers.
     testImplementation project(':modules:corba-testkit')
 }

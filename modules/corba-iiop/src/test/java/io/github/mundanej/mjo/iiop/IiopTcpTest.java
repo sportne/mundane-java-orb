@@ -10,6 +10,7 @@ import io.github.mundanej.mjo.cdr.CdrReader;
 import io.github.mundanej.mjo.cdr.CdrWriter;
 import io.github.mundanej.mjo.common.BoundedLimit;
 import io.github.mundanej.mjo.giop.GiopCloseConnection;
+import io.github.mundanej.mjo.giop.GiopFragment;
 import io.github.mundanej.mjo.giop.GiopHeader;
 import io.github.mundanej.mjo.giop.GiopLimits;
 import io.github.mundanej.mjo.giop.GiopMessageType;
@@ -17,6 +18,7 @@ import io.github.mundanej.mjo.giop.GiopMessageWriter;
 import io.github.mundanej.mjo.giop.GiopReply;
 import io.github.mundanej.mjo.giop.GiopReplyStatus;
 import io.github.mundanej.mjo.giop.GiopRequest;
+import io.github.mundanej.mjo.giop.GiopVersion;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -27,6 +29,7 @@ import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -206,6 +209,54 @@ final class IiopTcpTest {
 
     assertArrayEquals(
         bytes(0x47, 0x49, 0x4F, 0x50, 0x01, 0x02, 0x00, 0x05, 0, 0, 0, 0), output.toByteArray());
+  }
+
+  @Test
+  void frameCodecAssemblesBoundedFragmentSequences() throws Exception {
+    GiopMessageWriter writer = new GiopMessageWriter();
+    GiopReply initial =
+        new GiopReply(
+            new GiopHeader(GiopVersion.GIOP_1_2, false, true, GiopMessageType.REPLY, 0),
+            71,
+            GiopReplyStatus.NO_EXCEPTION,
+            List.of(),
+            bytes(0x01));
+    GiopFragment finalFragment =
+        new GiopFragment(GiopHeader.forType(GiopMessageType.FRAGMENT), 71, bytes(0x02));
+    ByteArrayOutputStream frames = new ByteArrayOutputStream();
+    frames.write(writer.write(initial));
+    frames.write(writer.write(finalFragment));
+
+    GiopReply decoded =
+        (GiopReply)
+            IiopFrameCodec.readMessage(
+                new ByteArrayInputStream(frames.toByteArray()), GiopLimits.defaults());
+
+    assertArrayEquals(bytes(0x01, 0x02), decoded.body());
+  }
+
+  @Test
+  void frameCodecAssemblesFragmentsBeforeStructuredMessageParsing() throws Exception {
+    GiopRequest request = helloRequest(91, "split");
+    byte[] completeRequest = new GiopMessageWriter().write(request);
+    byte[] initialFrame = initialFragmentFrame(completeRequest, Integer.BYTES);
+    byte[] remainingBody =
+        Arrays.copyOfRange(completeRequest, 12 + Integer.BYTES, completeRequest.length);
+    GiopFragment finalFragment =
+        new GiopFragment(GiopHeader.forType(GiopMessageType.FRAGMENT), 91, remainingBody);
+    ByteArrayOutputStream frames = new ByteArrayOutputStream();
+    frames.write(initialFrame);
+    frames.write(new GiopMessageWriter().write(finalFragment));
+
+    GiopRequest decoded =
+        (GiopRequest)
+            IiopFrameCodec.readMessage(
+                new ByteArrayInputStream(frames.toByteArray()), GiopLimits.defaults());
+
+    assertEquals(request.requestId(), decoded.requestId());
+    assertEquals(request.operation(), decoded.operation());
+    assertArrayEquals(request.objectKey(), decoded.objectKey());
+    assertArrayEquals(request.body(), decoded.body());
   }
 
   @Test
@@ -496,6 +547,16 @@ final class IiopTcpTest {
       bytes[index] = (byte) values[index];
     }
     return bytes;
+  }
+
+  private static byte[] initialFragmentFrame(byte[] fullFrame, int bodyOctets) {
+    byte[] frame = Arrays.copyOf(fullFrame, 12 + bodyOctets);
+    frame[6] = (byte) ((frame[6] & 0xff) | 0x02);
+    frame[8] = (byte) (bodyOctets >>> 24);
+    frame[9] = (byte) (bodyOctets >>> 16);
+    frame[10] = (byte) (bodyOctets >>> 8);
+    frame[11] = (byte) bodyOctets;
+    return frame;
   }
 
   @FunctionalInterface

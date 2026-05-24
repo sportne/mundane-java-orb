@@ -18,11 +18,13 @@ Implemented behavior:
   TypeCode factories;
 - `IdlCodec<T>` as the generated codec surface;
 - `UnsupportedIdlCodec<T>` for predictable compile-only read/write failures;
+- G10-040 `WireTypeCode` helpers and codec support for peer-facing primitive,
+  object-reference, struct, exception, enum, alias, array, sequence, and union
+  TypeCode wire shapes;
 - `./gradlew :modules:corba-typecode:nativeTypecodeDescriptorSmoke` for a
   narrow GraalVM Native Image descriptor smoke check.
 
-Full CORBA wire TypeCode marshaling, DynamicAny, Interface Repository
-integration, runtime registries, object-reference Any values, and dynamic
+DynamicAny, Interface Repository integration, runtime registries, and dynamic
 invocation remain future roadmap work.
 
 ## Documentation requirements

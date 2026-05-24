@@ -79,6 +79,36 @@ final class IorWireTest {
   }
 
   @Test
+  void standardCodeSetAndSslComponentsRoundTrip() {
+    IorCodeSetComponent codeSets =
+        new IorCodeSetComponent(
+            IorCodeSetComponent.ISO_8859_1,
+            List.of(IorCodeSetComponent.UTF_8),
+            IorCodeSetComponent.UTF_16,
+            List.of());
+    IorSslTaggedComponent ssl = new IorSslTaggedComponent(1, 1, 2849);
+
+    TaggedComponent codeSetComponent = codeSets.toComponent();
+    TaggedComponent sslComponent = ssl.toComponent();
+    IiopProfile profile =
+        new IiopProfile(
+            IiopVersion.V1_2,
+            "secure.example",
+            2809,
+            ObjectKey.empty(),
+            List.of(codeSetComponent, sslComponent));
+    IiopProfile decoded = IiopProfile.fromProfileData(profile.toProfileData());
+
+    assertEquals(IorTags.TAG_CODE_SETS, codeSetComponent.tag());
+    assertEquals(IorTags.TAG_SSL_SEC_TRANS, sslComponent.tag());
+    assertEquals(codeSets, IorCodeSetComponent.fromComponent(decoded.components().get(0)));
+    assertEquals(ssl, IorSslTaggedComponent.fromComponent(decoded.components().get(1)));
+    assertEquals(
+        codeSetComponent,
+        new TaggedComponent(IorTags.TAG_CODE_SETS, codeSetComponent.componentData()));
+  }
+
+  @Test
   void preservesUnknownTaggedProfilesAndComponents() {
     TaggedProfile profile = new TaggedProfile(0x8000_0000L, bytes(0x01, 0x02, 0x03));
     TaggedComponent component = new TaggedComponent(7, bytes(0x04));
@@ -211,6 +241,14 @@ final class IorWireTest {
         () ->
             Ior.fromCdrBody(
                 new Ior("IDL:X:1.0", List.of(new TaggedProfile(1, bytes()))).toCdrBody(), strict));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_IIOP_PROFILE,
+        () -> IorCodeSetComponent.fromComponent(new TaggedComponent(99, bytes(0x00))));
+    assertIorCode(
+        IorDiagnosticCodes.INVALID_IIOP_PROFILE,
+        () ->
+            IorSslTaggedComponent.fromComponent(
+                new TaggedComponent(IorTags.TAG_SSL_SEC_TRANS, bytes(0x00))));
   }
 
   @Test

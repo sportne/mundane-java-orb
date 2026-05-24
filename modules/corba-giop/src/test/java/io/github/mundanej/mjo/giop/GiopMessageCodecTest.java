@@ -7,7 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mjo.cdr.CdrByteOrder;
 import io.github.mundanej.mjo.common.BoundedLimit;
+import io.github.mundanej.mjo.ior.IiopProfile;
+import io.github.mundanej.mjo.ior.IiopVersion;
+import io.github.mundanej.mjo.ior.Ior;
+import io.github.mundanej.mjo.ior.IorCodeSetComponent;
+import io.github.mundanej.mjo.ior.ObjectKey;
+import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.testkit.GoldenAssertions;
 import java.lang.reflect.Field;
 import java.util.List;
@@ -203,6 +210,113 @@ final class GiopMessageCodecTest {
     assertEquals(8, decoded.requestId());
     assertTrue(decoded.header().moreFragments());
     assertArrayEquals(bytes(0xF0, 0xF1), decoded.fragmentPayload());
+  }
+
+  @Test
+  void profileAddrAndReferenceAddrTargetsRoundTrip() {
+    TaggedProfile profile =
+        TaggedProfile.internetIop(
+            new IiopProfile(
+                IiopVersion.V1_2, "host.example", 2809, new ObjectKey(bytes(0x4B)), List.of()));
+    Ior ior = new Ior("IDL:demo/Service:1.0", List.of(profile));
+
+    GiopRequest profileRequest =
+        new GiopRequest(
+            GiopHeader.forType(GiopMessageType.REQUEST),
+            11,
+            3,
+            GiopTargetAddress.profileAddr(profile),
+            "op",
+            List.of(),
+            bytes());
+    GiopLocateRequest referenceLocate =
+        new GiopLocateRequest(
+            GiopHeader.forType(GiopMessageType.LOCATE_REQUEST),
+            12,
+            GiopTargetAddress.referenceAddr(0, ior));
+
+    GiopRequest decodedProfile =
+        assertInstanceOf(GiopRequest.class, reader.read(writer.write(profileRequest)));
+    GiopLocateRequest decodedReference =
+        assertInstanceOf(GiopLocateRequest.class, reader.read(writer.write(referenceLocate)));
+
+    assertEquals(GiopTargetAddress.PROFILE_ADDR, decodedProfile.targetAddress().discriminator());
+    assertEquals(profile, decodedProfile.targetAddress().profile());
+    assertEquals(
+        GiopTargetAddress.REFERENCE_ADDR, decodedReference.targetAddress().discriminator());
+    assertEquals(0, decodedReference.targetAddress().selectedProfileIndex());
+    assertEquals(ior, decodedReference.targetAddress().ior());
+    assertThrows(GiopException.class, decodedProfile::objectKey);
+  }
+
+  @Test
+  void replyExceptionBodiesAndCodeSetContextsRoundTrip() {
+    GiopSystemExceptionBody system =
+        new GiopSystemExceptionBody(
+            "IDL:omg.org/CORBA/NO_IMPLEMENT:1.0", 7, GiopCompletionStatus.COMPLETED_NO);
+    GiopUserExceptionBody user = new GiopUserExceptionBody("IDL:demo/Problem:1.0", bytes(0xCA));
+    GiopCodeSetContext codeSets = GiopCodeSetContext.defaults();
+
+    assertEquals(
+        system,
+        GiopSystemExceptionBody.fromBytes(
+            CdrByteOrder.BIG_ENDIAN, system.toBytes(CdrByteOrder.BIG_ENDIAN)));
+    assertEquals(
+        user,
+        GiopUserExceptionBody.fromBytes(
+            CdrByteOrder.BIG_ENDIAN, user.toBytes(CdrByteOrder.BIG_ENDIAN)));
+    assertEquals(codeSets, GiopCodeSetContext.fromServiceContext(codeSets.toServiceContext()));
+    assertEquals(
+        new GiopCodeSetContext(IorCodeSetComponent.UTF_8, IorCodeSetComponent.UTF_16),
+        GiopCodeSetContext.fromServiceContext(
+            new GiopCodeSetContext(IorCodeSetComponent.UTF_8, IorCodeSetComponent.UTF_16)
+                .toServiceContext()));
+    assertGiopCode(
+        GiopDiagnosticCodes.UNSUPPORTED_BODY,
+        () -> new GiopCodeSetContext(0xFFFF_FFFFL, IorCodeSetComponent.UTF_16));
+  }
+
+  @Test
+  void fragmentAssemblerCombinesBoundedPayloadsAndRejectsMismatches() {
+    GiopRequest first =
+        new GiopRequest(
+            new GiopHeader(GiopVersion.GIOP_1_2, false, true, GiopMessageType.REQUEST, 0),
+            33,
+            3,
+            bytes(0x4B),
+            "op",
+            List.of(),
+            bytes(0x01));
+    GiopFragment finalFragment =
+        new GiopFragment(GiopHeader.forType(GiopMessageType.FRAGMENT), 33, bytes(0x02, 0x03));
+
+    GiopRequest assembled =
+        assertInstanceOf(
+            GiopRequest.class, new GiopFragmentAssembler().assemble(List.of(first, finalFragment)));
+
+    assertArrayEquals(bytes(0x01, 0x02, 0x03), assembled.body());
+    assertTrue(!assembled.header().moreFragments());
+    assertGiopCode(
+        GiopDiagnosticCodes.INVALID_BODY,
+        () ->
+            new GiopFragmentAssembler()
+                .assemble(
+                    List.of(
+                        first,
+                        new GiopFragment(
+                            GiopHeader.forType(GiopMessageType.FRAGMENT), 34, bytes(0x02)))));
+
+    GiopLimits strict =
+        new GiopLimits(
+            new BoundedLimit("message", 128),
+            new BoundedLimit("body", 128),
+            new BoundedLimit("contexts", 1),
+            new BoundedLimit("context-data", 1),
+            new BoundedLimit("fragments", 1),
+            new BoundedLimit("fragment-body", 1));
+    assertGiopCode(
+        GiopDiagnosticCodes.LIMIT_EXCEEDED,
+        () -> new GiopFragmentAssembler(strict).assemble(List.of(first, finalFragment)));
   }
 
   @Test
@@ -402,7 +516,7 @@ final class GiopMessageCodecTest {
                 "a",
                 List.of(),
                 bytes()));
-    unsupportedTarget[21] = 0x01;
+    unsupportedTarget[21] = 0x7F;
     assertGiopCode(GiopDiagnosticCodes.UNSUPPORTED_BODY, () -> reader.read(unsupportedTarget));
 
     assertGiopCode(

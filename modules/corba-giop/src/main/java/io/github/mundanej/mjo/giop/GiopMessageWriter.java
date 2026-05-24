@@ -15,7 +15,6 @@ public final class GiopMessageWriter {
   private static final int MAGIC_P = 'P';
   private static final int LITTLE_ENDIAN_FLAG = 0x01;
   private static final int MORE_FRAGMENTS_FLAG = 0x02;
-  private static final short KEY_ADDR = 0;
 
   private final GiopLimits limits;
 
@@ -71,7 +70,7 @@ public final class GiopMessageWriter {
     writer.writeUnsignedLong(request.requestId());
     writer.writeOctet(request.responseFlags());
     writer.writeOctets(new byte[3]);
-    writeKeyAddr(writer, request.objectKey());
+    writeTargetAddress(writer, request.targetAddress());
     writer.writeString(request.operation());
     writeServiceContexts(writer, request.serviceContexts());
     writer.writeOctets(request.body());
@@ -96,7 +95,7 @@ public final class GiopMessageWriter {
   private byte[] writeLocateRequest(GiopLocateRequest locateRequest) {
     CdrWriter writer = bodyWriter(locateRequest.header());
     writer.writeUnsignedLong(locateRequest.requestId());
-    writeKeyAddr(writer, locateRequest.objectKey());
+    writeTargetAddress(writer, locateRequest.targetAddress());
     return writer.toByteArray();
   }
 
@@ -115,9 +114,20 @@ public final class GiopMessageWriter {
     return writer.toByteArray();
   }
 
-  private void writeKeyAddr(CdrWriter writer, byte[] objectKey) {
-    writer.writeShort(KEY_ADDR);
-    writer.writeOctetSequence(objectKey);
+  private void writeTargetAddress(CdrWriter writer, GiopTargetAddress targetAddress) {
+    writer.writeShort(targetAddress.discriminator());
+    switch (targetAddress.discriminator()) {
+      case GiopTargetAddress.KEY_ADDR -> writer.writeOctetSequence(targetAddress.objectKey());
+      case GiopTargetAddress.PROFILE_ADDR -> targetAddress.profile().writeTo(writer);
+      case GiopTargetAddress.REFERENCE_ADDR -> {
+        writer.writeUnsignedLong(targetAddress.selectedProfileIndex());
+        targetAddress.ior().writeTo(writer);
+      }
+      default ->
+          throw new GiopException(
+              GiopDiagnosticCodes.UNSUPPORTED_BODY,
+              "Unsupported GIOP target-address discriminator: " + targetAddress.discriminator());
+    }
   }
 
   private void writeServiceContexts(CdrWriter writer, List<GiopServiceContext> serviceContexts) {

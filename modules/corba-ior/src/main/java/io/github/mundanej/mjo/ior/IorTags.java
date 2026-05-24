@@ -9,5 +9,11 @@ public final class IorTags {
   /** Standard IOP tag for a profile carrying a multiple-component profile. */
   public static final long TAG_MULTIPLE_COMPONENTS = 1L;
 
+  /** Standard IOP component tag for code-set negotiation data. */
+  public static final long TAG_CODE_SETS = 1L;
+
+  /** Standard IOP component tag for SSL/TLS transport requirements. */
+  public static final long TAG_SSL_SEC_TRANS = 20L;
+
   private IorTags() {}
 }

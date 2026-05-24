@@ -8,12 +8,13 @@ G6 local loopback TCP and endpoint-local TLS/mTLS behavior has started. The
 module exposes a bounded IIOP client/server transport for complete GIOP
 request/reply messages, including timeouts, request-id correlation, basic
 connection backpressure, idempotent shutdown, and explicit per-endpoint TLS
-configuration.
+configuration. G10-040 adds bounded GIOP fragment-sequence assembly in the
+frame reader before messages are returned to the existing request/reply paths.
 
 This slice is intentionally local and transport-only. It does not implement
 connection pooling, ORB dispatch, POA lookup, Naming Service behavior,
-generated stubs or skeletons, exception body marshaling, TLS tagged components
-in IORs, CORBA Security Service, or external ORB peer interop.
+generated stubs or skeletons, TLS policy interpretation, CORBA Security
+Service, or external ORB peer interop.
 
 ## Documentation requirements
 

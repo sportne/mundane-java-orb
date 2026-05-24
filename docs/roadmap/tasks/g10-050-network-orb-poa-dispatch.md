@@ -1,7 +1,7 @@
 # G10-050 Network ORB POA Dispatch
 
 Task ID: G10-050-NETWORK-ORB-POA-DISPATCH
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IIOP-001, REQ-IOR-001, REQ-INTEROP-001, REQ-INTEROP-003, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Bridge IIOP request handling to OR
 Tests to add/update: Unit, generated-binding, local integration, loopback IIOP, POA policy, servant lifecycle, exception mapping, Native Image smoke, and hostile-input tests.
 Documentation to update: Runtime architecture, POA design, conformance rows, Native Image matrix, roadmap index, README ready-task status, this task, and G10-060/G10-070/G10-080 status when complete.
 Commands to run: ./gradlew :modules:corba-orb-core:test :modules:corba-poa:test :modules:corba-iiop:test :modules:corba-ior:test :modules:corba-codegen:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-040 is complete; generated server/client paths can dispatch over loopback IIOP through ORB/POA with deterministic request, reply, and failure behavior; security-service policy remains deferred.
+Acceptance criteria: Generated server/client paths can dispatch over loopback IIOP through ORB/POA with deterministic request, reply, and failure behavior; security-service policy remains deferred.
 Rollback notes: Revert ORB/POA/IIOP/codegen, test, and documentation changes together.

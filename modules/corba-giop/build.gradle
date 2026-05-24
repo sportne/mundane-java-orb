@@ -13,6 +13,9 @@ dependencies {
     // GIOP message bodies are encoded as bounded CDR streams.
     api project(':modules:corba-cdr')
 
+    // G10 target-address values reuse the IOR profile/reference model.
+    api project(':modules:corba-ior')
+
     // GIOP limits use the shared bounded-limit value type.
     api project(':modules:corba-common')
 

@@ -36,8 +36,10 @@ G6-510 adds caller-sized raw octet helpers for protocol layers that already know
 the byte count from an enclosing syntax. These helpers do not add length
 prefixes and do not introduce GIOP concepts into `corba-cdr`.
 
-Negotiated code sets, TypeCode, object-reference, GIOP, IIOP, and ORB invocation
-behavior remain outside the current CDR slice.
+G10-040 adds peer-facing helper codecs for wire TypeCodes, Any payloads,
+object references, code-set context data, user/system exception reply bodies,
+and fragmentable GIOP payloads. ORB invocation behavior remains outside this
+wire slice.
 
 The primitive reader/writer package participates in the Native Image validation
 lane. Its native smoke executable exercises deterministic CDR primitive,
@@ -66,18 +68,20 @@ typed messages, and configured message/body/service-context limits before it
 returns a message value.
 
 The supported syntax covers request, reply, cancel request, locate request,
-locate reply, close connection, message error, and fragment messages. Request
-and locate request bodies support only KeyAddr target addresses in this slice;
-ProfileAddr and ReferenceAddr are rejected until object-reference integration.
-Service contexts are preserved as opaque `context_id` plus `context_data` bytes.
-Fragment messages preserve the GIOP 1.2 request id and raw fragment payload, and
-the header more-fragments flag remains visible on the message header.
+locate reply, close connection, message error, and fragment messages. G10-040
+extends request and locate request bodies to support KeyAddr, ProfileAddr, and
+ReferenceAddr target addresses. Service contexts remain preserved as opaque
+`context_id` plus `context_data` bytes, with an additional code-set context
+helper for the approved narrow/wide string code sets. Fragment messages preserve
+the GIOP 1.2 request id and raw fragment payload; bounded local assembly is
+available for request, reply, and locate-reply payloads.
 
-This slice intentionally has no TCP listener, no client connection management,
-no ORB dispatch, no POA object lookup, no peer interop, no general GIOP reply
-exception marshaling, and no semantic interpretation of service contexts. G7-080
-adds a narrow `corba-rmi-iiop` owner for approved RMI-IIOP reply bodies without
-moving that semantic ownership into `corba-giop`. The boundary is:
+This slice intentionally has no ORB dispatch, no POA object lookup, no peer
+interop execution, and no semantic interpretation of service contexts beyond
+the explicit code-set helper. G10-040 adds deterministic user/system exception
+reply body codecs, but exception mapping remains owned by later ORB/POA tasks.
+G7-080 adds a narrow `corba-rmi-iiop` owner for approved RMI-IIOP reply bodies
+without moving that semantic ownership into `corba-giop`. The boundary is:
 
 ```text
 complete byte array -> GiopMessageReader -> typed GIOP message
@@ -113,10 +117,11 @@ its configured context.
 
 This slice intentionally has no connection pooling, generic ORB dispatch,
 generic POA lookup, Naming Service behavior, peer interop, CORBA Security
-Service, TLS tagged components in IORs, hostname/SAN verification policy, or
-general GIOP exception-body marshaling. G7-080 layers bounded local JVM RMI-IIOP
-wire calls above these client/server entrypoints; peer behavior remains outside
-the IIOP transport slice. The boundary is:
+Service, or hostname/SAN verification policy. G10-040 adds IOR TLS tagged
+component payload codecs and bounded fragment assembly in the frame reader; it
+does not interpret TLS policy or dispatch requests. G7-080 layers bounded local
+JVM RMI-IIOP wire calls above these client/server entrypoints; peer behavior
+remains outside the IIOP transport slice. The boundary is:
 
 ```text
 GiopRequest -> IiopClient -> TCP/TLS loopback -> IiopServer -> IiopRequestHandler -> GiopReply

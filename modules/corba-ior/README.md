@@ -5,6 +5,8 @@ IOR, IIOP profiles, tagged components, corbaloc, and corbaname parsing.
 ## Current status
 
 G6 IOR implementation work has started with bounded value parsing and emitting.
+G10-040 adds peer-facing tagged component helpers for code sets and SSL/TLS
+transport metadata.
 
 Implemented behavior:
 
@@ -13,6 +15,7 @@ Implemented behavior:
   1.2, and later major-version-1 profile bodies;
 - deterministic preservation of unknown profile tags, unknown component tags,
   and IIOP trailing extension bytes;
+- standard `TAG_CODE_SETS` and `TAG_SSL_SEC_TRANS` component payload codecs;
 - standard `IOR:` stringified object reference parsing and canonical uppercase
   emitting;
 - syntax-only `corbaloc` and `corbaname` parsing with bounded URL and object-key

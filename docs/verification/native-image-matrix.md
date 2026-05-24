@@ -120,3 +120,13 @@ generated-style sources without reflection, dynamic proxies, classpath scanning,
 service-loader discovery, Java serialization API use, runtime bytecode
 generation, process execution, internal JDK APIs, or `Unsafe`. No Native Image
 metadata files or runtime discovery hooks are introduced by this task.
+
+## G10-040 wire closure evidence
+
+G10-040 keeps CDR, GIOP, IIOP, IOR, Any, and TypeCode closure at explicit
+codec/framing boundaries. The new wire TypeCode, wire Any, target-address,
+exception-body, code-set, TLS component, and fragment-assembly helpers use
+ordinary constructors and bounded CDR APIs only. No reflection metadata, dynamic
+proxy metadata, Java serialization metadata, service-loader discovery, runtime
+bytecode generation, process execution, internal JDK APIs, or `Unsafe` are
+introduced.

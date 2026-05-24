@@ -4,15 +4,16 @@ GIOP message model, parser, writer, service contexts, and fragmentation.
 
 ## Current status
 
-G6 local wire-message behavior has started. The module exposes a bounded GIOP
-1.2 message model plus in-memory reader/writer support for request, reply,
-cancel request, locate request, locate reply, close connection, message error,
-and fragment messages.
+G10-040 closes the local peer-facing GIOP wire syntax needed before ORB/POA
+dispatch. The module exposes a bounded GIOP 1.2 message model plus in-memory
+reader/writer support for request, reply, cancel request, locate request,
+locate reply, close connection, message error, and fragment messages.
 
-This slice is syntax-only. It does not open sockets, start IIOP transport,
-dispatch ORB calls, perform POA lookup, interpret service contexts, or implement
-full object-reference semantics. Request and locate target addresses support
-only KeyAddr; ProfileAddr and ReferenceAddr are rejected until IOR integration.
+This slice is syntax-only. It supports KeyAddr, ProfileAddr, and ReferenceAddr
+target addresses, deterministic user/system exception reply bodies, code-set
+service-context helpers, and bounded local fragment assembly. It does not open
+sockets, dispatch ORB calls, perform POA lookup, execute live peer interop, or
+interpret runtime object semantics.
 
 ## Documentation requirements
 

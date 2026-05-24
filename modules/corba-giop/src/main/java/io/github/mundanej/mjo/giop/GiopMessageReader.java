@@ -3,6 +3,9 @@ package io.github.mundanej.mjo.giop;
 import io.github.mundanej.mjo.cdr.CdrByteOrder;
 import io.github.mundanej.mjo.cdr.CdrException;
 import io.github.mundanej.mjo.cdr.CdrReader;
+import io.github.mundanej.mjo.ior.Ior;
+import io.github.mundanej.mjo.ior.IorLimits;
+import io.github.mundanej.mjo.ior.TaggedProfile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -19,7 +22,6 @@ public final class GiopMessageReader {
   private static final int LITTLE_ENDIAN_FLAG = 0x01;
   private static final int MORE_FRAGMENTS_FLAG = 0x02;
   private static final int SUPPORTED_FLAGS = LITTLE_ENDIAN_FLAG | MORE_FRAGMENTS_FLAG;
-  private static final short KEY_ADDR = 0;
 
   private final GiopLimits limits;
 
@@ -105,12 +107,12 @@ public final class GiopMessageReader {
     int responseFlags = reader.readOctet();
     byte[] reserved = reader.readOctets(3);
     requireZeroReserved(reserved);
-    byte[] objectKey = readKeyAddr(reader);
+    GiopTargetAddress targetAddress = readTargetAddress(reader);
     String operation = reader.readString();
     List<GiopServiceContext> serviceContexts = readServiceContexts(reader);
     byte[] body = reader.readOctets(reader.remaining());
     return new GiopRequest(
-        header, requestId, responseFlags, objectKey, operation, serviceContexts, body);
+        header, requestId, responseFlags, targetAddress, operation, serviceContexts, body);
   }
 
   private GiopReply readReply(GiopHeader header, CdrReader reader) {
@@ -129,9 +131,9 @@ public final class GiopMessageReader {
 
   private GiopLocateRequest readLocateRequest(GiopHeader header, CdrReader reader) {
     long requestId = reader.readUnsignedLong();
-    byte[] objectKey = readKeyAddr(reader);
+    GiopTargetAddress targetAddress = readTargetAddress(reader);
     requireFullyConsumed(reader, header.messageType());
-    return new GiopLocateRequest(header, requestId, objectKey);
+    return new GiopLocateRequest(header, requestId, targetAddress);
   }
 
   private GiopLocateReply readLocateReply(GiopHeader header, CdrReader reader) {
@@ -157,14 +159,20 @@ public final class GiopMessageReader {
     return new GiopFragment(header, requestId, fragmentPayload);
   }
 
-  private byte[] readKeyAddr(CdrReader reader) {
+  private GiopTargetAddress readTargetAddress(CdrReader reader) {
     short discriminator = reader.readShort();
-    if (discriminator != KEY_ADDR) {
-      throw new GiopException(
-          GiopDiagnosticCodes.UNSUPPORTED_BODY,
-          "Only KeyAddr target addressing is supported in this GIOP slice: " + discriminator);
-    }
-    return reader.readOctetSequence();
+    return switch (discriminator) {
+      case GiopTargetAddress.KEY_ADDR -> GiopTargetAddress.keyAddr(reader.readOctetSequence());
+      case GiopTargetAddress.PROFILE_ADDR ->
+          GiopTargetAddress.profileAddr(TaggedProfile.readFrom(reader, IorLimits.defaults()));
+      case GiopTargetAddress.REFERENCE_ADDR ->
+          GiopTargetAddress.referenceAddr(
+              reader.readUnsignedLong(), Ior.readFrom(reader, IorLimits.defaults()));
+      default ->
+          throw new GiopException(
+              GiopDiagnosticCodes.UNSUPPORTED_BODY,
+              "Unsupported GIOP target-address discriminator: " + discriminator);
+    };
   }
 
   private List<GiopServiceContext> readServiceContexts(CdrReader reader) {

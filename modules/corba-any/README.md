@@ -22,9 +22,10 @@ Implemented behavior:
   invalid enum values.
 
 The module intentionally does not marshal the full CORBA wire TypeCode
-representation. DynamicAny, DII, DSI, object-reference Any values, peer
-transport behavior, and `org.omg.CORBA.Any` compatibility remain later roadmap
-work.
+representation through the local descriptor codec. G10-040 adds a separate
+wire Any codec for supported wire TypeCodes and object-reference values backed
+by existing IOR values. DynamicAny, DII, DSI, peer transport behavior, and
+`org.omg.CORBA.Any` runtime compatibility remain later roadmap work.
 
 ## Documentation requirements
 

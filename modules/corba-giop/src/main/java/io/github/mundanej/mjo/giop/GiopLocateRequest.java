@@ -1,20 +1,25 @@
 package io.github.mundanej.mjo.giop;
 
-import java.util.Arrays;
+import java.util.Objects;
 
-/** GIOP locate request message with KeyAddr target support. */
+/** GIOP locate request message with TargetAddress support. */
 public final class GiopLocateRequest implements GiopMessage {
 
   private final GiopHeader header;
   private final long requestId;
-  private final byte[] objectKey;
+  private final GiopTargetAddress targetAddress;
 
   /** Creates a locate request message. */
   public GiopLocateRequest(GiopHeader header, long requestId, byte[] objectKey) {
+    this(header, requestId, GiopTargetAddress.keyAddr(objectKey));
+  }
+
+  /** Creates a locate request message. */
+  public GiopLocateRequest(GiopHeader header, long requestId, GiopTargetAddress targetAddress) {
     this.header = GiopModel.requireHeader(header, GiopMessageType.LOCATE_REQUEST);
     GiopModel.requireUnsignedLong(requestId, "requestId");
     this.requestId = requestId;
-    this.objectKey = GiopModel.copyBytes(objectKey, "objectKey");
+    this.targetAddress = Objects.requireNonNull(targetAddress, "targetAddress");
   }
 
   @Override
@@ -27,6 +32,10 @@ public final class GiopLocateRequest implements GiopMessage {
   }
 
   public byte[] objectKey() {
-    return Arrays.copyOf(objectKey, objectKey.length);
+    return targetAddress.objectKey();
+  }
+
+  public GiopTargetAddress targetAddress() {
+    return targetAddress;
   }
 }
