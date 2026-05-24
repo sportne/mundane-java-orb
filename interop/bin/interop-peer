@@ -14,6 +14,7 @@ Usage:
   interop-peer validate-manifests
   interop-peer validate-gates [--require-cache] [peer]
   interop-peer build-image [--dry-run] <peer>
+  interop-peer prepare-cache [--dry-run] [peer]
   interop-peer launch [--dry-run] <peer> <client|server|naming> [scenario]
   interop-peer health [--dry-run] <peer>
   interop-peer report [--dry-run] <peer>
@@ -384,6 +385,32 @@ require_external_artifact_cache() {
   fi
 }
 
+resolve_cache_path() {
+  local peer="$1"
+  local cache="${INTEROP_ARTIFACT_CACHE:-}"
+  python3 - "${ROOT_DIR}" "${PEERS_DIR}" "${APPROVALS_DIR}" "${cache}" "${peer}" <<'PY'
+import os
+import sys
+import yaml
+
+root_dir, peers_dir, approvals_dir, cache_root, peer = sys.argv[1:]
+manifest_path = os.path.join(peers_dir, peer, "peer.yaml")
+with open(manifest_path, encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+approval_path = os.path.join(root_dir, manifest["approval"])
+approval_path = os.path.abspath(approval_path)
+if not approval_path.startswith(os.path.abspath(approvals_dir) + os.sep):
+    raise SystemExit(f"approval path must stay under {approvals_dir}")
+with open(approval_path, encoding="utf-8") as handle:
+    approval = yaml.safe_load(handle)
+entries = approval.get("cache", {}).get("entries", [])
+if not entries:
+    raise SystemExit("cache.entries must not be empty")
+for entry in entries:
+    print(os.path.join(cache_root, entry["path"]))
+PY
+}
+
 scenario_idl() {
   local scenario="$1"
   case "${scenario}" in
@@ -537,6 +564,21 @@ run_container_role() {
     return 1
   fi
 
+  local cache_paths
+  cache_paths="$(resolve_cache_path "${peer}")"
+  while IFS= read -r cache_path; do
+    if [[ ! -f "${cache_path}" ]]; then
+      ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+      printf 'approved cache entry is missing after validation: %s\n' "${cache_path}" >"${stderr_abs}"
+      : >"${stdout_abs}"
+      write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+        "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+        "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+        "${started}" "${ended}" "G10-110 approved cache path resolution failed"
+      return 1
+    fi
+  done <<<"${cache_paths}"
+
   local base_image_env base_image_value
   base_image_env="$(base_image_env_name "${peer_type}")"
   base_image_value="${!base_image_env:-}"
@@ -569,8 +611,19 @@ run_container_role() {
     return 1
   fi
 
-  set +e
-  "${runtime}" run --rm \
+  if ! "${runtime}" image inspect "${image}" >/dev/null 2>&1; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'peer image is missing; run build-image first: %s\n' "${image}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 peer image validation failed"
+    return 1
+  fi
+
+  local run_args=(
+    run --rm
     -e "INTEROP_PEER=${peer}" \
     -e "INTEROP_ROLE=${role}" \
     -e "INTEROP_SCENARIO=${scenario}" \
@@ -578,7 +631,16 @@ run_container_role() {
     -v "${iors_abs}:/interop/iors" \
     -v "${reports_abs}:/interop/reports" \
     -v "${INTEROP_ARTIFACT_CACHE}:/interop/artifacts:ro" \
-    "${image}" "${container_command}" >"${stdout_abs}" 2>"${stderr_abs}"
+  )
+  case "${role}" in
+    client|server|naming)
+      run_args+=(-e "INTEROP_IDL=${idl}" -v "${ROOT_DIR}/${idl}:/interop/scenario.idl:ro")
+      ;;
+  esac
+  run_args+=("${image}" "${container_command}")
+
+  set +e
+  "${runtime}" "${run_args[@]}" >"${stdout_abs}" 2>"${stderr_abs}"
   local exit_code=$?
   set -e
   ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -587,17 +649,184 @@ run_container_role() {
   if [[ "${exit_code}" -eq 0 ]]; then
     status="passed"
     classification="expected-deferral"
-    notes="G6-830 container command completed"
+    notes="G10-110 container command completed"
   else
     status="failed"
     classification="infrastructure-failure"
-    notes="G6-830 container command failed"
+    notes="G10-110 container command failed"
   fi
   write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
     "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
     "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
     "${started}" "${ended}" "${notes}"
   return "${exit_code}"
+}
+
+STARTED_SERVER_CONTAINER=""
+STARTED_SERVER_RUNTIME=""
+
+start_server_role() {
+  local peer="$1"
+  local scenario="$2"
+  local manifest image peer_type peer_version container_command logs_dir iors_dir reports_dir
+  manifest="$(manifest_path "${peer}")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+  peer_version="$(manifest_value "${manifest}" "candidateOrigin.version")"
+  container_command="$(manifest_value "${manifest}" "containerCommands.server")"
+  logs_dir="$(manifest_value "${manifest}" "reports.logs")"
+  iors_dir="$(manifest_value "${manifest}" "reports.iors")"
+  reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
+
+  local label logs_abs iors_abs reports_abs stdout_abs stderr_abs report_abs
+  label="$(report_label "${scenario}" "server")"
+  logs_abs="${ROOT_DIR}/${logs_dir}"
+  iors_abs="${ROOT_DIR}/${iors_dir}"
+  reports_abs="${ROOT_DIR}/${reports_dir}"
+  stdout_abs="${logs_abs}/${label}.stdout.log"
+  stderr_abs="${logs_abs}/${label}.stderr.log"
+  report_abs="${reports_abs}/${label}.json"
+  mkdir -p "${logs_abs}" "${iors_abs}" "${reports_abs}"
+
+  local stdout_rel stderr_rel report_rel idl peer_runtime started ended
+  stdout_rel="${logs_dir}/${label}.stdout.log"
+  stderr_rel="${logs_dir}/${label}.stderr.log"
+  report_rel="${reports_dir}/${label}.json"
+  idl="$(scenario_idl "${scenario}")"
+  peer_runtime="$(peer_runtime_name "${peer_type}")"
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  local gate_output runtime
+  if ! gate_output="$(validate_gates --require-cache "${peer}" 2>&1)"; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '%s\n' "${gate_output}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 prerequisite validation failed"
+    return 1
+  fi
+
+  local base_image_env base_image_value
+  base_image_env="$(base_image_env_name "${peer_type}")"
+  base_image_value="${!base_image_env:-}"
+  if [[ -z "${base_image_value}" || "${base_image_value}" != *@sha256:* ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '%s must be set to a digest-pinned image before live peer execution\n' \
+      "${base_image_env}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 base image validation failed"
+    return 1
+  fi
+
+  if [[ -n "${DEFAULT_RUNTIME}" ]]; then
+    runtime="${DEFAULT_RUNTIME}"
+  elif command -v docker >/dev/null 2>&1; then
+    runtime="docker"
+  elif command -v podman >/dev/null 2>&1; then
+    runtime="podman"
+  else
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'CONTAINER_RUNTIME is unset and neither docker nor podman was found\n' >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 container runtime resolution failed"
+    return 1
+  fi
+
+  if ! "${runtime}" image inspect "${image}" >/dev/null 2>&1; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'peer image is missing; run build-image first: %s\n' "${image}" >"${stderr_abs}"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 peer image validation failed"
+    return 1
+  fi
+
+  local safe_peer safe_scenario container_name
+  safe_peer="${peer//[!A-Za-z0-9_.-]/-}"
+  safe_scenario="${scenario//[!A-Za-z0-9_.-]/-}"
+  container_name="mjo-${safe_peer}-${safe_scenario}-server-$$"
+  set +e
+  "${runtime}" run -d --name "${container_name}" \
+    -e "INTEROP_PEER=${peer}" \
+    -e "INTEROP_ROLE=server" \
+    -e "INTEROP_SCENARIO=${scenario}" \
+    -e "INTEROP_IDL=${idl}" \
+    -v "${logs_abs}:/interop/logs" \
+    -v "${iors_abs}:/interop/iors" \
+    -v "${reports_abs}:/interop/reports" \
+    -v "${ROOT_DIR}/${idl}:/interop/scenario.idl:ro" \
+    -v "${INTEROP_ARTIFACT_CACHE}:/interop/artifacts:ro" \
+    "${image}" "${container_command}" >"${stdout_abs}" 2>"${stderr_abs}"
+  local exit_code=$?
+  set -e
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+  if [[ "${exit_code}" -eq 0 ]]; then
+    STARTED_SERVER_CONTAINER="${container_name}"
+    STARTED_SERVER_RUNTIME="${runtime}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "passed" "expected-deferral" "0" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-110 server container started"
+    return 0
+  fi
+
+  write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+    "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+    "failed" "infrastructure-failure" "${exit_code}" "${stdout_rel}" "${stderr_rel}" \
+    "${report_rel}" "${started}" "${ended}" "G10-110 server container failed to start"
+  return "${exit_code}"
+}
+
+cleanup_started_server() {
+  if [[ -n "${STARTED_SERVER_CONTAINER}" && -n "${STARTED_SERVER_RUNTIME}" ]]; then
+    "${STARTED_SERVER_RUNTIME}" rm -f "${STARTED_SERVER_CONTAINER}" >/dev/null 2>&1 || true
+  fi
+  STARTED_SERVER_CONTAINER=""
+  STARTED_SERVER_RUNTIME=""
+}
+
+wait_for_peer_health() {
+  local peer="$1"
+  local scenario="$2"
+  local attempts="${INTEROP_HEALTH_ATTEMPTS:-5}"
+  local delay="${INTEROP_HEALTH_DELAY_SECONDS:-1}"
+  local attempt
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if run_container_role "${peer}" "health" "${scenario}"; then
+      return 0
+    fi
+    sleep "${delay}"
+  done
+  return 1
+}
+
+run_live_peer_scenario() {
+  local peer="$1"
+  local scenario="$2"
+  STARTED_SERVER_CONTAINER=""
+  STARTED_SERVER_RUNTIME=""
+  if ! start_server_role "${peer}" "${scenario}"; then
+    return 1
+  fi
+  if ! wait_for_peer_health "${peer}" "${scenario}"; then
+    cleanup_started_server
+    return 1
+  fi
+  local result=0
+  run_container_role "${peer}" "client" "${scenario}" || result=$?
+  cleanup_started_server
+  return "${result}"
 }
 
 summarize_reports() {
@@ -723,6 +952,28 @@ parse_dry_run() {
     shift
   fi
   printf '%s\n' "${dry_run}"
+}
+
+prepare_cache() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local peer="${1:-}"
+  if [[ "${dry_run}" == "true" ]]; then
+    if [[ -n "${peer}" ]]; then
+      echo "dry-run: would validate approved cache for ${peer}"
+    else
+      echo "dry-run: would validate approved cache for all peers"
+    fi
+    return
+  fi
+  if [[ -n "${peer}" ]]; then
+    validate_gates --require-cache "${peer}"
+  else
+    validate_gates --require-cache
+  fi
 }
 
 build_image() {
@@ -861,13 +1112,13 @@ run_scenario() {
   local peer role
   for peer in "${peers[@]}"; do
     scenario_supported "$(manifest_path "${peer}")" "${scenario}"
-    for role in server client; do
-      if [[ "${dry_run}" == "true" ]]; then
+    if [[ "${dry_run}" == "true" ]]; then
+      for role in server health client; do
         echo "dry-run: would run scenario ${scenario} role ${role} for ${peer}"
-      elif ! run_container_role "${peer}" "${role}" "${scenario}"; then
-        failures=$((failures + 1))
-      fi
-    done
+      done
+    elif ! run_live_peer_scenario "${peer}" "${scenario}"; then
+      failures=$((failures + 1))
+    fi
   done
   if [[ "${require_live}" == "true" && "${failures}" -gt 0 ]]; then
     return 1
@@ -884,6 +1135,7 @@ main() {
     help|-h|--help) usage ;;
     validate-manifests) validate_manifests ;;
     validate-gates) validate_gates "$@" ;;
+    prepare-cache) prepare_cache "$@" ;;
     build-image) build_image "$@" ;;
     launch) launch_peer "$@" ;;
     health) health_peer "$@" ;;

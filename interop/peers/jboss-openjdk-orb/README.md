@@ -14,3 +14,9 @@ Dry-run commands are available through `build-image.sh`, `launch.sh`, and
 `health.sh`. Real peer execution is enabled only when the approved external
 cache and configured peer image prerequisites are present. Logs, IORs, and
 structured reports are written under `build/interop/jboss-openjdk-orb/`.
+
+G10-110 requires this peer to run only as a black-box container using the
+approved external cache entry, a digest-pinned Java base image, a prepared
+`corba-interop-peer-jboss-openjdk-orb:10.1.1.Final` image, mounted scenario
+IDL, and Docker/Podman. Missing prerequisites are structured
+`infrastructure-failure` reports, not skipped evidence.

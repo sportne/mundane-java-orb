@@ -32,6 +32,10 @@ G10 is ordered to close prerequisites before live peer execution:
 The final execution task remains blocked until all prerequisite G10 tasks are
 complete.
 
+G10-110 completed the prerequisite harness closure. `G10-120` is therefore the
+next executable task, but it remains environment-gated by the approved cache,
+base-image, peer-image, container-runtime, and Native Image inputs below.
+
 ## Peer And Scenario Policy
 
 Approved peers remain JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB,
@@ -56,6 +60,13 @@ Live interop execution requires:
 
 Cache preparation must be opt-in and write only to an untracked external cache.
 No live fetch is part of the default local validation path.
+
+The harness validates cache and image prerequisites before live execution and
+writes structured `infrastructure-failure` reports for missing cache entries,
+missing digest-pinned base images, missing container runtimes, missing prepared
+peer images, missing real peer commands, failed health checks, or failed peer
+commands. Successful peer commands still require G10-120 evidence before they
+become a 1.0.0 compatibility claim.
 
 ## Acceptance
 

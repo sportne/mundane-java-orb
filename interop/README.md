@@ -23,6 +23,17 @@ The scenario is gate-validated and dry-run executable by default; live peer
 execution still requires approved external cache entries, digest-pinned base
 images, and Docker/Podman.
 
+G10-110 closes the black-box harness contract for live execution. The harness
+validates approved cache entries, digest-pinned base images, Docker/Podman
+availability, prepared peer images, mounted scenario IDL, IOR/log/report
+directories, and deterministic failure classification before `G10-120` records
+full live evidence.
+Prepared peer images must provide executable `/interop/peer/client.sh`,
+`/interop/peer/server.sh`, `/interop/peer/naming.sh`, `/interop/peer/health.sh`,
+and `/interop/peer/report.sh` scripts, or equivalent `INTEROP_PEER_*_COMMAND`
+environment overrides. Missing real peer commands fail with structured
+infrastructure reports.
+
 ## Shared container contract
 
 - Peer images must use deterministic names from each `peer.yaml`.
@@ -36,6 +47,8 @@ images, and Docker/Podman.
   declared by the manifest.
 - Real commands validate gates first. Missing cache, runtime, image, or base
   image prerequisites produce deterministic infrastructure-failure reports.
+- `run-scenario` starts the peer server as a detached container, waits for the
+  peer health command, runs the peer client, and removes the server container.
 
 ## Commands
 
@@ -44,6 +57,7 @@ images, and Docker/Podman.
 - `interop/bin/interop-peer validate-gates`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer validate-gates --require-cache`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer validate-gates --require-cache jacorb`
+- `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer prepare-cache jacorb`
 - `interop/bin/interop-peer build-image --dry-run jacorb`
 - `interop/bin/interop-peer launch --dry-run jacorb server`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache CONTAINER_RUNTIME=docker interop/bin/interop-peer launch jacorb server basic-idl`

@@ -3,7 +3,7 @@ FROM ${INTEROP_BASE_IMAGE}
 
 ARG INTEROP_PEER
 LABEL io.github.mundanej.mjo.interop.peer="${INTEROP_PEER}"
-LABEL io.github.mundanej.mjo.interop.stage="g6-830-report-harness"
+LABEL io.github.mundanej.mjo.interop.stage="g10-110-real-peer-harness"
 
 WORKDIR /interop
 COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint

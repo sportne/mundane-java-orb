@@ -162,6 +162,15 @@ native-lane `infrastructure-failure` reports when required native client or
 server binaries are missing. Live peer pass/fail evidence remains blocked until
 the G10 real-peer harness and full execution tasks complete.
 
+G10-110 closes the real-peer harness prerequisite for live execution. The
+harness validates approved external cache entries, digest-pinned base-image
+inputs, Docker/Podman availability, prepared peer images, real peer command
+entrypoints, mounted scenario IDL, IOR/log/report directories, detached server
+lifecycle, health checks, cleanup, and clean-room failure classification before
+running JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, or ACE/TAO as
+black-box peers. Live pass/fail evidence remains a G10-120 verification task,
+not a compatibility claim from harness closure alone.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time

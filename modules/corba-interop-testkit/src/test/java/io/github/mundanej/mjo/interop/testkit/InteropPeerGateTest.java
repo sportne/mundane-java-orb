@@ -203,6 +203,7 @@ final class InteropPeerGateTest {
   void dryRunCommandsRemainAvailableForEveryApprovedPeer() throws Exception {
     for (String peer : REAL_PEERS) {
       assertSuccess(run(command("build-image", "--dry-run", peer), Map.of()));
+      assertSuccess(run(command("prepare-cache", "--dry-run", peer), Map.of()));
       assertSuccess(run(command("launch", "--dry-run", peer, "server"), Map.of()));
       assertSuccess(run(command("health", "--dry-run", peer), Map.of()));
       assertSuccess(run(command("report", "--dry-run", peer), Map.of()));
@@ -345,8 +346,9 @@ final class InteropPeerGateTest {
   }
 
   @Test
-  void launchWritesStructuredFailureReportWhenContainerCommandFails() throws Exception {
+  void launchWritesPrerequisiteFailureReportWhenPeerImageIsMissing() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("image-missing", 1, 0);
 
     CommandResult result =
         run(
@@ -354,7 +356,35 @@ final class InteropPeerGateTest {
             fixture.environmentWithCache(
                 Map.of(
                     "CONTAINER_RUNTIME",
-                    "/bin/false",
+                    runtime.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "basic-idl-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json"),
+            StandardCharsets.UTF_8);
+    String stderr =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/logs/basic-idl-server.stderr.log"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("G10-110 peer image validation failed"), report);
+    assertTrue(stderr.contains("peer image is missing; run build-image first"), stderr);
+  }
+
+  @Test
+  void launchWritesStructuredFailureReportWhenContainerCommandFails() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("run-fails", 0, 42);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
                     "INTEROP_JAVA_BASE_IMAGE",
                     DIGEST_PINNED_BASE_IMAGE)));
 
@@ -365,8 +395,45 @@ final class InteropPeerGateTest {
             StandardCharsets.UTF_8);
     assertTrue(report.contains("\"status\": \"failed\""), report);
     assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
-    assertTrue(report.contains("\"exitCode\": 1"), report);
-    assertTrue(report.contains("G6-830 container command failed"), report);
+    assertTrue(report.contains("\"exitCode\": 42"), report);
+    assertTrue(report.contains("G10-110 container command failed"), report);
+  }
+
+  @Test
+  void runScenarioUsesDetachedServerHealthClientAndCleanup() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtimeLog = temporaryDirectory.resolve("runtime.log");
+    Path runtime = fakeContainerRuntime("live-scenario", 0, 0);
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--require-live", "basic-idl", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "FAKE_RUNTIME_LOG",
+                    runtimeLog.toString(),
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertSuccess(result);
+    String runtimeCalls = Files.readString(runtimeLog, StandardCharsets.UTF_8);
+    assertTrue(runtimeCalls.contains("run -d --name mjo-fixture-peer-basic-idl-server-"));
+    assertTrue(runtimeCalls.contains("INTEROP_ROLE=health"));
+    assertTrue(runtimeCalls.contains("INTEROP_ROLE=client"));
+    assertTrue(runtimeCalls.contains("rm -f mjo-fixture-peer-basic-idl-server-"));
+    assertTrue(
+        Files.exists(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json")));
+    assertTrue(
+        Files.exists(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-health.json")));
+    assertTrue(
+        Files.exists(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-client.json")));
   }
 
   @Test
@@ -638,6 +705,35 @@ final class InteropPeerGateTest {
       }
     }
     throw new IllegalStateException("Required test executable not found on PATH: " + name);
+  }
+
+  private Path fakeContainerRuntime(String name, int inspectExitCode, int runExitCode)
+      throws IOException {
+    Path runtime = temporaryDirectory.resolve(name);
+    Files.writeString(
+        runtime,
+        """
+        #!/usr/bin/env bash
+        set -euo pipefail
+        if [[ -n "${FAKE_RUNTIME_LOG:-}" ]]; then
+          printf '%s\\n' "$*" >>"${FAKE_RUNTIME_LOG}"
+        fi
+        if [[ "${1:-}" == "image" && "${2:-}" == "inspect" ]]; then
+          exit __INSPECT_EXIT__
+        fi
+        if [[ "${1:-}" == "run" ]]; then
+          exit __RUN_EXIT__
+        fi
+        if [[ "${1:-}" == "rm" ]]; then
+          exit 0
+        fi
+        exit 64
+        """
+            .replace("__INSPECT_EXIT__", Integer.toString(inspectExitCode))
+            .replace("__RUN_EXIT__", Integer.toString(runExitCode)),
+        StandardCharsets.UTF_8);
+    runtime.toFile().setExecutable(true);
+    return runtime;
   }
 
   private static List<String> pathEntries(String path) {

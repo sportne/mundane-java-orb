@@ -28,6 +28,15 @@ G7-100 closes the local RMI-IIOP report evidence by validating that dry-run
 execution does not mutate outputs, missing prerequisites produce structured
 `rmi-iiop` reports, and summaries include captured RMI-IIOP report paths.
 
+G10-110 closes the black-box harness boundary used by `G10-120`. Real peer
+commands are allowed only after approval records, external cache checks,
+digest-pinned base-image inputs, prepared peer images, Docker/Podman, scenario
+IDL mounts, and report directories validate. The harness writes deterministic
+`infrastructure-failure` reports for missing prerequisites and failed peer
+commands, requires prepared images to expose real peer command scripts or
+explicit command environment overrides, and never commits peer source, peer
+binaries, or live outputs.
+
 ## Capture fields
 
 ```json
@@ -49,7 +58,7 @@ execution does not mutate outputs, missing prerequisites produce structured
   "reportPath": "build/interop/jacorb/reports/basic-idl-server.json",
   "startedAt": "2026-05-18T00:00:00Z",
   "endedAt": "2026-05-18T00:00:01Z",
-  "notes": "G6-830 container command completed"
+  "notes": "G10-110 container command completed"
 }
 ```
 
