@@ -6,9 +6,12 @@ import io.github.mundanej.mjo.giop.GiopMessageType;
 import io.github.mundanej.mjo.giop.GiopReply;
 import io.github.mundanej.mjo.giop.GiopReplyStatus;
 import io.github.mundanej.mjo.giop.GiopRequest;
+import io.github.mundanej.mjo.giop.GiopServiceContext;
 import io.github.mundanej.mjo.giop.GiopSystemExceptionBody;
 import io.github.mundanej.mjo.giop.GiopTargetAddress;
 import io.github.mundanej.mjo.giop.GiopUserExceptionBody;
+import io.github.mundanej.mjo.interceptors.PortableInterceptorRegistry;
+import io.github.mundanej.mjo.interceptors.ServerRequestContext;
 import io.github.mundanej.mjo.ior.IiopProfile;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.orb.LocalInvocationUserException;
@@ -27,10 +30,13 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
 
   private final LocalOrb orb;
   private final Map<String, Binding> bindings;
+  private final PortableInterceptorRegistry interceptors;
 
-  private IiopOrbServerHandler(LocalOrb orb, Map<String, Binding> bindings) {
+  private IiopOrbServerHandler(
+      LocalOrb orb, Map<String, Binding> bindings, PortableInterceptorRegistry interceptors) {
     this.orb = Objects.requireNonNull(orb, "orb");
     this.bindings = Map.copyOf(Objects.requireNonNull(bindings, "bindings"));
+    this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
   }
 
   /** Creates a builder for an ORB-backed IIOP request handler. */
@@ -41,43 +47,99 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
   @Override
   public GiopReply handle(GiopRequest request) {
     Objects.requireNonNull(request, "request");
+    ServerRequestContext context = null;
     try {
-      Binding binding = bindingFor(objectKey(request.targetAddress()));
+      byte[] objectKey = objectKey(request.targetAddress());
+      context =
+          new ServerRequestContext(
+              request.requestId(), request.operation(), objectKey, request.serviceContexts());
+      interceptors.receiveServerRequestServiceContexts(context);
+      Binding binding = bindingFor(objectKey);
       IiopOperationBinding operation = binding.operation(request.operation());
-      return invoke(request, binding, operation);
+      interceptors.receiveServerRequest(context);
+      return invoke(request, context, binding, operation);
     } catch (SystemException exception) {
-      return systemExceptionReply(request, exception);
-    } catch (RuntimeException exception) {
+      ExceptionReply exceptionReply = exceptionReply(context, exception);
       return systemExceptionReply(
-          request,
+          request, exceptionReply.exception(), exceptionReply.serviceContexts());
+    } catch (RuntimeException exception) {
+      SystemException systemException =
           new org.omg.CORBA.UNKNOWN(
-              exception.getMessage(), exception, 0, CompletionStatus.COMPLETED_MAYBE));
+              exception.getMessage(), exception, 0, CompletionStatus.COMPLETED_MAYBE);
+      ExceptionReply exceptionReply = exceptionReply(context, systemException);
+      return systemExceptionReply(
+          request, exceptionReply.exception(), exceptionReply.serviceContexts());
     }
   }
 
-  private GiopReply invoke(GiopRequest request, Binding binding, IiopOperationBinding operation) {
+  private ExceptionReply exceptionReply(ServerRequestContext context, SystemException exception) {
+    if (context == null) {
+      return new ExceptionReply(exception, List.of());
+    }
+    context.replyStatus(GiopReplyStatus.SYSTEM_EXCEPTION);
+    try {
+      interceptors.sendServerException(context);
+      return new ExceptionReply(exception, context.replyServiceContexts());
+    } catch (RuntimeException interceptorFailure) {
+      SystemException systemException =
+          new org.omg.CORBA.UNKNOWN(
+              interceptorFailure.getMessage(),
+              interceptorFailure,
+              0,
+              CompletionStatus.COMPLETED_MAYBE);
+      return new ExceptionReply(systemException, List.of());
+    }
+  }
+
+  private GiopReply invoke(
+      GiopRequest request,
+      ServerRequestContext context,
+      Binding binding,
+      IiopOperationBinding operation) {
     try {
       List<Object> arguments =
           operation.codec().decodeArguments(operation.operation(), request.body());
       Object result = orb.invoke(binding.reference(), operation.operation(), arguments);
+      byte[] replyBody = operation.codec().encodeReturnValue(operation.operation(), result);
+      context.replyStatus(GiopReplyStatus.NO_EXCEPTION);
+      try {
+        interceptors.sendServerReply(context);
+      } catch (RuntimeException interceptorFailure) {
+        return interceptorFailureReply(request, interceptorFailure);
+      }
       return new GiopReply(
           replyHeader(request),
           request.requestId(),
           GiopReplyStatus.NO_EXCEPTION,
-          request.serviceContexts(),
-          operation.codec().encodeReturnValue(operation.operation(), result));
+          context.replyServiceContexts(),
+          replyBody);
     } catch (LocalInvocationUserException exception) {
       GiopUserExceptionBody body =
           new GiopUserExceptionBody(
               exception.raisedType().repositoryId().orElseThrow().value(),
               operation.codec().encodeUserException(exception));
+      byte[] replyBody = body.toBytes(byteOrder(request));
+      context.replyStatus(GiopReplyStatus.USER_EXCEPTION);
+      try {
+        interceptors.sendServerException(context);
+      } catch (RuntimeException interceptorFailure) {
+        return interceptorFailureReply(request, interceptorFailure);
+      }
       return new GiopReply(
           replyHeader(request),
           request.requestId(),
           GiopReplyStatus.USER_EXCEPTION,
-          request.serviceContexts(),
-          body.toBytes(byteOrder(request)));
+          context.replyServiceContexts(),
+          replyBody);
     }
+  }
+
+  private static GiopReply interceptorFailureReply(GiopRequest request, RuntimeException failure) {
+    return systemExceptionReply(
+        request,
+        new org.omg.CORBA.UNKNOWN(
+            failure.getMessage(), failure, 0, CompletionStatus.COMPLETED_MAYBE),
+        List.of());
   }
 
   private static byte[] objectKey(GiopTargetAddress targetAddress) {
@@ -133,7 +195,8 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
     return binding;
   }
 
-  private static GiopReply systemExceptionReply(GiopRequest request, SystemException exception) {
+  private static GiopReply systemExceptionReply(
+      GiopRequest request, SystemException exception, List<GiopServiceContext> serviceContexts) {
     GiopSystemExceptionBody body =
         new GiopSystemExceptionBody(
             "IDL:omg.org/CORBA/" + exception.getClass().getSimpleName() + ":1.0",
@@ -143,7 +206,7 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
         replyHeader(request),
         request.requestId(),
         GiopReplyStatus.SYSTEM_EXCEPTION,
-        request.serviceContexts(),
+        serviceContexts,
         body.toBytes(byteOrder(request)));
   }
 
@@ -175,6 +238,7 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
 
     private final LocalOrb orb;
     private final Map<String, Binding> bindings = new LinkedHashMap<>();
+    private PortableInterceptorRegistry interceptors = PortableInterceptorRegistry.empty();
 
     private Builder(LocalOrb orb) {
       this.orb = Objects.requireNonNull(orb, "orb");
@@ -193,9 +257,15 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
       return this;
     }
 
+    /** Configures Portable Interceptors for this server handler. */
+    public Builder interceptors(PortableInterceptorRegistry interceptors) {
+      this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
+      return this;
+    }
+
     /** Builds the immutable handler. */
     public IiopOrbServerHandler build() {
-      return new IiopOrbServerHandler(orb, bindings);
+      return new IiopOrbServerHandler(orb, bindings, interceptors);
     }
   }
 
@@ -228,4 +298,7 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
       return Map.copyOf(result);
     }
   }
+
+  private record ExceptionReply(
+      SystemException exception, List<GiopServiceContext> serviceContexts) {}
 }

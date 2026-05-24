@@ -1,7 +1,7 @@
 # G10-090 RMI-IIOP Compatibility Closure
 
 Task ID: G10-090-RMI-IIOP-COMPATIBILITY-CLOSURE
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-RMI-001, REQ-IDLJ-002, REQ-IIOP-001, REQ-NATIVE-002, REQ-INTEROP-001, REQ-INTEROP-003, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0007, ADR-0008, ADR-0010, ADR-0013
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Expand RMI-IIOP beyond the current
 Tests to add/update: RMI eligibility, mapping, repository ID, generated IDL/Java, CDR, GIOP/IIOP loopback, hostile-input, Native Image smoke, and interop report tests.
 Documentation to update: RMI-IIOP architecture, legacy Java/CORBA and IDL-to-Java matrices, interop matrix, Native Image matrix, roadmap index, README ready-task status, this task, and G10-100 status when complete.
 Commands to run: ./gradlew :modules:corba-rmi-iiop:test :modules:corba-idl-java-mapping:test :modules:corba-codegen:test :modules:corba-cdr:test :modules:corba-giop:test :modules:corba-iiop:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: This task remains blocked until G10-020 and G10-040 are complete; RMI-IIOP peer scenarios are fully represented in local generated binding, CDR, and wire behavior without unapproved serialization, scanning, or reflection metadata.
+Acceptance criteria: RMI-IIOP peer scenarios are fully represented in local generated binding, CDR, and wire behavior without unapproved serialization, scanning, or reflection metadata.
 Rollback notes: Revert RMI-IIOP, mapping/codegen, wire, test, and documentation changes together.

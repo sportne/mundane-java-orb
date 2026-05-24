@@ -8,3 +8,13 @@ plugins {
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
 description = 'Portable interceptor APIs and runtime integration.'
+
+dependencies {
+    // Interceptor request information and service-context propagation use GIOP values directly.
+    api project(':modules:corba-giop')
+
+    // Interceptor diagnostics reuse the shared diagnostic code value type.
+    api project(':modules:corba-common')
+
+    testImplementation project(':modules:corba-testkit')
+}

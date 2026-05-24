@@ -156,7 +156,30 @@ exception replies by repository ID, and system exception reply bodies. Persisten
 POA references remain deterministically deferred until durable POA/ORB identity
 and restart rules are approved.
 
-This path does not add Naming Service behavior, Portable Interceptors, CORBA
-Security Service policy, RMI-IIOP value semantics, live peer harness execution,
-reflection dispatch, dynamic proxies, runtime bytecode generation, Java
-serialization marshaling, or generated production artifacts.
+This path does not add CORBA Security Service policy, RMI-IIOP value semantics,
+live peer harness execution, reflection dispatch, dynamic proxies, runtime
+bytecode generation, Java serialization marshaling, or generated production
+artifacts.
+
+## Portable Interceptor request flow
+
+G10-080 adds a bounded Portable Interceptor request-flow pipeline around the
+implemented ORB/IIOP bridge. `corba-interceptors` owns the interceptor
+registration model, request contexts, deterministic callback ordering, service
+context mutation rules, and stable diagnostics. `corba-iiop` calls the registry
+at the existing client and server request/reply boundaries.
+
+Client `sendRequest` callbacks run in registration order before the GIOP request
+is encoded. Client `receiveReply` and `receiveException` callbacks run in
+reverse registration order after the reply is decoded or a deterministic local
+failure is observed. Server `receiveRequestServiceContexts` and
+`receiveRequest` callbacks run in registration order before local ORB dispatch.
+Server `sendReply` and `sendException` callbacks run in reverse registration
+order before the GIOP reply is emitted.
+
+The pipeline is intentionally explicit and closed-world friendly. Interceptors
+are caller-supplied objects, not discovered by classpath scanning or service
+loading. They can add or replace GIOP service contexts through bounded value
+objects, but they cannot install Security Service policy, change object adapter
+lookup semantics, invoke reflection dispatch, generate bytecode, or require
+Java serialization metadata.

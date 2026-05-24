@@ -143,3 +143,14 @@ object keys, and system-exception replies. No reflection metadata, dynamic proxy
 metadata, Java serialization metadata, service-loader discovery, runtime
 bytecode generation, process execution, internal JDK APIs, or `Unsafe` are
 introduced.
+
+## G10-080 Portable Interceptor evidence
+
+G10-080 keeps Portable Interceptor request-flow behavior source-level and
+closed-world friendly. Interceptors are caller-supplied objects registered
+through `PortableInterceptorRegistry`; no classpath scanning, service-loader
+discovery, reflection dispatch, dynamic proxies, runtime bytecode generation,
+Java serialization metadata, process execution, internal JDK APIs, or `Unsafe`
+are introduced. The local evidence covers deterministic callback ordering,
+service-context propagation over the ORB/IIOP loopback path, duplicate
+registration diagnostics, and callback failure reporting.

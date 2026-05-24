@@ -98,6 +98,8 @@ This repository is in **pre-1.0 interoperability completion state**:
 - loopback IIOP ORB/POA dispatch for activated local servants has started under
   approved roadmap tasks, including deterministic target-address routing and
   normal/user/system reply mapping;
+- Portable Interceptor request-flow callbacks and service-context propagation
+  over the loopback ORB/IIOP path have started under approved roadmap tasks;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -171,7 +173,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g10-080-portable-interceptors.md` is the next
+`docs/roadmap/tasks/g10-090-rmi-iiop-compatibility-closure.md` is the next
 non-human-gated roadmap task ready for implementation.
 
 Remaining human gates, including optional CORBA service approval, stay tracked

@@ -19,6 +19,9 @@ dependencies {
     // Network object references are represented as standard IOR/IIOP profile values.
     api project(':modules:corba-ior')
 
+    // G10 Portable Interceptors provide optional request-flow hooks and service contexts.
+    api project(':modules:corba-interceptors')
+
     // IIOP diagnostics reuse the shared diagnostic code value type.
     api project(':modules:corba-common')
 

@@ -139,6 +139,12 @@ harness, and full execution tasks complete.
 - optional services only after each service gate defines its scenario, report
   fields, cache requirements, and live execution prerequisites.
 
+G10-080 records deterministic local Portable Interceptor evidence for the
+implemented ORB/IIOP loopback path: client/server request-flow ordering,
+service-context propagation, and callback failure diagnostics. Live peer
+Portable Interceptor pass/fail evidence remains blocked until the G10 peer
+harness and full execution tasks complete.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time

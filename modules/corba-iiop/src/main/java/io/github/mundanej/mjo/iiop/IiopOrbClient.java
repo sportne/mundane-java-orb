@@ -7,6 +7,8 @@ import io.github.mundanej.mjo.giop.GiopReplyStatus;
 import io.github.mundanej.mjo.giop.GiopRequest;
 import io.github.mundanej.mjo.giop.GiopSystemExceptionBody;
 import io.github.mundanej.mjo.giop.GiopUserExceptionBody;
+import io.github.mundanej.mjo.interceptors.ClientRequestContext;
+import io.github.mundanej.mjo.interceptors.PortableInterceptorRegistry;
 import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import java.util.List;
 import java.util.Objects;
@@ -20,17 +22,29 @@ public final class IiopOrbClient implements AutoCloseable {
 
   private final IiopObjectReference reference;
   private final IiopClient client;
+  private final PortableInterceptorRegistry interceptors;
   private final AtomicLong nextRequestId = new AtomicLong(1);
 
-  private IiopOrbClient(IiopObjectReference reference, IiopClient client) {
+  private IiopOrbClient(
+      IiopObjectReference reference, IiopClient client, PortableInterceptorRegistry interceptors) {
     this.reference = Objects.requireNonNull(reference, "reference");
     this.client = Objects.requireNonNull(client, "client");
+    this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
   }
 
   /** Connects to the endpoint carried by the supplied IIOP object reference. */
   public static IiopOrbClient connect(IiopObjectReference reference, IiopOptions options) {
+    return connect(reference, options, PortableInterceptorRegistry.empty());
+  }
+
+  /** Connects with an explicit Portable Interceptor registry. */
+  public static IiopOrbClient connect(
+      IiopObjectReference reference,
+      IiopOptions options,
+      PortableInterceptorRegistry interceptors) {
     Objects.requireNonNull(reference, "reference");
-    return new IiopOrbClient(reference, IiopClient.connect(reference.endpoint(), options));
+    return new IiopOrbClient(
+        reference, IiopClient.connect(reference.endpoint(), options), interceptors);
   }
 
   /** Invokes one operation through the underlying IIOP client. */
@@ -39,17 +53,29 @@ public final class IiopOrbClient implements AutoCloseable {
     Objects.requireNonNull(operation, "operation");
     Objects.requireNonNull(codec, "codec");
     Objects.requireNonNull(arguments, "arguments");
-    GiopRequest request =
-        new GiopRequest(
-            GiopHeader.forType(GiopMessageType.REQUEST),
-            nextRequestId.getAndIncrement(),
-            3,
-            reference.objectKey(),
-            operation.name(),
-            List.of(),
-            codec.encodeArguments(operation, arguments));
-    GiopReply reply = client.invoke(request);
-    return decodeReply(operation, codec, reply);
+    long requestId = nextRequestId.getAndIncrement();
+    ClientRequestContext context = new ClientRequestContext(requestId, operation.name(), List.of());
+    Object result;
+    try {
+      interceptors.sendClientRequest(context);
+      GiopRequest request =
+          new GiopRequest(
+              GiopHeader.forType(GiopMessageType.REQUEST),
+              requestId,
+              3,
+              reference.objectKey(),
+              operation.name(),
+              context.requestServiceContexts(),
+              codec.encodeArguments(operation, arguments));
+      GiopReply reply = client.invoke(request);
+      context.completeReply(reply.replyStatus(), reply.serviceContexts());
+      result = decodeReply(operation, codec, reply);
+    } catch (RuntimeException exception) {
+      interceptors.receiveClientException(context);
+      throw exception;
+    }
+    interceptors.receiveClientReply(context);
+    return result;
   }
 
   @Override
