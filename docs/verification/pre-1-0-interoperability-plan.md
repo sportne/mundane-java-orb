@@ -125,8 +125,10 @@ readiness deterministic. G10-120-060 runs the Java peer `rmi-iiop` direction
 matrices and now produces structured `our-bug` ownership evidence instead of
 generic infrastructure failures for the remaining Java RMI-IIOP code-set and
 `wstring` compatibility gaps. Those project-owned defects must be fixed in
-G10-120-080 before final G10-120 evidence can pass. G10-120-090 records final
-live matrix evidence.
+G10-120-080 before final G10-120 evidence can pass. G10-120-070 adds compact
+status, classification, scenario, and failure summaries so final clean-room
+evidence can be reviewed without committing raw live outputs. G10-120-090
+records final live matrix evidence.
 
 ## Acceptance
 

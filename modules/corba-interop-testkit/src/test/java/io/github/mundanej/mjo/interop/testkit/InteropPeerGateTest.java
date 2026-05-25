@@ -695,6 +695,12 @@ final class InteropPeerGateTest {
             StandardCharsets.UTF_8);
     assertTrue(summary.contains("\"peer\": \"fixture-peer\""), summary);
     assertTrue(summary.contains("\"reportCount\": 3"), summary);
+    assertTrue(summary.contains("\"classificationCounts\""), summary);
+    assertTrue(summary.contains("\"expected-deferral\": 3"), summary);
+    assertTrue(summary.contains("\"statusCounts\""), summary);
+    assertTrue(summary.contains("\"passed\": 3"), summary);
+    assertTrue(summary.contains("\"scenarioCounts\""), summary);
+    assertTrue(summary.contains("\"failures\": []"), summary);
     assertTrue(summary.contains("basic-idl-server.json"), summary);
     assertTrue(summary.contains("rmi-iiop-server.json"), summary);
     assertTrue(summary.contains("report-report.json"), summary);
@@ -875,6 +881,47 @@ final class InteropPeerGateTest {
             StandardCharsets.UTF_8);
     assertTrue(report.contains("\"classification\": \"our-bug\""), report);
     assertTrue(report.contains("G10-120-080 project-owned defect closure"), report);
+  }
+
+  @Test
+  void rmiIiopClassifierDoesNotTreatGenericBadOperationAsProjectOwned() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path clientCommand = temporaryDirectory.resolve("generic-bad-operation.sh");
+    Files.writeString(
+        clientCommand,
+        """
+        #!/usr/bin/env bash
+        printf 'org.omg.CORBA.BAD_OPERATION: unknown operation\\n' >&2
+        exit 1
+        """,
+        StandardCharsets.UTF_8);
+    clientCommand.toFile().setExecutable(true);
+    Path runtime = fakeContainerRuntime("rmi-generic-bad-operation", 0, 0);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "rmi-iiop", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE,
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "MJO_JVM_CLIENT_COMMAND",
+                    clientCommand.toString())));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "rmi-iiop-fixture-peer-jvm-client-peer-server-to-local-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
   }
 
   @Test

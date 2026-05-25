@@ -1,7 +1,7 @@
 # G10-120-070 Live Matrix Reporting And Classification
 
 Task ID: G10-120-070-LIVE-MATRIX-REPORTING-AND-CLASSIFICATION
-Status: ready-for-implementation
+Status: complete
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-008, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0013
@@ -14,4 +14,5 @@ Tests to add/update: Interop testkit coverage for report aggregation completenes
 Documentation to update: Interop matrix, reference behavior capture, pre-1.0 interop plan, roadmap index, README, this task, and G10-120-080 status when complete.
 Commands to run: ./gradlew :modules:corba-interop-testkit:test; ./interop/bin/interop-peer validate-manifests; INTEROP_ARTIFACT_CACHE=/mnt/d/projects/mundane-java-orb/interop/work/artifact-cache ./interop/bin/interop-peer validate-gates --require-cache; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Full matrix execution produces a complete structured summary for all peers, scenarios, and directions, with no raw live outputs committed.
+Completion evidence: Completed on 2026-05-25. Structured peer summaries now include deterministic status, classification, and scenario counts plus compact failure entries for clean-room evidence review. The RMI-IIOP failure classifier remains limited to known Java RMI-IIOP wire signatures and no longer treats a generic `BAD_OPERATION` as project-owned unless it is tied to the Java peer Calculator verification path. Report summaries were regenerated locally from ignored live outputs for ACE/TAO, JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB; raw logs, IORs, Docker layers, peer artifacts, and native binaries remain uncommitted.
 Rollback notes: Revert report aggregation/classification changes and roadmap status updates.
