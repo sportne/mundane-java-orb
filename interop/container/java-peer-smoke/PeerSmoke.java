@@ -113,7 +113,9 @@ public final class PeerSmoke {
       putDefault(properties, "jacorb.ior_proxy_port", "2809");
       putDefault(properties, "com.sun.CORBA.ORBServerHost", "0.0.0.0");
       putDefault(properties, "com.sun.CORBA.ORBServerPort", "2809");
-      putDefault(properties, "com.sun.CORBA.transport.ORBListenSocket", "IIOP_CLEAR_TEXT:2809");
+      if (!"jboss-openjdk-orb".equals(peer())) {
+        putDefault(properties, "com.sun.CORBA.transport.ORBListenSocket", "IIOP_CLEAR_TEXT:2809");
+      }
       args =
           new String[] {
             "-ORBServerHost", "0.0.0.0",
@@ -141,6 +143,10 @@ public final class PeerSmoke {
 
   private static String scenario() {
     return System.getenv().getOrDefault("INTEROP_SCENARIO", "manual");
+  }
+
+  private static String peer() {
+    return System.getenv().getOrDefault("INTEROP_PEER", "manual");
   }
 
   private static void verifyCalculator(ORB orb, org.omg.CORBA.Object ref) {

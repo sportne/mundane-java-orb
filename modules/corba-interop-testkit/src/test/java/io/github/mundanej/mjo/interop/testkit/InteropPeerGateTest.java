@@ -77,6 +77,7 @@ final class InteropPeerGateTest {
     assertTrue(smoke.contains("jacorb.ior_proxy_host"), smoke);
     assertTrue(smoke.contains("com.sun.CORBA.ORBServerHost"), smoke);
     assertTrue(smoke.contains("com.sun.CORBA.transport.ORBListenSocket"), smoke);
+    assertTrue(smoke.contains("!\"jboss-openjdk-orb\".equals(peer())"), smoke);
   }
 
   @Test
