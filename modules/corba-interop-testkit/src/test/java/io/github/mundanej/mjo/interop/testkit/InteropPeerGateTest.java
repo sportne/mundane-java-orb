@@ -54,6 +54,29 @@ final class InteropPeerGateTest {
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
         "RMI-IIOP IDL fixture must be present");
+    for (String scenario : List.of("object-reference", "naming", "giop", "iiop")) {
+      assertTrue(
+          Files.isRegularFile(repoRoot().resolve("interop/idl/" + scenario + ".idl")),
+          scenario + " IDL fixture must be present for live matrix mounting");
+    }
+  }
+
+  @Test
+  void javaPeerSmokeUsesStableEndpointAndCalculatorScenarioBehavior() throws Exception {
+    String smoke =
+        Files.readString(
+            repoRoot().resolve("interop/container/java-peer-smoke/PeerSmoke.java"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(smoke.contains("CALCULATOR_REPOSITORY_ID"), smoke);
+    assertTrue(smoke.contains("CalculatorServant"), smoke);
+    assertTrue(smoke.contains("request.operation()"), smoke);
+    assertTrue(smoke.contains("insert_wstring(\"Calculator \" + value)"), smoke);
+    assertTrue(smoke.contains("PROBLEM_REPOSITORY_ID"), smoke);
+    assertTrue(smoke.contains("OAPort"), smoke);
+    assertTrue(smoke.contains("jacorb.ior_proxy_host"), smoke);
+    assertTrue(smoke.contains("com.sun.CORBA.ORBServerHost"), smoke);
+    assertTrue(smoke.contains("com.sun.CORBA.transport.ORBListenSocket"), smoke);
   }
 
   @Test

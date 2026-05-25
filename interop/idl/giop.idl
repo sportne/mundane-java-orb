@@ -1,0 +1,6 @@
+module interop {
+  module giop {
+    interface Smoke {
+    };
+  };
+};

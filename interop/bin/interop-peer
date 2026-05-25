@@ -895,6 +895,33 @@ start_server_role() {
   if [[ "${exit_code}" -eq 0 ]]; then
     STARTED_SERVER_CONTAINER="${container_name}"
     STARTED_SERVER_RUNTIME="${runtime}"
+    local ior_attempts ior_delay ior_attempt
+    ior_attempts="${INTEROP_PEER_SERVER_IOR_ATTEMPTS:-30}"
+    ior_delay="${INTEROP_PEER_SERVER_IOR_DELAY_SECONDS:-1}"
+    for ((ior_attempt = 1; ior_attempt <= ior_attempts; ior_attempt++)); do
+      if [[ -s "${server_ior}" ]]; then
+        break
+      fi
+      if "${runtime}" exec "${container_name}" test -s "/interop/iors/${scenario}-server.ior" \
+          >/dev/null 2>&1; then
+        "${runtime}" exec "${container_name}" cat "/interop/iors/${scenario}-server.ior" \
+          >"${server_ior}" 2>/dev/null || true
+        if [[ -s "${server_ior}" ]]; then
+          break
+        fi
+      fi
+      sleep "${ior_delay}"
+    done
+    if [[ ! -s "${server_ior}" ]]; then
+      printf 'peer server did not write a non-empty IOR before health checks: %s\n' \
+        "${server_ior}" >"${stderr_abs}"
+      write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+        "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+        "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+        "${started}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "G10-120 peer server IOR was not ready before health checks"
+      return 1
+    fi
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
       "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
       "passed" "expected-deferral" "0" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
