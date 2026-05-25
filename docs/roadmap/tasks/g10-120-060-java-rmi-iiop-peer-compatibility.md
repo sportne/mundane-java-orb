@@ -1,7 +1,7 @@
 # G10-120-060 Java RMI-IIOP Peer Compatibility
 
 Task ID: G10-120-060-JAVA-RMI-IIOP-PEER-COMPATIBILITY
-Status: ready-for-implementation
+Status: complete
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-008, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0013
@@ -14,4 +14,5 @@ Tests to add/update: Interop testkit coverage for Java RMI-IIOP peer command beh
 Documentation to update: Interop matrix, reference behavior capture, pre-1.0 interop plan, roadmap index, README, this task, and G10-120-070 status when complete.
 Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-native-image:test; ./interop/bin/interop-peer validate-manifests; INTEROP_ARTIFACT_CACHE=/mnt/d/projects/mundane-java-orb/interop/work/artifact-cache ./interop/bin/interop-peer validate-gates --require-cache; ./gradlew validateDesignControlPack qualityGate; ./interop/bin/interop-peer run-direction-matrix --require-live rmi-iiop jacorb; ./interop/bin/interop-peer run-direction-matrix --require-live rmi-iiop glassfish-orb; ./interop/bin/interop-peer run-direction-matrix --require-live rmi-iiop jboss-openjdk-orb; git diff --check
 Acceptance criteria: Java peer `rmi-iiop` direction matrix lanes pass or produce structured ownership evidence with no unresolved infrastructure failures. Project-owned defects are not classified away and must be closed by G10-120-080.
+Completion evidence: Completed on 2026-05-25. JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB `rmi-iiop` direction matrices now run end to end and produce structured ownership evidence instead of unresolved infrastructure failures. The live runs identify project-owned RMI-IIOP wire gaps for Java peer compatibility: our clients need Java ORB code-set/wstring reply handling when calling Java peer servers, and our local server IOR/reply path needs code-set metadata sufficient for Java peer clients to invoke the `wstring` Calculator operation. These `our-bug` classifications intentionally block final G10-120 completion until G10-120-080 closes the defects.
 Rollback notes: Revert Java RMI-IIOP peer compatibility glue, related testkit coverage, and roadmap status updates.

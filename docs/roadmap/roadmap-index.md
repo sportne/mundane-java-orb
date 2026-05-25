@@ -141,7 +141,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g10-120-030-peer-scenario-command-closure.md` - complete
 - `tasks/g10-120-040-java-peer-matrix-bootstrap.md` - complete
 - `tasks/g10-120-050-jboss-openjdk-orb-live-readiness.md` - complete
-- `tasks/g10-120-060-java-rmi-iiop-peer-compatibility.md` - ready-for-implementation
-- `tasks/g10-120-070-live-matrix-reporting-and-classification.md` - blocked
+- `tasks/g10-120-060-java-rmi-iiop-peer-compatibility.md` - complete
+- `tasks/g10-120-070-live-matrix-reporting-and-classification.md` - ready-for-implementation
 - `tasks/g10-120-080-project-owned-interop-defect-closure.md` - blocked
 - `tasks/g10-120-090-final-pre-1-0-live-evidence.md` - blocked

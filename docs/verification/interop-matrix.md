@@ -206,8 +206,17 @@ scenario-aware and passed ACE/TAO `rmi-iiop` Calculator execution in both
 `run-scenario` and JVM/native direction-matrix form after rebuilding the
 approved ACE/TAO image and Native Image lane binaries. That live run also
 confirmed GIOP operation-body alignment and BOM-prefixed CDR `wstring`
-compatibility with TAO-generated stubs/skeletons. G10-120-040 records final
-live direction-matrix evidence.
+compatibility with TAO-generated stubs/skeletons. G10-120-040 completed the
+Java peer matrix bootstrap for ACE/TAO, JacORB, and GlassFish non-RMI smoke
+lanes. G10-120-050 fixed JBoss OpenJDK ORB `basic-idl` readiness by avoiding a
+duplicate Java ORB listener configuration. G10-120-060 runs Java peer
+`rmi-iiop` direction matrices and classifies the remaining Java RMI-IIOP
+failures as project-owned `our-bug` evidence: our clients need Java ORB
+code-set/wstring reply handling for Java peer servers, and our local server
+IOR/reply path needs code-set metadata sufficient for Java peer clients to
+invoke the `wstring` Calculator operation. Those defects block final evidence
+until G10-120-080 closes them. G10-120-090 records final live direction-matrix
+evidence.
 
 ## Optional service lanes
 

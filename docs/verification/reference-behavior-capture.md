@@ -92,9 +92,12 @@ G10-120 completion is split into child tasks so the remaining reference captures
 can be reviewed incrementally. Local JVM/native lane commands now pass the
 approved ACE/TAO `basic-idl` direction matrix. Scenario-aware command closure
 now also passes ACE/TAO `rmi-iiop` Calculator execution through TAO-generated
-C++ stubs/skeletons and the local JVM/native direction matrix. Remaining work
-is final live direction-matrix evidence across the approved non-optional peers
-and scenarios.
+C++ stubs/skeletons and the local JVM/native direction matrix. Java peer
+`rmi-iiop` direction-matrix failures are now captured as structured
+project-owned `our-bug` evidence rather than unresolved infrastructure
+failures. Final evidence remains blocked until those code-set and `wstring`
+compatibility defects are fixed and rerun across the approved non-optional
+peers and scenarios.
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,

@@ -1,7 +1,7 @@
 # G10-120-070 Live Matrix Reporting And Classification
 
 Task ID: G10-120-070-LIVE-MATRIX-REPORTING-AND-CLASSIFICATION
-Status: blocked
+Status: ready-for-implementation
 Gate: G10 pre-1.0 interoperability
 Requirement IDs: REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-008, REQ-INTEROP-009
 ADR IDs: ADR-0003, ADR-0005, ADR-0006, ADR-0007, ADR-0013

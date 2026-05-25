@@ -119,7 +119,14 @@ review and commit boundary. G10-120-020 added local JVM/native client and server
 lane commands and passed the approved ACE/TAO `basic-idl` direction matrix.
 G10-120-030 closed scenario-aware peer commands including the ACE/TAO
 `rmi-iiop` Calculator lane and passed the approved ACE/TAO `rmi-iiop`
-direction matrix. G10-120-040 records final live matrix evidence.
+direction matrix. G10-120-040 completed Java peer bootstrap for the non-RMI
+smoke lanes, and G10-120-050 made JBoss OpenJDK ORB `basic-idl` server
+readiness deterministic. G10-120-060 runs the Java peer `rmi-iiop` direction
+matrices and now produces structured `our-bug` ownership evidence instead of
+generic infrastructure failures for the remaining Java RMI-IIOP code-set and
+`wstring` compatibility gaps. Those project-owned defects must be fixed in
+G10-120-080 before final G10-120 evidence can pass. G10-120-090 records final
+live matrix evidence.
 
 ## Acceptance
 

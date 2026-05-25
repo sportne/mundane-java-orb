@@ -836,6 +836,48 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void rmiIiopLocalLaneClassifiesKnownWireFailuresAsProjectOwned() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path clientCommand = temporaryDirectory.resolve("rmi-client-fails.sh");
+    Files.writeString(
+        clientCommand,
+        """
+        #!/usr/bin/env bash
+        printf 'io.github.mundanej.mjo.rmi.iiop.RmiIiopWireException: Malformed RMI-IIOP reply body\\n' >&2
+        exit 1
+        """,
+        StandardCharsets.UTF_8);
+    clientCommand.toFile().setExecutable(true);
+    Path runtime = fakeContainerRuntime("rmi-wire-classification", 0, 0);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "rmi-iiop", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE,
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "MJO_JVM_CLIENT_COMMAND",
+                    clientCommand.toString())));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "rmi-iiop-fixture-peer-jvm-client-peer-server-to-local-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"our-bug\""), report);
+    assertTrue(report.contains("G10-120-080 project-owned defect closure"), report);
+  }
+
+  @Test
   void directionMatrixRequiresLocalServerIorBeforePeerClientExecution() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Path runtime = fakeContainerRuntime("matrix-ior-readiness", 0, 0);

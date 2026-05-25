@@ -580,6 +580,19 @@ print(report_file)
 PY
 }
 
+classify_failed_command() {
+  local scenario="$1"
+  local stderr_abs="$2"
+  local default_message="$3"
+  if [[ "${scenario}" == "rmi-iiop" ]] \
+      && [[ -f "${stderr_abs}" ]] \
+      && grep -Eq 'RmiIiopWireException|CdrException|wchar Code Set support not specified|BAD_OPERATION' "${stderr_abs}"; then
+    printf 'our-bug\tG10-120 Java RMI-IIOP compatibility failure requires G10-120-080 project-owned defect closure\n'
+    return
+  fi
+  printf 'infrastructure-failure\t%s\n' "${default_message}"
+}
+
 run_container_role() {
   local peer="$1"
   local role="$2"
@@ -751,8 +764,10 @@ run_container_role() {
     notes="G10-120 peer command reported an unsupported scenario"
   else
     status="failed"
-    classification="infrastructure-failure"
-    notes="G10-110 container command failed"
+    local classified
+    classified="$(classify_failed_command "${scenario}" "${stderr_abs}" "G10-110 container command failed")"
+    classification="${classified%%$'\t'*}"
+    notes="${classified#*$'\t'}"
   fi
   write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
     "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
@@ -1206,8 +1221,15 @@ local_lane_report() {
     message="G10-120 ${runtime} ${role} lane command completed for ${direction}"
   else
     status="failed"
-    classification="infrastructure-failure"
-    message="G10-120 ${runtime} ${role} lane command exited with code ${exit_code}"
+    local classified
+    classified="$(
+      classify_failed_command \
+        "${scenario}" \
+        "${stderr_abs}" \
+        "G10-120 ${runtime} ${role} lane command exited with code ${exit_code}"
+    )"
+    classification="${classified%%$'\t'*}"
+    message="${classified#*$'\t'}"
   fi
   if [[ "${role}" == "client" ]]; then
     client_runtime="${our_runtime}"
