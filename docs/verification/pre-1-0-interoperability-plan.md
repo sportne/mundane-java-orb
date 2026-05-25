@@ -115,6 +115,12 @@ scenario-capable peer commands, or approved cache inputs are missing. Completing
 `G10-120` still requires real local client/server commands that can participate
 in the peer matrix and complete approved live scenario execution.
 
+G10-120 is split into child tasks so each remaining blocker has a separate
+review and commit boundary. G10-120-020 adds local JVM/native client and server
+lane commands, G10-120-030 closes scenario-aware peer commands including the
+ACE/TAO `rmi-iiop` Calculator lane, and G10-120-040 records final live matrix
+evidence.
+
 ## Acceptance
 
 `G10-120` passes only when each non-optional scenario either passes or has a

@@ -198,6 +198,11 @@ server lanes before selected peer clients. Full pre-1.0 live interop remains
 blocked until the required local peer-facing commands and complete approved
 live scenario execution are available.
 
+The remaining G10-120 work is tracked as child tasks. G10-120-020 adds the
+required local JVM/native direction commands, G10-120-030 makes peer commands
+scenario-aware and includes ACE/TAO `rmi-iiop` Calculator execution, and
+G10-120-040 records final live direction-matrix evidence.
+
 ## Optional service lanes
 
 G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time
