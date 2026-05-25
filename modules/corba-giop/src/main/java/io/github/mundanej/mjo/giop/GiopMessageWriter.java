@@ -73,6 +73,7 @@ public final class GiopMessageWriter {
     writeTargetAddress(writer, request.targetAddress());
     writer.writeString(request.operation());
     writeServiceContexts(writer, request.serviceContexts());
+    alignOperationBody(writer, request.body());
     writer.writeOctets(request.body());
     return writer.toByteArray();
   }
@@ -82,6 +83,7 @@ public final class GiopMessageWriter {
     writer.writeUnsignedLong(reply.requestId());
     writer.writeUnsignedLong(reply.replyStatus().id());
     writeServiceContexts(writer, reply.serviceContexts());
+    alignOperationBody(writer, reply.body());
     writer.writeOctets(reply.body());
     return writer.toByteArray();
   }
@@ -146,6 +148,20 @@ public final class GiopMessageWriter {
     return new CdrWriter(
         header.littleEndian() ? CdrByteOrder.LITTLE_ENDIAN : CdrByteOrder.BIG_ENDIAN,
         limits.bodyOctets());
+  }
+
+  private static void alignOperationBody(CdrWriter writer, byte[] body) {
+    if (body.length > 0) {
+      int padding = paddingForMessageOffset(writer.position(), 8);
+      if (padding > 0) {
+        writer.writeOctets(new byte[padding]);
+      }
+    }
+  }
+
+  private static int paddingForMessageOffset(int bodyPosition, int alignment) {
+    int remainder = (HEADER_LENGTH + bodyPosition) % alignment;
+    return remainder == 0 ? 0 : alignment - remainder;
   }
 
   private static void writeHeader(GiopHeader header, byte[] output) {

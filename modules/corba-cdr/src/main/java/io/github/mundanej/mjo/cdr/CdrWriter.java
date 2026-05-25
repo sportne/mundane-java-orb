@@ -187,17 +187,17 @@ public final class CdrWriter {
     return this;
   }
 
-  /** Writes a bounded CDR wide string as UTF-16 code units plus a null terminator. */
+  /** Writes a bounded CDR wide string as a BOM-prefixed UTF-16 octet sequence. */
   public CdrWriter writeWString(String value) {
     Objects.requireNonNull(value, "value");
     validateUtf16(value);
-    long codeUnits = (long) value.length() + 1L;
-    requireBoundedLength(Math.multiplyExact(codeUnits, 2L), limits.stringOctets());
-    writeUnsignedLong(codeUnits);
+    long octets = Math.addExact(2L, Math.multiplyExact((long) value.length(), 2L));
+    requireBoundedLength(octets, limits.stringOctets());
+    writeUnsignedLong(octets);
+    writeUnsignedShort(0xFEFF);
     for (int index = 0; index < value.length(); index++) {
       writeUnsignedShort(value.charAt(index));
     }
-    writeUnsignedShort(0);
     return this;
   }
 

@@ -201,9 +201,13 @@ live scenario execution are available.
 The remaining G10-120 work is tracked as child tasks. G10-120-020 added local
 JVM/native direction commands and passed the approved ACE/TAO `basic-idl`
 direction matrix with an explicit Docker network, host-gateway routing, and
-rebuilt Native Image lane binaries. G10-120-030 makes peer commands
-scenario-aware and includes ACE/TAO `rmi-iiop` Calculator execution, and
-G10-120-040 records final live direction-matrix evidence.
+rebuilt Native Image lane binaries. G10-120-030 made peer commands
+scenario-aware and passed ACE/TAO `rmi-iiop` Calculator execution in both
+`run-scenario` and JVM/native direction-matrix form after rebuilding the
+approved ACE/TAO image and Native Image lane binaries. That live run also
+confirmed GIOP operation-body alignment and BOM-prefixed CDR `wstring`
+compatibility with TAO-generated stubs/skeletons. G10-120-040 records final
+live direction-matrix evidence.
 
 ## Optional service lanes
 

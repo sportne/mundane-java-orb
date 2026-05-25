@@ -111,15 +111,15 @@ environment variables so approved lane commands can participate in the matrix.
 It intentionally fails with `infrastructure-failure` reports when
 `MJO_JVM_CLIENT_COMMAND`, `MJO_JVM_SERVER_COMMAND`,
 `MJO_NATIVE_CLIENT_BINARY`, `MJO_NATIVE_SERVER_BINARY`, prepared peer images,
-scenario-capable peer commands, or approved cache inputs are missing. Completing
-`G10-120` still requires scenario-aware peer commands and complete approved live
-scenario execution.
+or approved cache inputs are missing. Completing `G10-120` still requires
+complete approved live scenario execution and clean-room evidence summaries.
 
 G10-120 is split into child tasks so each remaining blocker has a separate
 review and commit boundary. G10-120-020 added local JVM/native client and server
 lane commands and passed the approved ACE/TAO `basic-idl` direction matrix.
-G10-120-030 closes scenario-aware peer commands including the ACE/TAO
-`rmi-iiop` Calculator lane, and G10-120-040 records final live matrix evidence.
+G10-120-030 closed scenario-aware peer commands including the ACE/TAO
+`rmi-iiop` Calculator lane and passed the approved ACE/TAO `rmi-iiop`
+direction matrix. G10-120-040 records final live matrix evidence.
 
 ## Acceptance
 

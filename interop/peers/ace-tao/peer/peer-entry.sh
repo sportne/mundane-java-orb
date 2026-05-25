@@ -26,12 +26,7 @@ JSON
 }
 
 case "${scenario}" in
-  basic-idl|object-reference|giop|iiop|naming|health|report|manual)
-    ;;
-  rmi-iiop)
-    write_peer_report "failed" "unsupported-scenario" \
-      "ACE/TAO peer glue does not implement the Java RMI-IIOP Calculator lane"
-    exit 67
+  basic-idl|object-reference|giop|iiop|naming|rmi-iiop|health|report|manual)
     ;;
   *)
     write_peer_report "failed" "unsupported-scenario" \

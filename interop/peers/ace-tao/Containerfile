@@ -26,12 +26,16 @@ RUN set -eux; \
   rm -f /tmp/ACE+TAO-8.0.6.tar.bz2
 
 COPY interop/peers/ace-tao/peer /interop/peer
+COPY interop/idl/rmi-iiop/Calculator.idl /interop/peer/idl/rmi-iiop/Calculator.idl
 
 RUN set -eux; \
-  mkdir -p /interop/peer/bin; \
+  mkdir -p /interop/peer/bin /interop/peer/generated/rmi-iiop; \
+  tao_idl -o /interop/peer/generated/rmi-iiop /interop/peer/idl/rmi-iiop/Calculator.idl; \
   g++ -std=c++17 -O2 -Wall -Wextra \
-    -I"${ACE_ROOT}" -I"${TAO_ROOT}" \
+    -I"${ACE_ROOT}" -I"${TAO_ROOT}" -I/interop/peer/generated/rmi-iiop \
     /interop/peer/src/ace_tao_peer.cpp \
+    /interop/peer/generated/rmi-iiop/CalculatorC.cpp \
+    /interop/peer/generated/rmi-iiop/CalculatorS.cpp \
     -L"${ACE_ROOT}/lib" -L"${TAO_ROOT}/lib" \
     -Wl,-rpath,"${ACE_ROOT}/lib" -Wl,-rpath,"${TAO_ROOT}/lib" \
     -lTAO_DynamicInterface -lTAO_PortableServer -lTAO_AnyTypeCode -lTAO -lACE \

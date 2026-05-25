@@ -72,8 +72,8 @@ final class CdrCollectionTest {
 
     byte[] expected =
         bytes(
-            0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x41,
-            0x03, 0xA9, 0x00, 0x00);
+            0x00, 0x00, 0x00, 0x02, 0xFE, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0xFE, 0xFF,
+            0x00, 0x41, 0x03, 0xA9);
 
     GoldenAssertions.assertBytesEquals("cdr-big-endian-wstrings", expected, writer.toByteArray());
 
@@ -88,7 +88,7 @@ final class CdrCollectionTest {
     CdrWriter writer = CdrWriter.littleEndian().writeOctet(0xAA).writeWString("AZ");
 
     byte[] expected =
-        bytes(0xAA, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x41, 0x00, 0x5A, 0x00, 0x00, 0x00);
+        bytes(0xAA, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0xFF, 0xFE, 0x41, 0x00, 0x5A, 0x00);
 
     GoldenAssertions.assertBytesEquals("cdr-little-endian-wstring", expected, writer.toByteArray());
 
@@ -96,6 +96,18 @@ final class CdrCollectionTest {
     assertEquals(0xAA, reader.readOctet());
     assertEquals("AZ", reader.readWString());
     assertEquals(0, reader.remaining());
+  }
+
+  @Test
+  void wideStringReadAndWriteLimitsUseOctets() {
+    CdrLimits limits =
+        new CdrLimits(
+            new BoundedLimit("test-string", 6),
+            new BoundedLimit("test-sequence", 1),
+            new BoundedLimit("test-encapsulation", 1));
+    byte[] encoded = CdrWriter.bigEndian(limits).writeWString("A\u03A9").toByteArray();
+
+    assertEquals("A\u03A9", CdrReader.bigEndian(encoded, limits).readWString());
   }
 
   @Test

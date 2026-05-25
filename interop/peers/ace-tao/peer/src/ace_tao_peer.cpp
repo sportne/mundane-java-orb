@@ -3,7 +3,10 @@
 #include <tao/DynamicInterface/Server_Request.h>
 #include <tao/PortableServer/PortableServer.h>
 
+#include "CalculatorS.h"
+
 #include <cstdlib>
+#include <cwchar>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -37,6 +40,24 @@ class SmokeServant final : public TAO_DynamicImplementation {
 
  private:
   CORBA::ORB_var orb_;
+};
+
+class CalculatorServant final : public POA_example::calc::Calculator {
+ public:
+  ::CORBA::Long add(::CORBA::Long left, ::CORBA::Long right) override { return left + right; }
+
+  ::CORBA::WChar* describe(const ::CORBA::WChar* name) override {
+    if (name != nullptr && std::wcscmp(name, L"bad") == 0) {
+      throw example::calc::CalculatorProblem();
+    }
+    std::wstring value = L"Calculator ";
+    if (name != nullptr) {
+      value += name;
+    }
+    return CORBA::wstring_dup(value.c_str());
+  }
+
+  void clear() override {}
 };
 
 std::string env_or_default(const char* name, const std::string& fallback) {
@@ -98,21 +119,62 @@ int run_server(int argc, char* argv[], const std::string& scenario) {
   if (CORBA::is_nil(poa.in())) {
     throw std::runtime_error("RootPOA narrow returned nil");
   }
-  SmokeServant servant(orb.in());
-  PortableServer::ObjectId_var object_id = poa->activate_object(&servant);
+  SmokeServant smoke_servant(orb.in());
+  CalculatorServant calculator_servant;
+  PortableServer::ObjectId_var object_id =
+      scenario == "rmi-iiop" ? poa->activate_object(&calculator_servant)
+                             : poa->activate_object(&smoke_servant);
   CORBA::Object_var object = poa->id_to_reference(object_id.in());
   PortableServer::POAManager_var manager = poa->the_POAManager();
   manager->activate();
   CORBA::String_var ior = orb->object_to_string(object.in());
   write_file(ior_path(scenario), ior.in());
   write_report("server", scenario, "passed", "server-ready",
-               "ACE/TAO ORB wrote a RootPOA object reference and entered its event loop");
+               scenario == "rmi-iiop"
+                   ? "ACE/TAO ORB wrote a Calculator object reference and entered its event loop"
+                   : "ACE/TAO ORB wrote a RootPOA object reference and entered its event loop");
   orb->run();
   orb->destroy();
   return 0;
 }
 
+void check_calculator(int argc, char* argv[], const std::string& role, const std::string& scenario) {
+  CORBA::ORB_var orb = CORBA::ORB_init(argc, argv);
+  const std::string ior = read_file(ior_path(scenario));
+  CORBA::Object_var object = orb->string_to_object(ior.c_str());
+  example::calc::Calculator_var calculator = example::calc::Calculator::_narrow(object.in());
+  if (CORBA::is_nil(calculator.in())) {
+    throw std::runtime_error("Calculator narrow returned nil");
+  }
+  const CORBA::Long sum = calculator->add(13, 29);
+  if (sum != 42) {
+    throw std::runtime_error("Calculator.add returned an unexpected value");
+  }
+  CORBA::WString_var description = calculator->describe(L"Ada");
+  if (std::wcscmp(description.in(), L"Calculator Ada") != 0) {
+    throw std::runtime_error("Calculator.describe returned an unexpected value");
+  }
+  bool raised = false;
+  try {
+    CORBA::WString_var ignored = calculator->describe(L"bad");
+    (void)ignored;
+  } catch (const example::calc::CalculatorProblem&) {
+    raised = true;
+  }
+  if (!raised) {
+    throw std::runtime_error("Calculator.describe(\"bad\") did not raise CalculatorProblem");
+  }
+  calculator->clear();
+  write_report(role, scenario, "passed", "calculator-checked",
+               "ACE/TAO invoked add, describe, CalculatorProblem, and clear through the scenario IOR");
+  orb->destroy();
+}
+
 int check_object(int argc, char* argv[], const std::string& role, const std::string& scenario) {
+  if (scenario == "rmi-iiop") {
+    check_calculator(argc, argv, role, scenario);
+    return 0;
+  }
   CORBA::ORB_var orb = CORBA::ORB_init(argc, argv);
   const std::string ior = read_file(ior_path(scenario));
   CORBA::Object_var object = orb->string_to_object(ior.c_str());

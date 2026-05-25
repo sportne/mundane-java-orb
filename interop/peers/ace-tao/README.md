@@ -26,5 +26,12 @@ Docker/Podman. Missing prerequisites are structured
 The clean-room command surface exposes `client`, `server`, `naming`, `health`,
 and `report` entrypoints. `basic-idl`, `object-reference`, `giop`, `iiop`, and
 `naming` use ACE/TAO ORB or Naming Service processes for bounded live smoke
-behavior. `rmi-iiop` is intentionally reported as `unsupported-scenario` until
-the C++ lane has a dedicated Calculator-compatible command.
+behavior. `rmi-iiop` uses TAO-generated Calculator bindings produced inside the
+image build from `interop/idl/rmi-iiop/Calculator.idl`; generated C++ files stay
+inside the image build context and are not committed.
+
+The ACE/TAO `rmi-iiop` lane is an IDL wire compatibility lane for the approved
+Calculator fixture. It does not use Java RMI runtime behavior or Java
+serialization. The server returns `42` for `add(13, 29)`, returns
+`Calculator Ada` for `describe("Ada")`, raises `CalculatorProblem` for
+`describe("bad")`, and returns normally from `clear()`.

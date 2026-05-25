@@ -69,8 +69,14 @@ final class InteropPeerGateTest {
     assertTrue(manifest.contains("buildFile: interop/peers/ace-tao/Containerfile"), manifest);
     assertTrue(containerfile.contains("ACE+TAO-8.0.6.tar.bz2"), containerfile);
     assertTrue(containerfile.contains("make -C \"${ACE_ROOT}\""), containerfile);
+    assertTrue(containerfile.contains("interop/idl/rmi-iiop/Calculator.idl"), containerfile);
+    assertTrue(
+        containerfile.contains("tao_idl -o /interop/peer/generated/rmi-iiop"), containerfile);
     assertTrue(containerfile.contains("ace_tao_peer.cpp"), containerfile);
+    assertTrue(containerfile.contains("CalculatorC.cpp"), containerfile);
+    assertTrue(containerfile.contains("CalculatorS.cpp"), containerfile);
     assertTrue(peerEntry.contains("unsupported-scenario"), peerEntry);
+    assertFalse(peerEntry.contains("does not implement the Java RMI-IIOP Calculator lane"));
     assertFalse(containerfile.contains("curl "), containerfile);
     assertFalse(containerfile.contains("wget "), containerfile);
     assertFalse(containerfile.contains("git clone"), containerfile);
@@ -92,11 +98,24 @@ final class InteropPeerGateTest {
     assertTrue(cpp.contains("RootPOA"), cpp);
     assertTrue(cpp.contains("\"_non_existent\""), cpp);
     assertTrue(cpp.contains("object->_non_existent()"), cpp);
+    assertTrue(cpp.contains("CalculatorServant"), cpp);
+    assertTrue(cpp.contains("calculator->add(13, 29)"), cpp);
+    assertTrue(cpp.contains("calculator->describe(L\"Ada\")"), cpp);
+    assertTrue(cpp.contains("example::calc::CalculatorProblem"), cpp);
     assertTrue(
         peerEntry.contains("Standalone ACE/TAO health requires a running scenario server"),
         peerEntry);
     assertFalse(cpp.contains("ACE_TAO_PLACEHOLDER"), cpp);
     assertFalse(cpp.contains("system("), cpp);
+  }
+
+  @Test
+  void aceTaoDoesNotCommitGeneratedCalculatorBindings() throws Exception {
+    Path peerRoot = repoRoot().resolve("interop/peers/ace-tao");
+
+    assertFalse(Files.exists(peerRoot.resolve("peer/generated")));
+    assertFalse(Files.exists(peerRoot.resolve("peer/CalculatorC.cpp")));
+    assertFalse(Files.exists(peerRoot.resolve("peer/CalculatorS.cpp")));
   }
 
   @Test

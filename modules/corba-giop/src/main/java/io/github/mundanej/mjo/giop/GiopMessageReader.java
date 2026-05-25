@@ -110,6 +110,7 @@ public final class GiopMessageReader {
     GiopTargetAddress targetAddress = readTargetAddress(reader);
     String operation = reader.readString();
     List<GiopServiceContext> serviceContexts = readServiceContexts(reader);
+    alignOperationBody(reader);
     byte[] body = reader.readOctets(reader.remaining());
     return new GiopRequest(
         header, requestId, responseFlags, targetAddress, operation, serviceContexts, body);
@@ -119,6 +120,7 @@ public final class GiopMessageReader {
     long requestId = reader.readUnsignedLong();
     GiopReplyStatus replyStatus = GiopReplyStatus.fromId(reader.readUnsignedLong());
     List<GiopServiceContext> serviceContexts = readServiceContexts(reader);
+    alignOperationBody(reader);
     byte[] body = reader.readOctets(reader.remaining());
     return new GiopReply(header, requestId, replyStatus, serviceContexts, body);
   }
@@ -173,6 +175,20 @@ public final class GiopMessageReader {
               GiopDiagnosticCodes.UNSUPPORTED_BODY,
               "Unsupported GIOP target-address discriminator: " + discriminator);
     };
+  }
+
+  private static void alignOperationBody(CdrReader reader) {
+    if (reader.remaining() > 0) {
+      int padding = paddingForMessageOffset(reader.position(), 8);
+      if (padding > 0) {
+        reader.readOctets(padding);
+      }
+    }
+  }
+
+  private static int paddingForMessageOffset(int bodyPosition, int alignment) {
+    int remainder = (HEADER_LENGTH + bodyPosition) % alignment;
+    return remainder == 0 ? 0 : alignment - remainder;
   }
 
   private List<GiopServiceContext> readServiceContexts(CdrReader reader) {

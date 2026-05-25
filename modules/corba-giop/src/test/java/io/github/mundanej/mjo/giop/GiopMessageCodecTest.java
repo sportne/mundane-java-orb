@@ -87,6 +87,39 @@ final class GiopMessageCodecTest {
   }
 
   @Test
+  void requestAndReplyOperationBodiesAreEightAlignedOnTheWire() {
+    GiopRequest request =
+        new GiopRequest(
+            GiopHeader.forType(GiopMessageType.REQUEST),
+            9,
+            3,
+            bytes(0x4B),
+            "add",
+            List.of(),
+            bytes(0x00, 0x00, 0x00, 0x0D));
+    byte[] requestWire = writer.write(request);
+    int requestBodyOffset = indexOf(requestWire, bytes(0x00, 0x00, 0x00, 0x0D));
+    assertEquals(0, requestBodyOffset % 8);
+    assertEquals(48, requestBodyOffset);
+    GiopRequest decodedRequest = assertInstanceOf(GiopRequest.class, reader.read(requestWire));
+    assertArrayEquals(bytes(0x00, 0x00, 0x00, 0x0D), decodedRequest.body());
+
+    GiopReply reply =
+        new GiopReply(
+            GiopHeader.forType(GiopMessageType.REPLY),
+            9,
+            GiopReplyStatus.NO_EXCEPTION,
+            List.of(),
+            bytes(0x00, 0x00, 0x00, 0x2A));
+    byte[] replyWire = writer.write(reply);
+    int replyBodyOffset = indexOf(replyWire, bytes(0x00, 0x00, 0x00, 0x2A));
+    assertEquals(0, replyBodyOffset % 8);
+    assertEquals(24, replyBodyOffset);
+    GiopReply decodedReply = assertInstanceOf(GiopReply.class, reader.read(replyWire));
+    assertArrayEquals(bytes(0x00, 0x00, 0x00, 0x2A), decodedReply.body());
+  }
+
+  @Test
   void cancelRequestRoundTripsGoldenWire() {
     GiopCancelRequest cancelRequest =
         new GiopCancelRequest(GiopHeader.forType(GiopMessageType.CANCEL_REQUEST), 5);
@@ -627,6 +660,22 @@ final class GiopMessageCodecTest {
       bytes[index] = (byte) values[index];
     }
     return bytes;
+  }
+
+  private static int indexOf(byte[] haystack, byte[] needle) {
+    for (int start = 0; start <= haystack.length - needle.length; start++) {
+      boolean matches = true;
+      for (int index = 0; index < needle.length; index++) {
+        if (haystack[start + index] != needle[index]) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) {
+        return start;
+      }
+    }
+    throw new AssertionError("needle not found");
   }
 
   @FunctionalInterface

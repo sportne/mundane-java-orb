@@ -165,15 +165,38 @@ public final class CdrReader {
     return new String(characters);
   }
 
-  /** Reads a bounded CDR wide string encoded as UTF-16 code units plus a null terminator. */
+  /** Reads a bounded CDR wide string encoded as a BOM-prefixed UTF-16 octet sequence. */
   public String readWString() {
-    int codeUnits = readWStringLength();
-    if (codeUnits == 0) {
+    int length = readWStringLength();
+    if (length == 0) {
       throw new CdrException(
           CdrDiagnosticCodes.INVALID_LENGTH, "CDR wstring length must include a null terminator");
     }
+    if (length == 1) {
+      int terminator = readUnsignedShort();
+      if (terminator != 0) {
+        throw new CdrException(
+            CdrDiagnosticCodes.MALFORMED_WSTRING, "CDR wstring must end with a null code unit");
+      }
+      return "";
+    }
+    int first = readUnsignedShort();
+    if (first == 0xFEFF) {
+      if (length % 2 != 0) {
+        throw new CdrException(
+            CdrDiagnosticCodes.INVALID_LENGTH, "CDR wstring octet length must be even: " + length);
+      }
+      char[] characters = new char[(length - 2) / 2];
+      for (int index = 0; index < characters.length; index++) {
+        characters[index] = (char) readUnsignedShort();
+      }
+      validateUtf16(characters);
+      return new String(characters);
+    }
+    int codeUnits = length;
     char[] characters = new char[codeUnits - 1];
-    for (int index = 0; index < characters.length; index++) {
+    characters[0] = (char) first;
+    for (int index = 1; index < characters.length; index++) {
       characters[index] = (char) readUnsignedShort();
     }
     if (readUnsignedShort() != 0) {
@@ -267,15 +290,14 @@ public final class CdrReader {
   }
 
   private int readWStringLength() {
-    long codeUnits = readUnsignedLong();
-    if (codeUnits > Integer.MAX_VALUE) {
+    long octets = readUnsignedLong();
+    if (octets > Integer.MAX_VALUE) {
       throw new CdrException(
           CdrDiagnosticCodes.INVALID_LENGTH,
-          "CDR wstring length exceeds Java array limits: " + codeUnits);
+          "CDR wstring length exceeds Java array limits: " + octets);
     }
-    long octets = Math.multiplyExact(codeUnits, 2L);
     limits.stringOctets().check(octets).ifPresent(CdrReader::throwLengthLimitExceeded);
-    return (int) codeUnits;
+    return (int) octets;
   }
 
   private byte[] readRawBytes(int byteCount, String label) {
