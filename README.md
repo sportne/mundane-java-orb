@@ -113,11 +113,14 @@ This repository is in **pre-1.0 interoperability completion state**:
   live G10 peer execution;
 - pre-1.0 full live peer execution has approved cache and Native Image
   prerequisites partly exercised, including limited `basic-idl` peer-command
-  smoke success for JacORB, JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB;
+  smoke success for JacORB, JBoss OpenJDK ORB, Eclipse GlassFish CORBA ORB, and
+  ACE/TAO;
   `run-direction-matrix` now sequences peer-server/local-client and
-  local-server/peer-client lanes explicitly, but release evidence remains
-  blocked until real local peer-facing commands, scenario-capable peer commands,
-  and a real ACE/TAO peer image are available;
+  local-server/peer-client lanes explicitly; ACE/TAO now has tracked
+  peer-specific image and clean-room command sources, with an approved local
+  image build and `basic-idl` peer smoke completed; release evidence remains
+  blocked until real local peer-facing commands and complete approved live
+  scenario execution are available;
 - no non-human-gated roadmap task is currently ready for implementation;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
@@ -196,7 +199,7 @@ There is no non-human-gated roadmap task currently ready for implementation.
 `docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` is in progress
 under the approved G10-120 harness direction work, but full pre-1.0 live
 interop evidence remains blocked on real local peer-facing JVM/native commands
-and a real ACE/TAO peer image.
+and complete approved live scenario execution.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

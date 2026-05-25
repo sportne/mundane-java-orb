@@ -489,6 +489,24 @@ local_runtime_name() {
   fi
 }
 
+ensure_container_network() {
+  local runtime="$1"
+  local network="${INTEROP_CONTAINER_NETWORK:-}"
+  if [[ -z "${network}" ]]; then
+    return 0
+  fi
+  if ! "${runtime}" network inspect "${network}" >/dev/null 2>&1; then
+    "${runtime}" network create "${network}" >/dev/null
+  fi
+}
+
+container_network_args() {
+  local network="${INTEROP_CONTAINER_NETWORK:-}"
+  if [[ -n "${network}" ]]; then
+    printf '%s\n%s\n' "--network" "${network}"
+  fi
+}
+
 report_label() {
   local scenario="$1"
   local role="$2"
@@ -671,6 +689,15 @@ run_container_role() {
       "${started}" "${ended}" "G10-110 peer image validation failed"
     return 1
   fi
+  if ! ensure_container_network "${runtime}" 2>"${stderr_abs}"; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-120 container network setup failed"
+    return 1
+  fi
 
   local run_args=(
     run --rm
@@ -682,6 +709,9 @@ run_container_role() {
     -v "${reports_abs}:/interop/reports" \
     -v "${INTEROP_ARTIFACT_CACHE}:/interop/artifacts:ro" \
   )
+  while IFS= read -r network_arg; do
+    run_args+=("${network_arg}")
+  done < <(container_network_args)
   case "${role}" in
     client|server|naming)
       run_args+=(-e "INTEROP_IDL=${idl}" -v "${ROOT_DIR}/${idl}:/interop/scenario.idl:ro")
@@ -700,6 +730,14 @@ run_container_role() {
     status="passed"
     classification="expected-deferral"
     notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
+  elif [[ "${exit_code}" -eq 66 ]]; then
+    status="failed"
+    classification="missing-prerequisite"
+    notes="G10-120 peer command reported a missing prerequisite"
+  elif [[ "${exit_code}" -eq 67 ]]; then
+    status="failed"
+    classification="unsupported-scenario"
+    notes="G10-120 peer command reported an unsupported scenario"
   else
     status="failed"
     classification="infrastructure-failure"
@@ -800,13 +838,26 @@ start_server_role() {
       "${started}" "${ended}" "G10-110 peer image validation failed"
     return 1
   fi
+  if ! ensure_container_network "${runtime}" 2>"${stderr_abs}"; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
+      "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "G10-120 container network setup failed"
+    return 1
+  fi
 
   local safe_peer safe_scenario container_name
   safe_peer="${peer//[!A-Za-z0-9_.-]/-}"
   safe_scenario="${scenario//[!A-Za-z0-9_.-]/-}"
   container_name="mjo-${safe_peer}-${safe_scenario}-server-$$"
   set +e
-  "${runtime}" run -d --name "${container_name}" \
+  local server_run_args=(run -d --name "${container_name}" --hostname "${container_name}")
+  while IFS= read -r network_arg; do
+    server_run_args+=("${network_arg}")
+  done < <(container_network_args)
+  "${runtime}" "${server_run_args[@]}" \
     -e "INTEROP_PEER=${peer}" \
     -e "INTEROP_ROLE=server" \
     -e "INTEROP_SCENARIO=${scenario}" \
@@ -899,7 +950,9 @@ for path in sorted(glob.glob(os.path.join(reports_dir, "*.json"))):
     if os.path.basename(path) == "summary.json":
         continue
     with open(path, encoding="utf-8") as handle:
-        reports.append(json.load(handle))
+        report = json.load(handle)
+    if "reportPath" in report:
+        reports.append(report)
 summary = {
     "peer": peer,
     "reportCount": len(reports),

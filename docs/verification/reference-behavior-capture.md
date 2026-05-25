@@ -44,9 +44,13 @@ A later approved-cache attempt confirmed cache validation, Native Image binary
 smoke execution, and limited `basic-idl` peer-command smoke success for JacORB,
 JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB, with generated reports
 under `build/interop/*/reports/`. That later result is still release-blocking
-prerequisite evidence, not compatibility evidence, because ACE/TAO has no real
-prepared peer image and the original scenario runner does not execute the
-required our-JVM/our-native versus peer client/server directions.
+prerequisite evidence, not compatibility evidence. ACE/TAO now has tracked
+peer-specific image and clean-room command sources. On 2026-05-25, the approved
+ACE/TAO follow-up built the local image from the approved cache archive and ran
+the `basic-idl` peer smoke through server, health, client, and summary commands
+on an explicit local Docker network. That result remains prerequisite evidence;
+the original scenario runner does not execute the required our-JVM/our-native
+versus peer client/server directions.
 
 After maintainer approval on 2026-05-24, `run-direction-matrix` became the
 structured prerequisite check for those directions. It starts peer servers
@@ -86,7 +90,7 @@ For the G7-090 RMI-IIOP lane, `scenario` is `rmi-iiop` and `idl` is
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,
-`infrastructure-failure`, or `expected-deferral`.
+`infrastructure-failure`, `unsupported-scenario`, or `expected-deferral`.
 
 ## Clean-room rule
 

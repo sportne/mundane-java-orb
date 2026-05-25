@@ -56,6 +56,49 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void aceTaoUsesPeerSpecificImageAndCleanRoomCommandSources() throws Exception {
+    Path peerRoot = repoRoot().resolve("interop/peers/ace-tao");
+    String manifest = Files.readString(peerRoot.resolve("peer.yaml"), StandardCharsets.UTF_8);
+    String containerfile =
+        Files.readString(peerRoot.resolve("Containerfile"), StandardCharsets.UTF_8);
+    String peerEntry =
+        Files.readString(peerRoot.resolve("peer/peer-entry.sh"), StandardCharsets.UTF_8);
+
+    assertTrue(manifest.contains("buildStatus: peer-specific-containerfile"), manifest);
+    assertTrue(manifest.contains("buildFile: interop/peers/ace-tao/Containerfile"), manifest);
+    assertTrue(containerfile.contains("ACE+TAO-8.0.6.tar.bz2"), containerfile);
+    assertTrue(containerfile.contains("make -C \"${ACE_ROOT}\""), containerfile);
+    assertTrue(containerfile.contains("ace_tao_peer.cpp"), containerfile);
+    assertTrue(peerEntry.contains("unsupported-scenario"), peerEntry);
+    assertFalse(containerfile.contains("curl "), containerfile);
+    assertFalse(containerfile.contains("wget "), containerfile);
+    assertFalse(containerfile.contains("git clone"), containerfile);
+  }
+
+  @Test
+  void aceTaoPeerCommandContractIsTrackedAndDoesNotVendorArtifacts() throws Exception {
+    Path peerRoot = repoRoot().resolve("interop/peers/ace-tao/peer");
+
+    for (String command : List.of("client", "server", "naming", "health", "report")) {
+      Path script = peerRoot.resolve(command + ".sh");
+      assertTrue(Files.isRegularFile(script), command + " command must be tracked");
+      String content = Files.readString(script, StandardCharsets.UTF_8);
+      assertTrue(content.contains("peer-entry.sh"), content);
+    }
+    String cpp = Files.readString(peerRoot.resolve("src/ace_tao_peer.cpp"), StandardCharsets.UTF_8);
+    String peerEntry = Files.readString(peerRoot.resolve("peer-entry.sh"), StandardCharsets.UTF_8);
+    assertTrue(cpp.contains("CORBA::ORB_init"), cpp);
+    assertTrue(cpp.contains("RootPOA"), cpp);
+    assertTrue(cpp.contains("\"_non_existent\""), cpp);
+    assertTrue(cpp.contains("object->_non_existent()"), cpp);
+    assertTrue(
+        peerEntry.contains("Standalone ACE/TAO health requires a running scenario server"),
+        peerEntry);
+    assertFalse(cpp.contains("ACE_TAO_PLACEHOLDER"), cpp);
+    assertFalse(cpp.contains("system("), cpp);
+  }
+
+  @Test
   void approvedFixtureValidatesWithRequiredCache() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -272,6 +315,59 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void launchUsesExplicitContainerNetworkWhenConfigured() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtimeLog = temporaryDirectory.resolve("runtime-network.log");
+    Path runtime = fakeContainerRuntime("networked-runtime", 0, 0);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "client", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "FAKE_RUNTIME_LOG",
+                    runtimeLog.toString(),
+                    "INTEROP_CONTAINER_NETWORK",
+                    "mjo-test-network",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertSuccess(result);
+    String runtimeCalls = Files.readString(runtimeLog, StandardCharsets.UTF_8);
+    assertTrue(runtimeCalls.contains("network inspect mjo-test-network"), runtimeCalls);
+    assertTrue(runtimeCalls.contains("run --rm"), runtimeCalls);
+    assertTrue(runtimeCalls.contains("--network mjo-test-network"), runtimeCalls);
+  }
+
+  @Test
+  void launchReportsExplicitContainerNetworkSetupFailure() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("network-fails", 0, 0, 42);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "client", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_CONTAINER_NETWORK",
+                    "mjo-test-network",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "basic-idl-client.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("G10-120 container network setup failed"), report);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
+  }
+
+  @Test
   void launchWritesPrerequisiteFailureReportWhenBaseImageIsMissing() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -400,6 +496,54 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void launchClassifiesExplicitUnsupportedScenarioExit() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("unsupported-scenario", 0, 67);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "client", "rmi-iiop"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "rmi-iiop-client.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/rmi-iiop-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"unsupported-scenario\""), report);
+    assertTrue(report.contains("G10-120 peer command reported an unsupported scenario"), report);
+  }
+
+  @Test
+  void launchClassifiesExplicitMissingPrerequisiteExit() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("missing-prerequisite", 0, 66);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "client", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertFailure(result, "basic-idl-client.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/basic-idl-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("G10-120 peer command reported a missing prerequisite"), report);
+  }
+
+  @Test
   void runScenarioUsesDetachedServerHealthClientAndCleanup() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Path runtimeLog = temporaryDirectory.resolve("runtime.log");
@@ -461,6 +605,40 @@ final class InteropPeerGateTest {
     assertTrue(summary.contains("basic-idl-server.json"), summary);
     assertTrue(summary.contains("rmi-iiop-server.json"), summary);
     assertTrue(summary.contains("report-report.json"), summary);
+  }
+
+  @Test
+  void reportSummaryIgnoresPeerSideAuxiliaryJson() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Map<String, String> environment =
+        fixture.environmentWithCache(
+            Map.of(
+                "CONTAINER_RUNTIME",
+                "/bin/true",
+                "INTEROP_JAVA_BASE_IMAGE",
+                DIGEST_PINNED_BASE_IMAGE));
+    run(command("launch", FIXTURE_PEER, "server", "basic-idl"), environment);
+    Path auxiliaryReport =
+        fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.peer.json");
+    Files.writeString(
+        auxiliaryReport,
+        """
+        {
+          "peer": "fixture-peer",
+          "status": "passed"
+        }
+        """,
+        StandardCharsets.UTF_8);
+
+    CommandResult result = run(command("report", FIXTURE_PEER), environment);
+
+    assertSuccess(result);
+    String summary =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/summary.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(summary.contains("\"reportCount\": 2"), summary);
+    assertFalse(summary.contains("basic-idl-server.peer.json"), summary);
   }
 
   @Test
@@ -889,6 +1067,11 @@ final class InteropPeerGateTest {
 
   private Path fakeContainerRuntime(String name, int inspectExitCode, int runExitCode)
       throws IOException {
+    return fakeContainerRuntime(name, inspectExitCode, runExitCode, 0);
+  }
+
+  private Path fakeContainerRuntime(
+      String name, int inspectExitCode, int runExitCode, int networkExitCode) throws IOException {
     Path runtime = temporaryDirectory.resolve(name);
     Files.writeString(
         runtime,
@@ -901,6 +1084,9 @@ final class InteropPeerGateTest {
         if [[ "${1:-}" == "image" && "${2:-}" == "inspect" ]]; then
           exit __INSPECT_EXIT__
         fi
+        if [[ "${1:-}" == "network" ]]; then
+          exit __NETWORK_EXIT__
+        fi
         if [[ "${1:-}" == "run" ]]; then
           exit __RUN_EXIT__
         fi
@@ -910,7 +1096,8 @@ final class InteropPeerGateTest {
         exit 64
         """
             .replace("__INSPECT_EXIT__", Integer.toString(inspectExitCode))
-            .replace("__RUN_EXIT__", Integer.toString(runExitCode)),
+            .replace("__RUN_EXIT__", Integer.toString(runExitCode))
+            .replace("__NETWORK_EXIT__", Integer.toString(networkExitCode)),
         StandardCharsets.UTF_8);
     runtime.toFile().setExecutable(true);
     return runtime;

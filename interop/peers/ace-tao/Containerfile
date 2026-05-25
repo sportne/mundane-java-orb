@@ -1,0 +1,42 @@
+ARG INTEROP_BASE_IMAGE
+FROM ${INTEROP_BASE_IMAGE}
+
+ARG ACE_TAO_BUILD_JOBS=2
+
+ENV ACE_ROOT=/opt/ace-tao/ACE_wrappers
+ENV TAO_ROOT=/opt/ace-tao/ACE_wrappers/TAO
+ENV MPC_ROOT=/opt/ace-tao/ACE_wrappers/MPC
+ENV PATH=/opt/ace-tao/ACE_wrappers/bin:/opt/ace-tao/ACE_wrappers/TAO/TAO_IDL:/opt/ace-tao/ACE_wrappers/TAO/orbsvcs/Naming_Service:${PATH}
+ENV LD_LIBRARY_PATH=/opt/ace-tao/ACE_wrappers/lib:/opt/ace-tao/ACE_wrappers/TAO/lib:${LD_LIBRARY_PATH}
+
+WORKDIR /interop
+
+COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
+COPY build/interop/container-build/artifact-cache/source/DOCGroup/ACE_TAO/8.0.6/ACE+TAO-8.0.6.tar.bz2 /tmp/ACE+TAO-8.0.6.tar.bz2
+
+RUN set -eux; \
+  mkdir -p /opt/ace-tao; \
+  tar -xjf /tmp/ACE+TAO-8.0.6.tar.bz2 -C /opt/ace-tao; \
+  printf '#include "ace/config-linux.h"\n' > "${ACE_ROOT}/ace/config.h"; \
+  printf 'include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU\n' > "${ACE_ROOT}/include/makeinclude/platform_macros.GNU"; \
+  make -C "${ACE_ROOT}" -j"${ACE_TAO_BUILD_JOBS}"; \
+  make -C "${TAO_ROOT}/TAO_IDL" -j"${ACE_TAO_BUILD_JOBS}"; \
+  make -C "${TAO_ROOT}/tao" -j"${ACE_TAO_BUILD_JOBS}"; \
+  make -C "${TAO_ROOT}/orbsvcs/Naming_Service" -j"${ACE_TAO_BUILD_JOBS}"; \
+  rm -f /tmp/ACE+TAO-8.0.6.tar.bz2
+
+COPY interop/peers/ace-tao/peer /interop/peer
+
+RUN set -eux; \
+  mkdir -p /interop/peer/bin; \
+  g++ -std=c++17 -O2 -Wall -Wextra \
+    -I"${ACE_ROOT}" -I"${TAO_ROOT}" \
+    /interop/peer/src/ace_tao_peer.cpp \
+    -L"${ACE_ROOT}/lib" -L"${TAO_ROOT}/lib" \
+    -Wl,-rpath,"${ACE_ROOT}/lib" -Wl,-rpath,"${TAO_ROOT}/lib" \
+    -lTAO_DynamicInterface -lTAO_PortableServer -lTAO_AnyTypeCode -lTAO -lACE \
+    -o /interop/peer/bin/ace_tao_peer; \
+  chmod +x /usr/local/bin/interop-peer-entrypoint /interop/peer/*.sh /interop/peer/bin/ace_tao_peer
+
+ENTRYPOINT ["/usr/local/bin/interop-peer-entrypoint"]
+CMD ["help"]

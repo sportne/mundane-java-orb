@@ -185,15 +185,18 @@ OpenJDK ORB, and Eclipse GlassFish CORBA ORB using ignored local peer images.
 The uncommitted prerequisite reports were generated under
 `build/interop/jacorb/reports/`, `build/interop/jboss-openjdk-orb/reports/`, and
 `build/interop/glassfish-orb/reports/`. That result remains prerequisite
-evidence only. ACE/TAO still needs a real prepared peer image, and the original
-scenario runner starts peer server/client roles without exercising the required
-our-JVM/our-native versus peer directions.
+evidence only. ACE/TAO now has a tracked peer-specific image definition and
+clean-room command sources. On 2026-05-25, the approved ACE/TAO follow-up built
+the local peer image from the approved cache archive and ran the `basic-idl`
+peer smoke through server, health, client, and summary commands on an explicit
+local Docker network. The original scenario runner starts peer server/client
+roles without exercising the required our-JVM/our-native versus peer directions.
 Maintainer approval on 2026-05-24 allowed the harness direction work needed to
 make those prerequisites explicit. `run-direction-matrix` now starts selected
 peer servers before our JVM/native client lanes, and starts our JVM/native
 server lanes before selected peer clients. Full pre-1.0 live interop remains
-blocked until the required local peer-facing commands, scenario-capable peer
-commands, and a real ACE/TAO peer image are available.
+blocked until the required local peer-facing commands and complete approved
+live scenario execution are available.
 
 ## Optional service lanes
 

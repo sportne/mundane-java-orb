@@ -50,8 +50,8 @@ cleanRoom:
     - agent-source-imitation
 container:
   imageName: corba-interop-peer-ace-tao:8.0.6
-  buildStatus: script-scaffolded
-  buildFile: interop/container/Containerfile.native.template
+  buildStatus: peer-specific-containerfile
+  buildFile: interop/peers/ace-tao/Containerfile
   buildScript: interop/peers/ace-tao/build-image.sh
   baseImagePolicy: digest-pinned-required
   artifactInputs:
