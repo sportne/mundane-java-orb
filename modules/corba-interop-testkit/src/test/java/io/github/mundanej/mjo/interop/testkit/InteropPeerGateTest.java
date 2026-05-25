@@ -483,6 +483,186 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void directionMatrixDryRunEnumeratesLocalAndPeerDirectionsWithoutMutating() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "basic-idl", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server for basic-idl"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for basic-idl"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void directionMatrixReportsMissingLocalPrerequisites() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("matrix-live", 0, 0);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "basic-idl", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String clientReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "basic-idl-fixture-peer-jvm-client-peer-server-to-local-client.json"),
+            StandardCharsets.UTF_8);
+    String serverReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "basic-idl-fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    String nativeClientReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "basic-idl-fixture-peer-native-client-peer-server-to-local-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(clientReport.contains("G10-120 jvm client command prerequisite missing"));
+    assertTrue(serverReport.contains("G10-120 jvm server command prerequisite missing"));
+    assertTrue(nativeClientReport.contains("G10-120 native client command prerequisite missing"));
+  }
+
+  @Test
+  void directionMatrixRequiresLocalServerIorBeforePeerClientExecution() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("matrix-ior-readiness", 0, 0);
+    Path serverCommand = temporaryDirectory.resolve("server-without-ior.sh");
+    Files.writeString(
+        serverCommand,
+        """
+        #!/usr/bin/env bash
+        sleep 30
+        """,
+        StandardCharsets.UTF_8);
+    serverCommand.toFile().setExecutable(true);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "basic-idl", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_LOCAL_SERVER_START_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_LOCAL_SERVER_IOR_ATTEMPTS",
+                    "1",
+                    "INTEROP_LOCAL_SERVER_IOR_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE,
+                    "MJO_JVM_SERVER_COMMAND",
+                    serverCommand.toString())));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String serverReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "basic-idl-fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(
+        serverReport.contains("G10-120 jvm server IOR was not ready before peer client execution"),
+        serverReport);
+  }
+
+  @Test
+  void directionMatrixLabelsNativeServerRuntimeWhenPeerClientRuns() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("matrix-native-server", 0, 0);
+    Path nativeServer = temporaryDirectory.resolve("native-server.sh");
+    Files.writeString(
+        nativeServer,
+        """
+        #!/usr/bin/env bash
+        set -euo pipefail
+        mkdir -p "$(dirname "${MJO_INTEROP_SERVER_IOR}")"
+        printf 'IOR:native-server\\n' >"${MJO_INTEROP_SERVER_IOR}"
+        sleep 30
+        """,
+        StandardCharsets.UTF_8);
+    nativeServer.toFile().setExecutable(true);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "basic-idl", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_HEALTH_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_LOCAL_SERVER_START_DELAY_SECONDS",
+                    "1",
+                    "INTEROP_LOCAL_SERVER_IOR_ATTEMPTS",
+                    "1",
+                    "INTEROP_LOCAL_SERVER_IOR_DELAY_SECONDS",
+                    "0",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE,
+                    "MJO_NATIVE_SERVER_BINARY",
+                    nativeServer.toString())));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String peerClientReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/fixture/reports/basic-idl-native-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(
+        peerClientReport.contains("\"role\": \"native-server-to-peer-client\""), peerClientReport);
+    assertTrue(peerClientReport.contains("\"serverRuntime\": \"our-native\""), peerClientReport);
+  }
+
+  @Test
   void undeclaredScenarioIsRejectedBeforeDryRunOrLiveExecution() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 

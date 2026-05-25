@@ -39,7 +39,9 @@ infrastructure reports.
 - Peer images must use deterministic names from each `peer.yaml`.
 - Base images must be pinned by digest before real container builds run.
 - Peer source and binaries must come from `INTEROP_ARTIFACT_CACHE`, never from
-  vendored repository content.
+  vendored repository content. Image builds stage only approved, checksum
+  validated cache entries into ignored `build/interop/container-build/` before
+  invoking Docker/Podman.
 - Approval records must match peer manifests and each cached artifact must match
   its source-controlled SHA-256 before real image builds are prepared.
 - Peer server and naming endpoints reserve test port `2809`.
@@ -49,6 +51,10 @@ infrastructure reports.
   image prerequisites produce deterministic infrastructure-failure reports.
 - `run-scenario` starts the peer server as a detached container, waits for the
   peer health command, runs the peer client, and removes the server container.
+- `run-direction-matrix` starts a peer server before running our JVM/native
+  client lanes, and starts our JVM/native server lanes before running the peer
+  client. Missing local commands, native binaries, prepared peer images, or
+  scenario-capable peer commands are structured infrastructure failures.
 
 ## Commands
 
@@ -65,8 +71,10 @@ infrastructure reports.
 - `interop/bin/interop-peer report --dry-run jacorb`
 - `interop/bin/interop-peer run-scenario --dry-run basic-idl all`
 - `interop/bin/interop-peer run-scenario --dry-run rmi-iiop all`
+- `interop/bin/interop-peer run-direction-matrix --dry-run basic-idl all`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-scenario --require-live basic-idl all`
 - `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-scenario --require-live rmi-iiop all`
+- `INTEROP_ARTIFACT_CACHE=/absolute/approved/cache interop/bin/interop-peer run-direction-matrix --require-live basic-idl all`
 
 Each peer directory also contains `build-image.sh`, `launch.sh`, and
 `health.sh` wrappers that delegate to the canonical CLI.

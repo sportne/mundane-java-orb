@@ -52,6 +52,11 @@ cache:
       sha256: b030a29e088dea60b07c7299d25f43cbd120502e10dcae3f382435ecd5de5ddd
       sourceUrl: "https://repo.maven.apache.org/maven2/org/slf4j/slf4j-api/1.7.14/slf4j-api-1.7.14.jar"
       packaging: jar
+    - path: maven/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar
+      sha256: aa2a8dcde0fa2607553cee0a527bced5558df5fb3606f92f440cfea796171ca3
+      sourceUrl: "https://repo.maven.apache.org/maven2/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar"
+      packaging: jar
+      use: approved legacy org.omg API supplement for local JacORB peer smoke
 realPeerExecution:
   status: blocked-until-g6-830
   notes: G6-820 approves artifact gates only; real peer scenario execution belongs to G6-830.

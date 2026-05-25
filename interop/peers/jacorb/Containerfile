@@ -1,0 +1,23 @@
+ARG INTEROP_BASE_IMAGE
+FROM ${INTEROP_BASE_IMAGE}
+
+WORKDIR /interop
+COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
+COPY interop/container/java-peer-smoke/PeerSmoke.java /tmp/PeerSmoke.java
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/client.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/server.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/naming.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/health.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/report.sh
+COPY build/interop/container-build/artifact-cache/maven/org/jacorb/jacorb/3.9/jacorb-3.9.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/jacorb/jacorb-omgapi/3.9/jacorb-omgapi-3.9.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/slf4j/slf4j-api/1.7.14/slf4j-api-1.7.14.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar /interop/peer/lib/zz-openjdk-orb-10.1.1.Final.jar
+RUN chmod +x /usr/local/bin/interop-peer-entrypoint /interop/peer/*.sh \
+  && mkdir -p /interop/peer/classes \
+  && javac -cp '/interop/peer/lib/*' -d /interop/peer/classes /tmp/PeerSmoke.java
+ENV INTEROP_ORB_CLASS=org.jacorb.orb.ORB
+ENV INTEROP_ORB_SINGLETON_CLASS=org.jacorb.orb.ORBSingleton
+
+ENTRYPOINT ["/usr/local/bin/interop-peer-entrypoint"]
+CMD ["help"]

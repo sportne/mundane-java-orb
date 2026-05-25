@@ -135,4 +135,4 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g10-090-rmi-iiop-compatibility-closure.md` - complete
 - `tasks/g10-100-native-image-interop-binaries.md` - complete
 - `tasks/g10-110-real-peer-harness-closure.md` - complete
-- `tasks/g10-120-pre-1-0-full-interop-execution.md` - human-gate-blocked
+- `tasks/g10-120-pre-1-0-full-interop-execution.md` - in-progress

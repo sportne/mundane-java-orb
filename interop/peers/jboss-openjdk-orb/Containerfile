@@ -1,0 +1,21 @@
+ARG INTEROP_BASE_IMAGE
+FROM ${INTEROP_BASE_IMAGE}
+
+WORKDIR /interop
+COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
+COPY interop/container/java-peer-smoke/PeerSmoke.java /tmp/PeerSmoke.java
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/client.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/server.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/naming.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/health.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/report.sh
+COPY build/interop/container-build/artifact-cache/maven/org/jboss/openjdk-orb/openjdk-orb/10.1.1.Final/openjdk-orb-10.1.1.Final.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/jakarta/transaction/jakarta.transaction-api/2.0.1/jakarta.transaction-api-2.0.1.jar /interop/peer/lib/
+RUN chmod +x /usr/local/bin/interop-peer-entrypoint /interop/peer/*.sh \
+  && mkdir -p /interop/peer/classes \
+  && javac -cp '/interop/peer/lib/*' -d /interop/peer/classes /tmp/PeerSmoke.java
+ENV INTEROP_ORB_CLASS=com.sun.corba.se.impl.orb.ORBImpl
+ENV INTEROP_ORB_SINGLETON_CLASS=com.sun.corba.se.impl.orb.ORBSingleton
+
+ENTRYPOINT ["/usr/local/bin/interop-peer-entrypoint"]
+CMD ["help"]

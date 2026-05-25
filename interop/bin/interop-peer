@@ -19,6 +19,7 @@ Usage:
   interop-peer health [--dry-run] <peer>
   interop-peer report [--dry-run] <peer>
   interop-peer run-scenario [--dry-run] [--require-live] <scenario> <peer|all>
+  interop-peer run-direction-matrix [--dry-run] [--require-live] <scenario> <peer|all>
   interop-peer native-lane-report [--dry-run] <scenario> <client|server>
 
 G6-830/G7-090 run approved peer containers when external artifacts and images
@@ -411,6 +412,37 @@ for entry in entries:
 PY
 }
 
+stage_artifact_cache_for_build() {
+  local peer="$1"
+  local stage_abs="${ROOT_DIR}/build/interop/container-build/artifact-cache"
+  rm -rf "${stage_abs}"
+  mkdir -p "${stage_abs}"
+  python3 - "${ROOT_DIR}" "${PEERS_DIR}" "${APPROVALS_DIR}" "${INTEROP_ARTIFACT_CACHE:-}" "${peer}" <<'PY' \
+    | while IFS=$'\t' read -r rel abs; do
+import os
+import sys
+import yaml
+
+root_dir, peers_dir, approvals_dir, cache_root, peer = sys.argv[1:]
+manifest_path = os.path.join(peers_dir, peer, "peer.yaml")
+with open(manifest_path, encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+approval_path = os.path.abspath(os.path.join(root_dir, manifest["approval"]))
+if not approval_path.startswith(os.path.abspath(approvals_dir) + os.sep):
+    raise SystemExit(f"approval path must stay under {approvals_dir}")
+with open(approval_path, encoding="utf-8") as handle:
+    approval = yaml.safe_load(handle)
+for entry in approval.get("cache", {}).get("entries", []):
+    rel = entry["path"]
+    if os.path.isabs(rel) or ".." in rel.split("/"):
+        raise SystemExit(f"cache entry path must be relative and contained: {rel}")
+    print(f"{rel}\t{os.path.join(cache_root, rel)}")
+PY
+    mkdir -p "${stage_abs}/$(dirname "${rel}")"
+    cp "${abs}" "${stage_abs}/${rel}"
+  done
+}
+
 scenario_idl() {
   local scenario="$1"
   case "${scenario}" in
@@ -445,6 +477,15 @@ peer_runtime_name() {
     printf 'peer-native\n'
   else
     printf 'peer-jvm\n'
+  fi
+}
+
+local_runtime_name() {
+  local runtime="$1"
+  if [[ "${runtime}" == "native" ]]; then
+    printf 'our-native\n'
+  else
+    printf 'our-jvm-jdk21\n'
   fi
 }
 
@@ -517,6 +558,9 @@ run_container_role() {
   local peer="$1"
   local role="$2"
   local scenario="$3"
+  local report_role="${4:-${role}}"
+  local client_runtime_override="${5:-}"
+  local server_runtime_override="${6:-}"
   local manifest image peer_type peer_version container_command logs_dir iors_dir reports_dir
   manifest="$(manifest_path "${peer}")"
   image="$(manifest_value "${manifest}" "container.imageName")"
@@ -528,7 +572,7 @@ run_container_role() {
   reports_dir="$(manifest_value "${manifest}" "reports.structuredReports")"
 
   local label logs_abs iors_abs reports_abs stdout_abs stderr_abs report_abs
-  label="$(report_label "${scenario}" "${role}")"
+  label="$(report_label "${scenario}" "${report_role}")"
   logs_abs="${ROOT_DIR}/${logs_dir}"
   iors_abs="${ROOT_DIR}/${iors_dir}"
   reports_abs="${ROOT_DIR}/${reports_dir}"
@@ -550,6 +594,12 @@ run_container_role() {
     client_runtime="our-jvm-jdk21"
     server_runtime="${peer_runtime}"
   fi
+  if [[ -n "${client_runtime_override}" ]]; then
+    client_runtime="${client_runtime_override}"
+  fi
+  if [[ -n "${server_runtime_override}" ]]; then
+    server_runtime="${server_runtime_override}"
+  fi
 
   started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   local gate_output runtime_output runtime
@@ -558,7 +608,7 @@ run_container_role() {
     printf '%s\n' "${gate_output}" >"${stderr_abs}"
     : >"${stdout_abs}"
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
       "${started}" "${ended}" "G6-830 prerequisite validation failed"
     return 1
@@ -572,7 +622,7 @@ run_container_role() {
       printf 'approved cache entry is missing after validation: %s\n' "${cache_path}" >"${stderr_abs}"
       : >"${stdout_abs}"
       write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-        "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+        "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
         "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
         "${started}" "${ended}" "G10-110 approved cache path resolution failed"
       return 1
@@ -588,7 +638,7 @@ run_container_role() {
       "${base_image_env}" >"${stderr_abs}"
     : >"${stdout_abs}"
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
       "${started}" "${ended}" "G6-830 base image validation failed"
     return 1
@@ -605,7 +655,7 @@ run_container_role() {
     printf 'CONTAINER_RUNTIME is unset and neither docker nor podman was found\n' >"${stderr_abs}"
     : >"${stdout_abs}"
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
       "${started}" "${ended}" "G6-830 container runtime resolution failed"
     return 1
@@ -616,7 +666,7 @@ run_container_role() {
     printf 'peer image is missing; run build-image first: %s\n' "${image}" >"${stderr_abs}"
     : >"${stdout_abs}"
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-      "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "failed" "infrastructure-failure" "1" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
       "${started}" "${ended}" "G10-110 peer image validation failed"
     return 1
@@ -649,14 +699,14 @@ run_container_role() {
   if [[ "${exit_code}" -eq 0 ]]; then
     status="passed"
     classification="expected-deferral"
-    notes="G10-110 container command completed"
+    notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
   else
     status="failed"
     classification="infrastructure-failure"
     notes="G10-110 container command failed"
   fi
   write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-    "${client_runtime}" "${server_runtime}" "${role}" "${image}" "${container_command}" \
+    "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
     "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
     "${started}" "${ended}" "${notes}"
   return "${exit_code}"
@@ -945,6 +995,243 @@ native_lane_report() {
   return "${exit_code}"
 }
 
+local_lane_report() {
+  local dry_run
+  dry_run="$(parse_dry_run "$@")"
+  if [[ "${1:-}" == "--dry-run" ]]; then
+    shift
+  fi
+  local scenario="${1:-}"
+  local runtime="${2:-}"
+  local role="${3:-}"
+  local peer="${4:-local}"
+  local direction="${5:-prerequisite}"
+  [[ -n "${scenario}" && -n "${runtime}" && -n "${role}" ]] \
+    || fail "local-lane-report requires a scenario, jvm|native, and client|server"
+  case "${runtime}" in
+    jvm|native) ;;
+    *) fail "local-lane-report runtime must be jvm or native" ;;
+  esac
+  case "${role}" in
+    client|server) ;;
+    *) fail "local-lane-report role must be client or server" ;;
+  esac
+
+  local reports_dir logs_dir label report_abs stdout_abs stderr_abs command_env command idl
+  local started ended exit_code status classification message client_runtime server_runtime
+  local our_runtime
+  our_runtime="$(local_runtime_name "${runtime}")"
+  reports_dir="build/interop/local/reports"
+  logs_dir="build/interop/local/logs"
+  label="$(report_label "${scenario}" "${peer}-${runtime}-${role}-${direction}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  if [[ "${runtime}" == "jvm" ]]; then
+    command_env="MJO_JVM_${role^^}_COMMAND"
+    command="${!command_env:-}"
+  else
+    command_env="MJO_NATIVE_${role^^}_BINARY"
+    command="${!command_env:-}"
+  fi
+  idl="$(scenario_idl "${scenario}")"
+
+  if [[ "${dry_run}" == "true" ]]; then
+    echo "dry-run: would validate ${command_env} for ${scenario} ${role}"
+    echo "dry-run: would write ${reports_dir}/${label}.json"
+    return
+  fi
+
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "$(dirname "${stderr_abs}")"
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ -z "${command}" || ( "${runtime}" == "native" && ! -x "${command}" ) ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    printf '%s must provide the %s %s lane command\n' "${command_env}" "${runtime}" "${role}" >"${stderr_abs}"
+    if [[ "${role}" == "client" ]]; then
+      client_runtime="${our_runtime}"
+      server_runtime="${peer}-server"
+    else
+      client_runtime="${peer}-client"
+      server_runtime="${our_runtime}"
+    fi
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${runtime}-${role}-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G10-120 ${runtime} ${role} command prerequisite missing"
+    return 1
+  fi
+
+  local peer_iors_dir server_ior
+  peer_iors_dir="${ROOT_DIR}/build/interop/local/iors"
+  if [[ "${peer}" != "local" ]]; then
+    peer_iors_dir="${ROOT_DIR}/$(manifest_value "$(manifest_path "${peer}")" "reports.iors")"
+  fi
+  server_ior="${peer_iors_dir}/${scenario}-server.ior"
+  set +e
+  if [[ "${runtime}" == "jvm" ]]; then
+    env \
+      "MJO_INTEROP_SCENARIO=${scenario}" \
+      "MJO_INTEROP_PEER=${peer}" \
+      "MJO_INTEROP_DIRECTION=${direction}" \
+      "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+      "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+      "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      bash -c "${command}" >"${stdout_abs}" 2>"${stderr_abs}"
+  else
+    env \
+      "MJO_INTEROP_SCENARIO=${scenario}" \
+      "MJO_INTEROP_PEER=${peer}" \
+      "MJO_INTEROP_DIRECTION=${direction}" \
+      "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+      "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+      "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      "${command}" >"${stdout_abs}" 2>"${stderr_abs}"
+  fi
+  exit_code="$?"
+  set -e
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ "${exit_code}" == "0" ]]; then
+    status="passed"
+    classification="expected-deferral"
+    message="G10-120 ${runtime} ${role} lane command completed for ${direction}"
+  else
+    status="failed"
+    classification="infrastructure-failure"
+    message="G10-120 ${runtime} ${role} lane command exited with code ${exit_code}"
+  fi
+  if [[ "${role}" == "client" ]]; then
+    client_runtime="${our_runtime}"
+    server_runtime="${peer}-server"
+  else
+    client_runtime="${peer}-client"
+    server_runtime="${our_runtime}"
+  fi
+  write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+    "${client_runtime}" "${server_runtime}" "${runtime}-${role}-${direction}" "local-${runtime}" "${command_env}" \
+    "${status}" "${classification}" "${exit_code}" "${logs_dir}/${label}.stdout.log" \
+    "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+    "${message}"
+  return "${exit_code}"
+}
+
+STARTED_LOCAL_SERVER_PID=""
+
+cleanup_started_local_server() {
+  if [[ -n "${STARTED_LOCAL_SERVER_PID}" ]] && kill -0 "${STARTED_LOCAL_SERVER_PID}" >/dev/null 2>&1; then
+    kill "${STARTED_LOCAL_SERVER_PID}" >/dev/null 2>&1 || true
+    wait "${STARTED_LOCAL_SERVER_PID}" >/dev/null 2>&1 || true
+  fi
+  STARTED_LOCAL_SERVER_PID=""
+}
+
+start_local_server_lane() {
+  local scenario="$1"
+  local runtime="$2"
+  local peer="$3"
+  local direction="local-server-to-peer-client"
+  local reports_dir logs_dir peer_iors_dir label report_abs stdout_abs stderr_abs command_env command idl
+  local our_runtime
+  our_runtime="$(local_runtime_name "${runtime}")"
+  reports_dir="build/interop/local/reports"
+  logs_dir="build/interop/local/logs"
+  peer_iors_dir="${ROOT_DIR}/$(manifest_value "$(manifest_path "${peer}")" "reports.iors")"
+  label="$(report_label "${scenario}" "${peer}-${runtime}-server-${direction}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "${peer_iors_dir}"
+  idl="$(scenario_idl "${scenario}")"
+  if [[ "${runtime}" == "jvm" ]]; then
+    command_env="MJO_JVM_SERVER_COMMAND"
+    command="${!command_env:-}"
+  else
+    command_env="MJO_NATIVE_SERVER_BINARY"
+    command="${!command_env:-}"
+  fi
+
+  local started ended
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ -z "${command}" || ( "${runtime}" == "native" && ! -x "${command}" ) ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    printf '%s must provide a live %s server lane\n' "${command_env}" "${runtime}" >"${stderr_abs}"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G10-120 ${runtime} server command prerequisite missing"
+    return 1
+  fi
+
+  local server_ior="${peer_iors_dir}/${scenario}-server.ior"
+  set +e
+  if [[ "${runtime}" == "jvm" ]]; then
+    env \
+      "MJO_INTEROP_SCENARIO=${scenario}" \
+      "MJO_INTEROP_PEER=${peer}" \
+      "MJO_INTEROP_DIRECTION=${direction}" \
+      "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+      "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+      "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      bash -c "${command}" >"${stdout_abs}" 2>"${stderr_abs}" &
+  else
+    env \
+      "MJO_INTEROP_SCENARIO=${scenario}" \
+      "MJO_INTEROP_PEER=${peer}" \
+      "MJO_INTEROP_DIRECTION=${direction}" \
+      "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+      "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+      "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      "${command}" >"${stdout_abs}" 2>"${stderr_abs}" &
+  fi
+  STARTED_LOCAL_SERVER_PID="$!"
+  set -e
+  sleep "${INTEROP_LOCAL_SERVER_START_DELAY_SECONDS:-1}"
+  if ! kill -0 "${STARTED_LOCAL_SERVER_PID}" >/dev/null 2>&1; then
+    local exit_code
+    set +e
+    wait "${STARTED_LOCAL_SERVER_PID}"
+    exit_code="$?"
+    set -e
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "${exit_code}" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G10-120 ${runtime} server lane exited before peer client execution"
+    STARTED_LOCAL_SERVER_PID=""
+    return 1
+  fi
+  local attempts delay attempt
+  attempts="${INTEROP_LOCAL_SERVER_IOR_ATTEMPTS:-5}"
+  delay="${INTEROP_LOCAL_SERVER_IOR_DELAY_SECONDS:-1}"
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if [[ -s "${server_ior}" ]]; then
+      break
+    fi
+    sleep "${delay}"
+  done
+  if [[ ! -s "${server_ior}" ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'local %s server did not write a non-empty IOR before peer client execution: %s\n' \
+      "${runtime}" "${server_ior}" >"${stderr_abs}"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G10-120 ${runtime} server IOR was not ready before peer client execution"
+    return 1
+  fi
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+    "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+    "passed" "expected-deferral" "0" "${logs_dir}/${label}.stdout.log" \
+    "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+    "G10-120 ${runtime} server lane started for peer client execution"
+}
+
 parse_dry_run() {
   local dry_run="false"
   if [[ "${1:-}" == "--dry-run" ]]; then
@@ -1000,6 +1287,7 @@ build_image() {
   base_image="$(require_digest_pinned_base_image "${peer_type}")"
   require_external_artifact_cache
   validate_gates --require-cache "${peer}" >/dev/null
+  stage_artifact_cache_for_build "${peer}"
   runtime="$(resolve_runtime)"
   "${runtime}" build \
     --build-arg "INTEROP_BASE_IMAGE=${base_image}" \
@@ -1125,6 +1413,86 @@ run_scenario() {
   fi
 }
 
+run_direction_matrix() {
+  local dry_run="false"
+  local require_live="false"
+  while [[ "${1:-}" == "--dry-run" || "${1:-}" == "--require-live" ]]; do
+    case "${1}" in
+      --dry-run) dry_run="true" ;;
+      --require-live) require_live="true" ;;
+    esac
+    shift
+  done
+  local scenario="${1:-}"
+  local target="${2:-}"
+  [[ -n "${scenario}" && -n "${target}" ]] || fail "run-direction-matrix requires a scenario and peer|all"
+
+  local peers=()
+  if [[ "${target}" == "all" ]]; then
+    local manifest
+    for manifest in "${PEERS_DIR}"/*/peer.yaml; do
+      peers+=("$(basename "$(dirname "${manifest}")")")
+    done
+  else
+    manifest_path "${target}" >/dev/null
+    peers=("${target}")
+  fi
+
+  local failures=0
+  local runtime peer
+  for peer in "${peers[@]}"; do
+    scenario_supported "$(manifest_path "${peer}")" "${scenario}"
+  done
+
+  for peer in "${peers[@]}"; do
+    if [[ "${dry_run}" == "true" ]]; then
+      echo "dry-run: would start ${peer} server for ${scenario}"
+      echo "dry-run: would run ${peer} health check for ${scenario}"
+      local_lane_report --dry-run "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client"
+      local_lane_report --dry-run "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client"
+      echo "dry-run: would stop ${peer} server for ${scenario}"
+      for runtime in jvm native; do
+        if [[ "${runtime}" == "jvm" ]]; then
+          echo "dry-run: would validate MJO_JVM_SERVER_COMMAND for ${scenario} server"
+        else
+          echo "dry-run: would validate MJO_NATIVE_SERVER_BINARY for ${scenario} server"
+        fi
+        echo "dry-run: would start our ${runtime} server for ${scenario} and ${peer}"
+        echo "dry-run: would run ${peer} client against our ${runtime} server for ${scenario}"
+        echo "dry-run: would stop our ${runtime} server for ${scenario} and ${peer}"
+      done
+    else
+      STARTED_SERVER_CONTAINER=""
+      STARTED_SERVER_RUNTIME=""
+      if start_server_role "${peer}" "${scenario}" && wait_for_peer_health "${peer}" "${scenario}"; then
+        local_lane_report "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client" \
+          || failures=$((failures + 1))
+        local_lane_report "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client" \
+          || failures=$((failures + 1))
+      else
+        failures=$((failures + 1))
+      fi
+      cleanup_started_server
+
+      for runtime in jvm native; do
+        STARTED_LOCAL_SERVER_PID=""
+        if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
+          run_container_role "${peer}" "client" "${scenario}" "${runtime}-server-to-peer-client" \
+            "" "$(local_runtime_name "${runtime}")" \
+            || failures=$((failures + 1))
+        else
+          failures=$((failures + 1))
+        fi
+        cleanup_started_local_server
+      done
+    fi
+  done
+
+  if [[ "${require_live}" == "true" && "${failures}" -gt 0 ]]; then
+    return 1
+  fi
+}
+
 main() {
   local command="${1:-help}"
   if [[ $# -gt 0 ]]; then
@@ -1141,6 +1509,7 @@ main() {
     health) health_peer "$@" ;;
     report) report_peer "$@" ;;
     run-scenario) run_scenario "$@" ;;
+    run-direction-matrix) run_direction_matrix "$@" ;;
     native-lane-report) native_lane_report "$@" ;;
     *) fail "unknown command '${command}'" ;;
   esac

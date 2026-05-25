@@ -51,11 +51,14 @@ cleanRoom:
 container:
   imageName: corba-interop-peer-jacorb:3.9
   buildStatus: script-scaffolded
-  buildFile: interop/container/Containerfile.jvm.template
+  buildFile: interop/peers/jacorb/Containerfile
   buildScript: interop/peers/jacorb/build-image.sh
   baseImagePolicy: digest-pinned-required
   artifactInputs:
     - "org.jacorb:jacorb:3.9"
+    - "org.jacorb:jacorb-omgapi:3.9"
+    - "org.slf4j:slf4j-api:1.7.14"
+    - "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"
   artifactCache: external-only
   vendoredPeerArtifacts: false
   ports:

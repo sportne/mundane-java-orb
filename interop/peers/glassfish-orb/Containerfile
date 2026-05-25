@@ -1,0 +1,40 @@
+ARG INTEROP_BASE_IMAGE
+FROM ${INTEROP_BASE_IMAGE}
+
+WORKDIR /interop
+COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
+COPY interop/container/java-peer-smoke/PeerSmoke.java /tmp/PeerSmoke.java
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/client.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/server.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/naming.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/health.sh
+COPY interop/container/java-peer-smoke/peer-entry.sh /interop/peer/report.sh
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/glassfish-corba-orb/5.0.0/glassfish-corba-orb-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/glassfish-corba-internal-api/5.0.0/glassfish-corba-internal-api-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/glassfish-corba-omgapi/5.0.0/glassfish-corba-omgapi-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/glassfish-corba-csiv2-idl/5.0.0/glassfish-corba-csiv2-idl-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/idlj/5.0.0/idlj-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/corba/rmic/5.0.0/rmic-5.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/external/management-api/3.3.0/management-api-3.3.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/gmbal/gmbal-api-only/4.1.0/gmbal-api-only-4.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/gmbal/gmbal/4.1.0/gmbal-4.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/pfl/pfl-basic/5.1.0/pfl-basic-5.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/pfl/pfl-basic-tools/5.1.0/pfl-basic-tools-5.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/pfl/pfl-dynamic/5.1.0/pfl-dynamic-5.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/pfl/pfl-tf/5.1.0/pfl-tf-5.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/glassfish/pfl/pfl-tf-tools/5.1.0/pfl-tf-tools-5.1.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/osgi/osgi.core/8.0.0/osgi.core-8.0.0.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/ow2/asm/asm/9.7.1/asm-9.7.1.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/ow2/asm/asm-analysis/9.7.1/asm-analysis-9.7.1.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/ow2/asm/asm-commons/9.7.1/asm-commons-9.7.1.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/ow2/asm/asm-tree/9.7.1/asm-tree-9.7.1.jar /interop/peer/lib/
+COPY build/interop/container-build/artifact-cache/maven/org/ow2/asm/asm-util/9.7.1/asm-util-9.7.1.jar /interop/peer/lib/
+RUN chmod +x /usr/local/bin/interop-peer-entrypoint /interop/peer/*.sh \
+  && mkdir -p /interop/peer/classes \
+  && javac -cp '/interop/peer/lib/*' -d /interop/peer/classes /tmp/PeerSmoke.java
+ENV INTEROP_ORB_CLASS=com.sun.corba.ee.impl.orb.ORBImpl
+ENV INTEROP_ORB_SINGLETON_CLASS=com.sun.corba.ee.impl.orb.ORBSingleton
+ENV INTEROP_JAVA_OPTS="-Dorg.omg.CORBA.SkipGmbalInit=true -Dcom.sun.corba.ee.ORBRegisterMBeans=false"
+
+ENTRYPOINT ["/usr/local/bin/interop-peer-entrypoint"]
+CMD ["help"]

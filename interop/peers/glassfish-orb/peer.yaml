@@ -52,7 +52,7 @@ cleanRoom:
 container:
   imageName: corba-interop-peer-glassfish-orb:5.0.0
   buildStatus: script-scaffolded
-  buildFile: interop/container/Containerfile.jvm.template
+  buildFile: interop/peers/glassfish-orb/Containerfile
   buildScript: interop/peers/glassfish-orb/build-image.sh
   baseImagePolicy: digest-pinned-required
   artifactInputs:

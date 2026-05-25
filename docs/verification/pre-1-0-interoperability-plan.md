@@ -92,13 +92,24 @@ The generated, uncommitted prerequisite reports were written under
 and `build/interop/glassfish-orb/reports/`.
 
 That follow-up is still not 1.0.0 compatibility evidence. ACE/TAO still needs a
-real prepared peer image rather than placeholder shell commands. The current
+real prepared peer image rather than placeholder shell commands. The original
 `run-scenario` harness starts a peer server, checks peer health, and then starts
 a peer client; it does not execute the required our-JVM-client to peer-server,
 our-native-client to peer-server, peer-client to our-JVM-server, or peer-client
-to our-native-server directions. Completing `G10-120` requires maintainer
-approval for the next harness and peer-image direction before additional live
-matrix execution is claimed.
+to our-native-server directions.
+
+Maintainer approval on 2026-05-24 allowed the harness direction work needed to
+make those gaps explicit. The new `run-direction-matrix` command starts each
+selected peer server before running our JVM/native client lanes, and starts our
+JVM/native server lanes before running the selected peer client. It passes the
+scenario, peer, IDL path, IOR directory, and expected server IOR path through
+environment variables so approved lane commands can participate in the matrix.
+It intentionally fails with `infrastructure-failure` reports when
+`MJO_JVM_CLIENT_COMMAND`, `MJO_JVM_SERVER_COMMAND`,
+`MJO_NATIVE_CLIENT_BINARY`, `MJO_NATIVE_SERVER_BINARY`, prepared peer images,
+scenario-capable peer commands, or approved cache inputs are missing. Completing
+`G10-120` still requires real local client/server commands that can participate
+in the peer matrix and a real ACE/TAO peer image.
 
 ## Acceptance
 

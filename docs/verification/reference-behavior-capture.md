@@ -45,8 +45,16 @@ smoke execution, and limited `basic-idl` peer-command smoke success for JacORB,
 JBoss OpenJDK ORB, and Eclipse GlassFish CORBA ORB, with generated reports
 under `build/interop/*/reports/`. That later result is still release-blocking
 prerequisite evidence, not compatibility evidence, because ACE/TAO has no real
-prepared peer image and the current scenario runner does not execute the
+prepared peer image and the original scenario runner does not execute the
 required our-JVM/our-native versus peer client/server directions.
+
+After maintainer approval on 2026-05-24, `run-direction-matrix` became the
+structured prerequisite check for those directions. It starts peer servers
+before local client lanes, starts local server lanes before peer clients, and
+records missing JVM lane commands, missing Native Image binaries, missing peer
+images, early local-server exits, and peer command failures as
+`infrastructure-failure` reports instead of treating them as compatibility
+results.
 
 ## Capture fields
 
