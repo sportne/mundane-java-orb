@@ -507,6 +507,14 @@ container_network_args() {
   fi
 }
 
+container_host_gateway_args() {
+  local host="${INTEROP_HOST_GATEWAY_NAME:-host.docker.internal}"
+  local gateway="${INTEROP_HOST_GATEWAY_VALUE:-host-gateway}"
+  if [[ -n "${host}" && -n "${gateway}" ]]; then
+    printf '%s\n%s:%s\n' "--add-host" "${host}" "${gateway}"
+  fi
+}
+
 report_label() {
   local scenario="$1"
   local role="$2"
@@ -712,6 +720,9 @@ run_container_role() {
   while IFS= read -r network_arg; do
     run_args+=("${network_arg}")
   done < <(container_network_args)
+  while IFS= read -r host_arg; do
+    run_args+=("${host_arg}")
+  done < <(container_host_gateway_args)
   case "${role}" in
     client|server|naming)
       run_args+=(-e "INTEROP_IDL=${idl}" -v "${ROOT_DIR}/${idl}:/interop/scenario.idl:ro")
@@ -848,15 +859,24 @@ start_server_role() {
     return 1
   fi
 
-  local safe_peer safe_scenario container_name
+  local server_ior safe_peer safe_scenario container_name host_port
+  server_ior="${iors_abs}/${scenario}-server.ior"
+  rm -f "${server_ior}"
   safe_peer="${peer//[!A-Za-z0-9_.-]/-}"
   safe_scenario="${scenario//[!A-Za-z0-9_.-]/-}"
   container_name="mjo-${safe_peer}-${safe_scenario}-server-$$"
+  host_port="${INTEROP_PEER_SERVER_HOST_PORT:-2809}"
   set +e
-  local server_run_args=(run -d --name "${container_name}" --hostname "${container_name}")
+  local server_run_args=(
+    run -d --name "${container_name}" --hostname "${container_name}"
+    -p "127.0.0.1:${host_port}:2809"
+  )
   while IFS= read -r network_arg; do
     server_run_args+=("${network_arg}")
   done < <(container_network_args)
+  while IFS= read -r host_arg; do
+    server_run_args+=("${host_arg}")
+  done < <(container_host_gateway_args)
   "${runtime}" "${server_run_args[@]}" \
     -e "INTEROP_PEER=${peer}" \
     -e "INTEROP_ROLE=server" \
@@ -1131,6 +1151,8 @@ local_lane_report() {
       "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
       "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
       "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      "MJO_INTEROP_ENDPOINT_HOST_OVERRIDE=${INTEROP_PEER_SERVER_HOST:-127.0.0.1}" \
+      "MJO_INTEROP_ENDPOINT_PORT_OVERRIDE=${INTEROP_PEER_SERVER_HOST_PORT:-2809}" \
       bash -c "${command}" >"${stdout_abs}" 2>"${stderr_abs}"
   else
     env \
@@ -1140,6 +1162,8 @@ local_lane_report() {
       "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
       "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
       "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+      "MJO_INTEROP_ENDPOINT_HOST_OVERRIDE=${INTEROP_PEER_SERVER_HOST:-127.0.0.1}" \
+      "MJO_INTEROP_ENDPOINT_PORT_OVERRIDE=${INTEROP_PEER_SERVER_HOST_PORT:-2809}" \
       "${command}" >"${stdout_abs}" 2>"${stderr_abs}"
   fi
   exit_code="$?"
@@ -1219,6 +1243,7 @@ start_local_server_lane() {
   fi
 
   local server_ior="${peer_iors_dir}/${scenario}-server.ior"
+  rm -f "${server_ior}"
   set +e
   if [[ "${runtime}" == "jvm" ]]; then
     env \
@@ -1258,7 +1283,7 @@ start_local_server_lane() {
     return 1
   fi
   local attempts delay attempt
-  attempts="${INTEROP_LOCAL_SERVER_IOR_ATTEMPTS:-5}"
+  attempts="${INTEROP_LOCAL_SERVER_IOR_ATTEMPTS:-20}"
   delay="${INTEROP_LOCAL_SERVER_IOR_DELAY_SECONDS:-1}"
   for ((attempt = 1; attempt <= attempts; attempt++)); do
     if [[ -s "${server_ior}" ]]; then

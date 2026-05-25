@@ -121,8 +121,8 @@ This repository is in **pre-1.0 interoperability completion state**:
   image build and `basic-idl` peer smoke completed; release evidence remains
   blocked until real local peer-facing commands and complete approved live
   scenario execution are available;
-- the next non-human-gated roadmap task is the G10-120 local JVM/native
-  lane-command task;
+- the next non-human-gated roadmap task is the G10-120 peer scenario command
+  closure task;
 - RMI-IIOP peer interop scenario gates and structured report paths have started
   under approved roadmap tasks, with live peer execution still
   environment-gated;
@@ -197,11 +197,12 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 ## Ready roadmap tasks
 
 The next non-human-gated roadmap task is
-`docs/roadmap/tasks/g10-120-020-local-jvm-native-lane-commands.md`. The parent
+`docs/roadmap/tasks/g10-120-030-peer-scenario-command-closure.md`. The parent
 `docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` remains in
-progress, but full pre-1.0 live interop evidence remains blocked on real local
-peer-facing JVM/native commands, scenario-aware peer commands including
-ACE/TAO `rmi-iiop`, and complete approved live scenario execution.
+progress. Local JVM/native direction commands now execute the ACE/TAO
+`basic-idl` matrix; full pre-1.0 live interop evidence remains blocked on
+scenario-aware peer commands including ACE/TAO `rmi-iiop` and complete approved
+live scenario execution.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant

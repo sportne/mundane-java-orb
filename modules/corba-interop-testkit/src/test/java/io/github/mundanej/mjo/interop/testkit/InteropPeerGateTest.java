@@ -2,6 +2,7 @@ package io.github.mundanej.mjo.interop.testkit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -339,6 +340,34 @@ final class InteropPeerGateTest {
     assertTrue(runtimeCalls.contains("network inspect mjo-test-network"), runtimeCalls);
     assertTrue(runtimeCalls.contains("run --rm"), runtimeCalls);
     assertTrue(runtimeCalls.contains("--network mjo-test-network"), runtimeCalls);
+    assertTrue(runtimeCalls.contains("--add-host host.docker.internal:host-gateway"), runtimeCalls);
+  }
+
+  @Test
+  void launchAllowsHostGatewayOverrideForLocalServerReachability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtimeLog = temporaryDirectory.resolve("runtime-host-gateway.log");
+    Path runtime = fakeContainerRuntime("host-gateway-runtime", 0, 0);
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "client", "basic-idl"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "FAKE_RUNTIME_LOG",
+                    runtimeLog.toString(),
+                    "INTEROP_HOST_GATEWAY_NAME",
+                    "mjo.host",
+                    "INTEROP_HOST_GATEWAY_VALUE",
+                    "172.17.0.1",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertSuccess(result);
+    String runtimeCalls = Files.readString(runtimeLog, StandardCharsets.UTF_8);
+    assertTrue(runtimeCalls.contains("--add-host mjo.host:172.17.0.1"), runtimeCalls);
   }
 
   @Test
@@ -548,6 +577,12 @@ final class InteropPeerGateTest {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Path runtimeLog = temporaryDirectory.resolve("runtime.log");
     Path runtime = fakeContainerRuntime("live-scenario", 0, 0);
+    Path stalePeerServerIor =
+        fixture.root().resolve("build/interop/fixture/iors/basic-idl-server.ior");
+    Path stalePeerServerIorParent = stalePeerServerIor.getParent();
+    assertNotNull(stalePeerServerIorParent);
+    Files.createDirectories(stalePeerServerIorParent);
+    Files.writeString(stalePeerServerIor, "IOR:stale-peer", StandardCharsets.UTF_8);
 
     CommandResult result =
         run(
@@ -566,9 +601,13 @@ final class InteropPeerGateTest {
     assertSuccess(result);
     String runtimeCalls = Files.readString(runtimeLog, StandardCharsets.UTF_8);
     assertTrue(runtimeCalls.contains("run -d --name mjo-fixture-peer-basic-idl-server-"));
+    assertTrue(runtimeCalls.contains("-p 127.0.0.1:2809:2809"), runtimeCalls);
     assertTrue(runtimeCalls.contains("INTEROP_ROLE=health"));
     assertTrue(runtimeCalls.contains("INTEROP_ROLE=client"));
     assertTrue(runtimeCalls.contains("rm -f mjo-fixture-peer-basic-idl-server-"));
+    assertFalse(
+        Files.exists(stalePeerServerIor),
+        "stale peer-server IOR must be removed before detached server startup");
     assertTrue(
         Files.exists(
             fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json")));
@@ -746,6 +785,11 @@ final class InteropPeerGateTest {
   void directionMatrixRequiresLocalServerIorBeforePeerClientExecution() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Path runtime = fakeContainerRuntime("matrix-ior-readiness", 0, 0);
+    Path staleIor = fixture.root().resolve("build/interop/fixture/iors/basic-idl-server.ior");
+    Path staleIorParent = staleIor.getParent();
+    assertNotNull(staleIorParent);
+    Files.createDirectories(staleIorParent);
+    Files.writeString(staleIor, "IOR:stale", StandardCharsets.UTF_8);
     Path serverCommand = temporaryDirectory.resolve("server-without-ior.sh");
     Files.writeString(
         serverCommand,
@@ -788,6 +832,7 @@ final class InteropPeerGateTest {
     assertTrue(
         serverReport.contains("G10-120 jvm server IOR was not ready before peer client execution"),
         serverReport);
+    assertFalse(Files.exists(staleIor), "stale local-server IOR must be removed before startup");
   }
 
   @Test

@@ -137,6 +137,6 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g10-110-real-peer-harness-closure.md` - complete
 - `tasks/g10-120-pre-1-0-full-interop-execution.md` - in-progress
 - `tasks/g10-120-010-g10-120-task-split.md` - complete
-- `tasks/g10-120-020-local-jvm-native-lane-commands.md` - ready-for-implementation
-- `tasks/g10-120-030-peer-scenario-command-closure.md` - blocked
+- `tasks/g10-120-020-local-jvm-native-lane-commands.md` - complete
+- `tasks/g10-120-030-peer-scenario-command-closure.md` - ready-for-implementation
 - `tasks/g10-120-040-live-direction-matrix-evidence.md` - blocked

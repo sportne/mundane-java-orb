@@ -198,8 +198,10 @@ server lanes before selected peer clients. Full pre-1.0 live interop remains
 blocked until the required local peer-facing commands and complete approved
 live scenario execution are available.
 
-The remaining G10-120 work is tracked as child tasks. G10-120-020 adds the
-required local JVM/native direction commands, G10-120-030 makes peer commands
+The remaining G10-120 work is tracked as child tasks. G10-120-020 added local
+JVM/native direction commands and passed the approved ACE/TAO `basic-idl`
+direction matrix with an explicit Docker network, host-gateway routing, and
+rebuilt Native Image lane binaries. G10-120-030 makes peer commands
 scenario-aware and includes ACE/TAO `rmi-iiop` Calculator execution, and
 G10-120-040 records final live direction-matrix evidence.
 

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+main_class_path="${root}/modules/corba-native-image/build/classes/java/nativeSmoke/io/github/mundanej/mjo/nativeimage/smoke/InteropServerNativeSmoke.class"
+if [[ ! -f "${main_class_path}" ]]; then
+  "${root}/gradlew" -q :modules:corba-native-image:nativeSmokeClasses
+fi
+
+classpath_entries=()
+for candidate in \
+  "${root}"/modules/*/build/classes/java/main \
+  "${root}"/modules/corba-native-image/build/classes/java/nativeSmoke \
+  "${root}"/modules/*/build/resources/main \
+  "${root}"/modules/corba-native-image/build/resources/nativeSmoke; do
+  if [[ -d "${candidate}" ]]; then
+    classpath_entries+=("${candidate}")
+  fi
+done
+classpath="$(IFS=:; printf '%s' "${classpath_entries[*]}")"
+
+exec java -cp "${classpath}" io.github.mundanej.mjo.nativeimage.smoke.InteropServerNativeSmoke

@@ -89,9 +89,10 @@ For the G7-090 RMI-IIOP lane, `scenario` is `rmi-iiop` and `idl` is
 `interop/idl/rmi-iiop/Calculator.idl`.
 
 G10-120 completion is split into child tasks so the remaining reference captures
-can be reviewed incrementally: local JVM/native lane commands, peer
-scenario-aware command closure including ACE/TAO `rmi-iiop`, and final live
-direction-matrix evidence.
+can be reviewed incrementally. Local JVM/native lane commands now pass the
+approved ACE/TAO `basic-idl` direction matrix. Remaining work is peer
+scenario-aware command closure including ACE/TAO `rmi-iiop`, followed by final
+live direction-matrix evidence.
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,
