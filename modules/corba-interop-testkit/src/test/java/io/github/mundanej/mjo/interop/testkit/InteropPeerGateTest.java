@@ -80,6 +80,16 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void peerServerIorCopyDoesNotTruncateMountedIor() throws Exception {
+    String harness =
+        Files.readString(repoRoot().resolve("interop/bin/interop-peer"), StandardCharsets.UTF_8);
+
+    assertTrue(harness.contains("copied_ior=\"${server_ior}.copy.$$\""), harness);
+    assertTrue(harness.contains("mv \"${copied_ior}\" \"${server_ior}\""), harness);
+    assertFalse(harness.contains(">\"${server_ior}\" 2>/dev/null"), harness);
+  }
+
+  @Test
   void aceTaoUsesPeerSpecificImageAndCleanRoomCommandSources() throws Exception {
     Path peerRoot = repoRoot().resolve("interop/peers/ace-tao");
     String manifest = Files.readString(peerRoot.resolve("peer.yaml"), StandardCharsets.UTF_8);
@@ -647,9 +657,10 @@ final class InteropPeerGateTest {
     assertTrue(runtimeCalls.contains("INTEROP_ROLE=health"));
     assertTrue(runtimeCalls.contains("INTEROP_ROLE=client"));
     assertTrue(runtimeCalls.contains("rm -f mjo-fixture-peer-basic-idl-server-"));
-    assertFalse(
-        Files.exists(stalePeerServerIor),
-        "stale peer-server IOR must be removed before detached server startup");
+    assertEquals(
+        "IOR:fresh-peer",
+        Files.readString(stalePeerServerIor, StandardCharsets.UTF_8).trim(),
+        "detached server startup must replace stale peer-server IOR content");
     assertTrue(
         Files.exists(
             fixture.root().resolve("build/interop/fixture/reports/basic-idl-server.json")));
@@ -1175,6 +1186,18 @@ final class InteropPeerGateTest {
           exit __NETWORK_EXIT__
         fi
         if [[ "${1:-}" == "run" ]]; then
+          scenario="basic-idl"
+          iors=""
+          for arg in "$@"; do
+            case "${arg}" in
+              INTEROP_SCENARIO=*) scenario="${arg#INTEROP_SCENARIO=}" ;;
+              *:/interop/iors) iors="${arg%:/interop/iors}" ;;
+            esac
+          done
+          if [[ "$*" == *"INTEROP_ROLE=server"* && -n "${iors}" ]]; then
+            mkdir -p "${iors}"
+            printf 'IOR:fresh-peer\\n' >"${iors}/${scenario}-server.ior"
+          fi
           exit __RUN_EXIT__
         fi
         if [[ "${1:-}" == "rm" ]]; then

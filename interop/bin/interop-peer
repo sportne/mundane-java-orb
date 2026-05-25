@@ -904,11 +904,15 @@ start_server_role() {
       fi
       if "${runtime}" exec "${container_name}" test -s "/interop/iors/${scenario}-server.ior" \
           >/dev/null 2>&1; then
+        local copied_ior
+        copied_ior="${server_ior}.copy.$$"
         "${runtime}" exec "${container_name}" cat "/interop/iors/${scenario}-server.ior" \
-          >"${server_ior}" 2>/dev/null || true
-        if [[ -s "${server_ior}" ]]; then
+          >"${copied_ior}" 2>/dev/null || true
+        if [[ -s "${copied_ior}" ]]; then
+          mv "${copied_ior}" "${server_ior}"
           break
         fi
+        rm -f "${copied_ior}"
       fi
       sleep "${ior_delay}"
     done

@@ -196,12 +196,12 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 ## Ready roadmap tasks
 
 The next non-human-gated roadmap task is
-`docs/roadmap/tasks/g10-120-040-live-direction-matrix-evidence.md`. The parent
+`docs/roadmap/tasks/g10-120-050-jboss-openjdk-orb-live-readiness.md`. The parent
 `docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` remains in
-progress. Local JVM/native direction commands now execute the ACE/TAO
-`basic-idl` and `rmi-iiop` matrices; full pre-1.0 live interop evidence remains
-blocked on complete approved live scenario execution and clean-room evidence
-summaries.
+progress. Local JVM/native direction commands and the Java peer matrix bootstrap
+are complete; full pre-1.0 live interop evidence remains blocked on JBoss
+readiness, Java RMI-IIOP peer compatibility, complete approved live scenario
+execution, and clean-room evidence summaries.
 
 Remaining human gates, including optional CORBA service approval, stay tracked
 as `human-gate-blocked` roadmap tasks until maintainers record the relevant
