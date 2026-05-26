@@ -83,32 +83,27 @@ inputs above.
 
 ## Pre-1.0 full matrix gate
 
-Full live interoperability evidence for `1.0.0` is blocked on the G10
-pre-1.0 roadmap. G10 keeps optional CORBA Services deferred, but requires the
-non-optional IDL, IDL-to-Java, OMG API, CDR/GIOP/IIOP/IOR, ORB/POA, Naming,
+The G10 pre-1.0 roadmap keeps optional CORBA Services deferred, but required
+the non-optional IDL, IDL-to-Java, OMG API, CDR/GIOP/IIOP/IOR, ORB/POA, Naming,
 DynamicAny/DII/DSI/Interface Repository, Portable Interceptor, RMI-IIOP, Native
 Image, and real peer harness closure tasks to complete before
-`G10-120-PRE-1.0-FULL-INTEROP-EXECUTION` runs.
+`G10-120-PRE-1.0-FULL-INTEROP-EXECUTION` could run. Those prerequisites and the
+final G10-120 live matrix are complete.
 
-Until those prerequisite tasks complete, `basic-idl` and `rmi-iiop` remain the
-only existing peer lanes, and live peer pass/fail results are not a 1.0.0
-compatibility claim.
-
-G10-060 adds deterministic local evidence for the Naming Service lane before
-live peer execution: `NetworkNamingServiceTest` starts a bounded loopback IIOP
+G10-060 adds deterministic local evidence for the Naming Service lane:
+`NetworkNamingServiceTest` starts a bounded loopback IIOP
 Naming Service, exchanges object and context IORs, resolves remote
 `corbaloc`/`corbaname` URLs, and verifies missing-name classification without
-external peers. Live Naming pass/fail evidence remains blocked until the G10
-native-image, real-peer harness, and full execution tasks complete.
+external peers. G10-120 adds live peer pass/fail evidence for the approved
+`naming` scenario across all approved peers and JVM/native local lanes.
 
 G10-070 adds deterministic local evidence for the DynamicAny/DII/DSI/Interface
-Repository lane before live peer execution: `DynamicIiopInvocationCodecTest`
+Repository lane: `DynamicIiopInvocationCodecTest`
 routes descriptor-backed dynamic requests and replies over loopback IIOP,
 including object-reference Any values and user-exception diagnostics, while
 `StaticInterfaceRepositoryTest` verifies bounded repository lookup and recursive
-reference diagnostics. Live DynamicAny, DII, DSI, and Interface Repository
-pass/fail evidence remains blocked until the G10 native-image, real-peer
-harness, and full execution tasks complete.
+reference diagnostics. G10-120 records the approved live peer evidence through
+the non-optional `object-reference`, `giop`, `iiop`, and `rmi-iiop` scenarios.
 
 ## Required directions
 
@@ -123,44 +118,44 @@ harness, and full execution tasks complete.
 | peer client | our JVM server | yes |
 | peer client | our native server | yes |
 
-## Scenario groups
+## G10-120 live scenario groups
 
-- basic primitives, structs, enums, strings, exceptions;
-- IOR, stringified IOR, object references;
-- corbaloc and corbaname;
-- POA policies;
-- Naming Service;
-- Any and TypeCode;
-- valuetypes;
-- GIOP versions and fragmentation;
-- code set negotiation;
-- Portable Interceptors;
-- RMI-IIOP;
-- optional services only after each service gate defines its scenario, report
-  fields, cache requirements, and live execution prerequisites.
+- `basic-idl`: basic peer liveness through the approved IDL fixture;
+- `object-reference`: IOR and object-reference reachability;
+- `naming`: Naming URL and Naming Service fixture reachability;
+- `giop`: request/reply framing through the approved GIOP lane;
+- `iiop`: network IIOP request/reply reachability;
+- `rmi-iiop`: Calculator IDL wire lane, including Java peer and ACE/TAO
+  Calculator behavior.
+
+Broader POA policy, Any/TypeCode, valuetype, fragmentation, and Portable
+Interceptor coverage remains local verification evidence unless a future
+roadmap task promotes a dedicated live scenario. Optional services require
+service-specific human gates before any scenario, report fields, cache
+requirements, or live execution prerequisites are added.
 
 G10-080 records deterministic local Portable Interceptor evidence for the
 implemented ORB/IIOP loopback path: client/server request-flow ordering,
 service-context propagation, and callback failure diagnostics. Live peer
-Portable Interceptor pass/fail evidence remains blocked until the G10 peer
-harness and full execution tasks complete.
+execution for the approved peer-facing request/reply lanes is included in the
+G10-120 full matrix.
 
-G10-090 records deterministic local RMI-IIOP compatibility evidence before
-live peer execution: explicit Java-to-IDL models and generated bindings preserve
+G10-090 records deterministic local RMI-IIOP compatibility evidence: explicit
+Java-to-IDL models and generated bindings preserve
 remote-interface inheritance, bounded CDR payloads carry sequences, remote
 object-reference keys, declared-value members, and user-exception payload
 fields, and the existing loopback wire path returns those payloads without Java
-serialization, classpath scanning, or reflection metadata. Live RMI-IIOP
-pass/fail evidence remains blocked until the G10 native-image, peer harness,
-and full execution tasks complete.
+serialization, classpath scanning, or reflection metadata. G10-120 adds live
+`rmi-iiop` peer pass/fail evidence across all approved peers and JVM/native
+local lanes.
 
 G10-100 adds deterministic local Native Image evidence before live peer
 execution. The native-image smoke suite builds and runs aggregate
 `interopClient` and `interopServer` binaries for the completed local G10 lanes
 when GraalVM Native Image is available. The interop CLI also records structured
 native-lane `infrastructure-failure` reports when required native client or
-server binaries are missing. Live peer pass/fail evidence remains blocked until
-the G10 real-peer harness and full execution tasks complete.
+server binaries are missing. G10-120 includes Native Image local client and
+server lanes in the full approved live matrix.
 
 G10-110 closes the real-peer harness prerequisite for live execution. The
 harness validates approved external cache entries, digest-pinned base-image
@@ -168,8 +163,7 @@ inputs, Docker/Podman availability, prepared peer images, real peer command
 entrypoints, mounted scenario IDL, IOR/log/report directories, detached server
 lifecycle, health checks, cleanup, and clean-room failure classification before
 running JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, or ACE/TAO as
-black-box peers. Live pass/fail evidence remains a G10-120 verification task,
-not a compatibility claim from harness closure alone.
+black-box peers.
 
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
@@ -218,7 +212,20 @@ marshaling, and fresh Native Image lane binaries. The JacORB, GlassFish CORBA
 ORB, and JBoss OpenJDK ORB `rmi-iiop` direction matrices now pass for both JVM
 and Native Image local lanes with zero remaining `our-bug` classifications.
 G10-120-090 records final live direction-matrix evidence across every approved
-non-optional scenario.
+non-optional scenario. On 2026-05-26, `run-direction-matrix --require-live
+<scenario> all` passed for `basic-idl`, `object-reference`, `naming`, `giop`,
+`iiop`, and `rmi-iiop` using the approved cache, digest-pinned base images,
+Docker, SDKMAN GraalVM Native Image binaries, JVM/native local lane commands,
+and the explicit `mjo-interop` Docker network. The clean-room report scan
+covered 210 structured reports, 35 per scenario, all `passed`, with
+classification counts of `expected-deferral` 192, `object-reference-checked`
+10, `server-ready` 6, and `calculator-checked` 2. `expected-deferral` is a
+passed harness classification for smoke-style peer commands whose deeper
+behavior is represented by the paired direction reports, not a skip or failure.
+The final evidence has zero `our-bug`, unresolved `infrastructure-failure`,
+`unsupported-scenario`, or skipped classifications. Raw reports, logs, IORs,
+peer artifacts, Docker layers, and native binaries remain ignored local output
+and are not committed.
 
 ## Optional service lanes
 

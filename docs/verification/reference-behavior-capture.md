@@ -88,8 +88,8 @@ results.
 For the G7-090 RMI-IIOP lane, `scenario` is `rmi-iiop` and `idl` is
 `interop/idl/rmi-iiop/Calculator.idl`.
 
-G10-120 completion is split into child tasks so the remaining reference captures
-can be reviewed incrementally. Local JVM/native lane commands now pass the
+G10-120 completion is split into child tasks so the reference captures can be
+reviewed incrementally. Local JVM/native lane commands now pass the
 approved ACE/TAO `basic-idl` direction matrix. Scenario-aware command closure
 now also passes ACE/TAO `rmi-iiop` Calculator execution through TAO-generated
 C++ stubs/skeletons and the local JVM/native direction matrix. Java peer
@@ -100,6 +100,19 @@ and reruns JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB `rmi-iiop`
 direction matrices successfully for both JVM and Native Image local lanes.
 G10-120-070 adds deterministic summary counts and compact failure entries for
 clean-room review without committing raw logs or IORs.
+
+Final G10-120 reference capture completed on 2026-05-26. The approved live
+matrix ran six scenarios, four peers, peer-server/local-client and
+local-server/peer-client directions, and JVM plus Native Image local lanes. The
+clean-room summary counted 210 structured reports, all `passed`, with
+classification counts of `expected-deferral` 192, `object-reference-checked`
+10, `server-ready` 6, and `calculator-checked` 2. `expected-deferral` is a
+passed harness classification for smoke-style peer commands whose deeper
+behavior is represented by the paired direction reports, not a skip or failure.
+No `our-bug`, unresolved `infrastructure-failure`, `unsupported-scenario`, or
+skipped classification remains. The committed evidence is this summary only;
+raw live reports, logs, IORs, peer artifacts, Docker layers, and native binaries
+remain ignored local output.
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,

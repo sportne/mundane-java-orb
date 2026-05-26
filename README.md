@@ -111,20 +111,13 @@ This repository is in **pre-1.0 interoperability completion state**:
   base images, prepared peer images, container runtime availability, scenario
   IDL mounts, IOR/log/report paths, and clean-room failure classification before
   live G10 peer execution;
-- pre-1.0 full live peer execution has approved cache and Native Image
-  prerequisites partly exercised, including limited `basic-idl` peer-command
-  smoke success for JacORB, JBoss OpenJDK ORB, Eclipse GlassFish CORBA ORB, and
-  ACE/TAO;
-  `run-direction-matrix` now sequences peer-server/local-client and
-  local-server/peer-client lanes explicitly; ACE/TAO now has tracked
-  peer-specific image and clean-room command sources, with approved `basic-idl`
-  and `rmi-iiop` direction matrices completed; release evidence remains blocked
-  until the complete approved live scenario matrix is executed and summarized;
-- the next non-human-gated roadmap task is the G10-120 live direction matrix
-  evidence task;
-- RMI-IIOP peer interop scenario gates and structured report paths have started
-  under approved roadmap tasks, with live peer execution still
-  environment-gated;
+- pre-1.0 full live peer execution has completed for the approved non-optional
+  matrix: `basic-idl`, `object-reference`, `naming`, `giop`, `iiop`, and
+  `rmi-iiop` all passed across JacORB, JBoss OpenJDK ORB, Eclipse GlassFish
+  CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
+- there is no non-human-gated roadmap task currently ready for implementation;
+- RMI-IIOP peer interop scenario gates, structured report paths, and approved
+  live peer direction-matrix evidence have completed under G10;
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
@@ -195,15 +188,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-The next non-human-gated roadmap task is
-`docs/roadmap/tasks/g10-120-090-final-pre-1-0-live-evidence.md`. The parent
-`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` remains in
-progress. Local JVM/native direction commands and the Java peer matrix bootstrap
-are complete, JBoss OpenJDK ORB `basic-idl` readiness passes, and Java peer
-`rmi-iiop` project-owned defects are closed for both JVM and Native Image local
-lanes. The remaining work is final approved live scenario execution and
-clean-room evidence summaries.
-
-Remaining human gates, including optional CORBA service approval, stay tracked
-as `human-gate-blocked` roadmap tasks until maintainers record the relevant
-decisions.
+There is no non-human-gated roadmap task currently ready for implementation.
+`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` and its child
+tasks are complete. Remaining human gates, including optional CORBA service
+approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
+record the relevant decisions.
