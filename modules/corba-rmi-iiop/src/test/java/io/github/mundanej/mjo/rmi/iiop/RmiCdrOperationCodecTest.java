@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -102,6 +103,39 @@ final class RmiCdrOperationCodecTest {
         RmiCdrValue.stringValue("A\u03A9"),
         valueCodec.readValue(reader, RmiIdlTypeReference.builtin("wstring")));
     assertEquals(0, reader.remaining());
+  }
+
+  @Test
+  void wideStringsUsePeerUtf16OctetLengthWithBomAndAcceptPeerPayloadsWithoutBom() {
+    CdrWriter writer = CdrWriter.bigEndian();
+
+    valueCodec.writeValue(
+        writer, RmiIdlTypeReference.builtin("wstring"), RmiCdrValue.stringValue("A\u03A9"));
+
+    assertArrayEquals(
+        new byte[] {0, 0, 0, 6, (byte) 0xFE, (byte) 0xFF, 0, 0x41, 0x03, (byte) 0xA9},
+        writer.toByteArray());
+    assertEquals(
+        RmiCdrValue.stringValue("A\u03A9"),
+        valueCodec.readValue(
+            CdrReader.bigEndian(writer.toByteArray()), RmiIdlTypeReference.builtin("wstring")));
+
+    CdrWriter peerPayload = CdrWriter.bigEndian();
+    peerPayload.writeUnsignedLong(4).writeUnsignedShort('A').writeUnsignedShort(0x03A9);
+    assertEquals(
+        RmiCdrValue.stringValue("A\u03A9"),
+        valueCodec.readValue(
+            CdrReader.bigEndian(peerPayload.toByteArray()),
+            RmiIdlTypeReference.builtin("wstring")));
+
+    CdrWriter swappedBomPayload = CdrWriter.bigEndian();
+    swappedBomPayload.writeUnsignedLong(2).writeUnsignedShort(0xFFFE);
+    assertThrows(
+        io.github.mundanej.mjo.cdr.CdrException.class,
+        () ->
+            valueCodec.readValue(
+                CdrReader.bigEndian(swappedBomPayload.toByteArray()),
+                RmiIdlTypeReference.builtin("wstring")));
   }
 
   @Test

@@ -73,6 +73,8 @@ final class InteropPeerGateTest {
     assertTrue(smoke.contains("request.operation()"), smoke);
     assertTrue(smoke.contains("insert_wstring(\"Calculator \" + value)"), smoke);
     assertTrue(smoke.contains("PROBLEM_REPOSITORY_ID"), smoke);
+    assertTrue(
+        smoke.contains("problem.read_value(out.create_input_stream(), problemType())"), smoke);
     assertTrue(smoke.contains("OAPort"), smoke);
     assertTrue(smoke.contains("jacorb.ior_proxy_host"), smoke);
     assertTrue(smoke.contains("com.sun.CORBA.ORBServerHost"), smoke);

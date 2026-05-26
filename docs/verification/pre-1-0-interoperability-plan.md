@@ -124,11 +124,12 @@ smoke lanes, and G10-120-050 made JBoss OpenJDK ORB `basic-idl` server
 readiness deterministic. G10-120-060 runs the Java peer `rmi-iiop` direction
 matrices and now produces structured `our-bug` ownership evidence instead of
 generic infrastructure failures for the remaining Java RMI-IIOP code-set and
-`wstring` compatibility gaps. Those project-owned defects must be fixed in
-G10-120-080 before final G10-120 evidence can pass. G10-120-070 adds compact
-status, classification, scenario, and failure summaries so final clean-room
-evidence can be reviewed without committing raw live outputs. G10-120-090
-records final live matrix evidence.
+`wstring` compatibility gaps. G10-120-080 closes those project-owned defects
+and passes the JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB `rmi-iiop`
+direction matrices for both JVM and Native Image local lanes. G10-120-070 adds
+compact status, classification, scenario, and failure summaries so final
+clean-room evidence can be reviewed without committing raw live outputs.
+G10-120-090 records final live matrix evidence.
 
 ## Acceptance
 

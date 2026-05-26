@@ -95,10 +95,11 @@ now also passes ACE/TAO `rmi-iiop` Calculator execution through TAO-generated
 C++ stubs/skeletons and the local JVM/native direction matrix. Java peer
 `rmi-iiop` direction-matrix failures are now captured as structured
 project-owned `our-bug` evidence rather than unresolved infrastructure
-failures. Final evidence remains blocked until those code-set and `wstring`
-compatibility defects are fixed and rerun across the approved non-optional
-peers and scenarios. G10-120-070 adds deterministic summary counts and compact
-failure entries for clean-room review without committing raw logs or IORs.
+failures. G10-120-080 closes those code-set and `wstring` compatibility defects
+and reruns JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB `rmi-iiop`
+direction matrices successfully for both JVM and Native Image local lanes.
+G10-120-070 adds deterministic summary counts and compact failure entries for
+clean-room review without committing raw logs or IORs.
 
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,

@@ -211,12 +211,14 @@ Java peer matrix bootstrap for ACE/TAO, JacORB, and GlassFish non-RMI smoke
 lanes. G10-120-050 fixed JBoss OpenJDK ORB `basic-idl` readiness by avoiding a
 duplicate Java ORB listener configuration. G10-120-060 runs Java peer
 `rmi-iiop` direction matrices and classifies the remaining Java RMI-IIOP
-failures as project-owned `our-bug` evidence: our clients need Java ORB
-code-set/wstring reply handling for Java peer servers, and our local server
-IOR/reply path needs code-set metadata sufficient for Java peer clients to
-invoke the `wstring` Calculator operation. Those defects block final evidence
-until G10-120-080 closes them. G10-120-090 records final live direction-matrix
-evidence.
+failures as project-owned `our-bug` evidence. G10-120-080 closes those defects
+with peer-visible code-set metadata, request/reply code-set service contexts,
+flexible Java ORB `wstring` decoding, corrected Java peer empty-exception
+marshaling, and fresh Native Image lane binaries. The JacORB, GlassFish CORBA
+ORB, and JBoss OpenJDK ORB `rmi-iiop` direction matrices now pass for both JVM
+and Native Image local lanes with zero remaining `our-bug` classifications.
+G10-120-090 records final live direction-matrix evidence across every approved
+non-optional scenario.
 
 ## Optional service lanes
 

@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import io.github.mundanej.mjo.giop.GiopCodeSetContext;
 import io.github.mundanej.mjo.giop.GiopHeader;
 import io.github.mundanej.mjo.giop.GiopMessageType;
 import io.github.mundanej.mjo.giop.GiopReply;
@@ -43,7 +44,7 @@ public final class RmiIiopWireClient implements AutoCloseable {
             3,
             objectKey.bytes(),
             operation.name(),
-            List.of(),
+            List.of(GiopCodeSetContext.defaults().toServiceContext()),
             body);
     GiopReply reply;
     try {

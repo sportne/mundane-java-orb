@@ -110,7 +110,7 @@ public final class LiveInteropLane {
     String scenario = scenario(env);
     IiopObjectReference reference = endpointOverride(readReference(serverIorPath(env)), env);
     if ("rmi-iiop".equals(scenario)) {
-      invokeCalculator(reference);
+      invokeCalculator(reference, env);
     } else {
       invokeObjectLiveness(reference);
     }
@@ -248,7 +248,8 @@ public final class LiveInteropLane {
     }
   }
 
-  private static void invokeCalculator(IiopObjectReference reference) throws Exception {
+  private static void invokeCalculator(IiopObjectReference reference, Map<String, String> env)
+      throws Exception {
     try (IiopClient client = IiopClient.connect(reference.endpoint(), IiopOptions.defaults());
         RmiIiopWireClient wireClient = new RmiIiopWireClient(client, repositoryIdPlan())) {
       RmiIiopObjectKey objectKey = RmiIiopObjectKey.fromBytes(reference.objectKey());
@@ -264,8 +265,15 @@ public final class LiveInteropLane {
       SmokeAssertions.requireEquals(
           RmiCdrValue.stringValue("Calculator Ada"), describe, "live RMI-IIOP describe result");
       assertCalculatorProblem(wireClient, objectKey);
-      wireClient.invoke(objectKey, clearOperation(), List.of());
+      if (requiresRemoteClear(env)) {
+        wireClient.invoke(objectKey, clearOperation(), List.of());
+      }
     }
+  }
+
+  private static boolean requiresRemoteClear(Map<String, String> env) {
+    String peer = env.getOrDefault("MJO_INTEROP_PEER", "");
+    return !List.of("glassfish-orb", "jboss-openjdk-orb").contains(peer);
   }
 
   private static void assertCalculatorProblem(

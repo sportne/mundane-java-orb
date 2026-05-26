@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mundanej.mjo.cdr.CdrWriter;
 import io.github.mundanej.mjo.common.DiagnosticCode;
+import io.github.mundanej.mjo.giop.GiopCodeSetContext;
 import io.github.mundanej.mjo.giop.GiopHeader;
 import io.github.mundanej.mjo.giop.GiopMessageReader;
 import io.github.mundanej.mjo.giop.GiopMessageType;
@@ -21,6 +22,7 @@ import io.github.mundanej.mjo.iiop.IiopOptions;
 import io.github.mundanej.mjo.iiop.IiopServer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -288,17 +290,20 @@ final class RmiIiopWireIntegrationTest {
     assertEquals("add", decoded.operation());
     assertArrayEquals(arguments, decoded.body());
 
+    AtomicReference<List<?>> serviceContexts = new AtomicReference<>();
     try (IiopServer server =
             IiopServer.bind(
                 IiopEndpoint.loopback(0),
                 IiopOptions.defaults(),
-                ignored ->
-                    new GiopReply(
-                        GiopHeader.forType(GiopMessageType.REPLY),
-                        ignored.requestId(),
-                        GiopReplyStatus.LOCATION_FORWARD,
-                        List.of(),
-                        new byte[0]));
+                received -> {
+                  serviceContexts.set(received.serviceContexts());
+                  return new GiopReply(
+                      GiopHeader.forType(GiopMessageType.REPLY),
+                      received.requestId(),
+                      GiopReplyStatus.LOCATION_FORWARD,
+                      List.of(),
+                      new byte[0]);
+                });
         IiopClient iiopClient = IiopClient.connect(server.endpoint(), IiopOptions.defaults());
         RmiIiopWireClient wireClient =
             new RmiIiopWireClient(iiopClient, approvedRepositoryIdPlan())) {
@@ -307,6 +312,8 @@ final class RmiIiopWireIntegrationTest {
           () ->
               wireClient.invoke(
                   objectKey, add, List.of(RmiCdrValue.longValue(1), RmiCdrValue.longValue(2))));
+      assertEquals(
+          List.of(GiopCodeSetContext.defaults().toServiceContext()), serviceContexts.get());
     }
   }
 

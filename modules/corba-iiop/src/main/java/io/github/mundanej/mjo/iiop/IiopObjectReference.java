@@ -3,6 +3,7 @@ package io.github.mundanej.mjo.iiop;
 import io.github.mundanej.mjo.ior.IiopProfile;
 import io.github.mundanej.mjo.ior.IiopVersion;
 import io.github.mundanej.mjo.ior.Ior;
+import io.github.mundanej.mjo.ior.IorCodeSetComponent;
 import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
@@ -36,7 +37,7 @@ public final class IiopObjectReference {
             endpoint.host(),
             endpoint.port(),
             new ObjectKey(objectKey),
-            List.of());
+            List.of(IorCodeSetComponent.defaults().toComponent()));
     Ior ior =
         new Ior(
             reference.descriptor().repositoryId().value(),

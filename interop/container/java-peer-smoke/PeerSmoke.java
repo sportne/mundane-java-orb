@@ -258,7 +258,9 @@ public final class PeerSmoke {
       String value = name.extract_wstring();
       if ("bad".equals(value)) {
         Any problem = orb.create_any();
-        problem.type(problemType());
+        org.omg.CORBA.portable.OutputStream out = problem.create_output_stream();
+        out.write_string(PROBLEM_REPOSITORY_ID);
+        problem.read_value(out.create_input_stream(), problemType());
         request.set_exception(problem);
         return;
       }

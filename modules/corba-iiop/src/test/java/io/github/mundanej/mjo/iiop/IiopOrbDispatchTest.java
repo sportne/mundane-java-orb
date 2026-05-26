@@ -3,6 +3,7 @@ package io.github.mundanej.mjo.iiop;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.mundanej.mjo.cdr.CdrByteOrder;
 import io.github.mundanej.mjo.cdr.CdrReader;
@@ -22,6 +23,7 @@ import io.github.mundanej.mjo.interceptors.PortableInterceptorRegistry;
 import io.github.mundanej.mjo.interceptors.PortableServerRequestInterceptor;
 import io.github.mundanej.mjo.interceptors.ServerRequestContext;
 import io.github.mundanej.mjo.ior.Ior;
+import io.github.mundanej.mjo.ior.IorCodeSetComponent;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.modern.LocalInvocationRequest;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
@@ -673,6 +675,11 @@ final class IiopOrbDispatchTest {
     assertArrayEquals(
         localReference.objectId().getBytes(java.nio.charset.StandardCharsets.US_ASCII),
         reference.objectKey());
+    assertTrue(
+        reference.ior().profiles().stream()
+            .flatMap(profile -> profile.internetIopProfile().stream())
+            .flatMap(profile -> profile.components().stream())
+            .anyMatch(component -> component.equals(IorCodeSetComponent.defaults().toComponent())));
     assertThrows(
         IiopException.class,
         () -> IiopObjectReference.fromIor(new Ior("IDL:hello/Greeter:1.0", List.of())));

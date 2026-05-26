@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import io.github.mundanej.mjo.giop.GiopCodeSetContext;
 import io.github.mundanej.mjo.giop.GiopHeader;
 import io.github.mundanej.mjo.giop.GiopMessageType;
 import io.github.mundanej.mjo.giop.GiopReply;
@@ -129,7 +130,11 @@ public final class RmiIiopWireServerHandler implements IiopRequestHandler {
 
   private static GiopReply reply(GiopRequest request, GiopReplyStatus status, byte[] body) {
     return new GiopReply(
-        GiopHeader.forType(GiopMessageType.REPLY), request.requestId(), status, List.of(), body);
+        GiopHeader.forType(GiopMessageType.REPLY),
+        request.requestId(),
+        status,
+        List.of(GiopCodeSetContext.defaults().toServiceContext()),
+        body);
   }
 
   private record Binding(

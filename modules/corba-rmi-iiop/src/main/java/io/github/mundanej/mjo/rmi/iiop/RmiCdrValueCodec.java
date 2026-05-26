@@ -1,5 +1,7 @@
 package io.github.mundanej.mjo.rmi.iiop;
 
+import io.github.mundanej.mjo.cdr.CdrDiagnosticCodes;
+import io.github.mundanej.mjo.cdr.CdrException;
 import io.github.mundanej.mjo.cdr.CdrReader;
 import io.github.mundanej.mjo.cdr.CdrWriter;
 import java.util.ArrayList;
@@ -8,6 +10,8 @@ import java.util.Objects;
 
 /** Local CDR codec for one approved RMI-IIOP value/type pair. */
 public final class RmiCdrValueCodec {
+
+  private static final int MAX_WSTRING_OCTETS = 65_536;
 
   /** Writes one value using the supplied expected IDL type. */
   public void writeValue(CdrWriter writer, RmiIdlTypeReference expectedType, RmiCdrValue value) {
@@ -64,7 +68,7 @@ public final class RmiCdrValueCodec {
       case "float" -> writer.writeFloat(requireFloat(value));
       case "double" -> writer.writeDouble(requireDouble(value));
       case "string" -> writer.writeString(requireString(value));
-      case "wstring" -> writer.writeWString(requireString(value));
+      case "wstring" -> writePeerWString(writer, requireString(value));
       default -> throw unsupported(name);
     }
   }
@@ -81,9 +85,50 @@ public final class RmiCdrValueCodec {
       case "float" -> reader.readFloat();
       case "double" -> reader.readDouble();
       case "string" -> reader.readString();
-      case "wstring" -> reader.readWString();
+      case "wstring" -> readPeerWString(reader);
       default -> throw unsupported(name);
     };
+  }
+
+  private static void writePeerWString(CdrWriter writer, String value) {
+    writer.writeWString(value);
+  }
+
+  private static String readPeerWString(CdrReader reader) {
+    long octets = reader.readUnsignedLong();
+    if (octets > MAX_WSTRING_OCTETS) {
+      throw new CdrException(
+          CdrDiagnosticCodes.LENGTH_LIMIT_EXCEEDED,
+          "RMI-IIOP wstring length exceeds " + MAX_WSTRING_OCTETS + " octets: " + octets);
+    }
+    if (octets == 0) {
+      return "";
+    }
+    if (octets % 2 != 0) {
+      throw new CdrException(
+          CdrDiagnosticCodes.INVALID_LENGTH,
+          "RMI-IIOP UTF-16 wstring octet length must be even: " + octets);
+    }
+    int first = reader.readUnsignedShort();
+    int codeUnits = Math.toIntExact(octets / 2);
+    int offset = 0;
+    char[] characters;
+    if (first == 0xFFFE) {
+      throw new CdrException(
+          CdrDiagnosticCodes.MALFORMED_WSTRING, "RMI-IIOP wstring uses byte-swapped UTF-16 marker");
+    }
+    if (first == 0xFEFF) {
+      characters = new char[codeUnits - 1];
+    } else {
+      characters = new char[codeUnits];
+      characters[0] = (char) first;
+      offset = 1;
+    }
+    for (int index = offset; index < characters.length; index++) {
+      characters[index] = (char) reader.readUnsignedShort();
+    }
+    validateUtf16(characters);
+    return new String(characters);
   }
 
   private void writeSequence(CdrWriter writer, RmiIdlTypeReference expectedType, Object value) {
@@ -247,6 +292,24 @@ public final class RmiCdrValueCodec {
     }
     throwTypeMismatch("RMI CDR value must be String");
     return "";
+  }
+
+  private static void validateUtf16(char[] characters) {
+    for (int index = 0; index < characters.length; index++) {
+      char character = characters[index];
+      if (Character.isHighSurrogate(character)) {
+        if (index + 1 >= characters.length || !Character.isLowSurrogate(characters[index + 1])) {
+          throw new CdrException(
+              CdrDiagnosticCodes.MALFORMED_WSTRING,
+              "RMI-IIOP wstring contains an unmatched high surrogate");
+        }
+        index++;
+      } else if (Character.isLowSurrogate(character)) {
+        throw new CdrException(
+            CdrDiagnosticCodes.MALFORMED_WSTRING,
+            "RMI-IIOP wstring contains an unmatched low surrogate");
+      }
+    }
   }
 
   private static RmiCdrMarshalingException unsupported(String name) {
