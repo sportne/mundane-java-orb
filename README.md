@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **pre-1.0 interoperability completion state**:
+This repository is in **1.0.0 GitHub Release asset preparation state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -115,6 +115,8 @@ This repository is in **pre-1.0 interoperability completion state**:
   matrix: `basic-idl`, `object-reference`, `naming`, `giop`, `iiop`, and
   `rmi-iiop` all passed across JacORB, JBoss OpenJDK ORB, Eclipse GlassFish
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
+- `corba.version` is set to `1.0.0`, and the release workflow packages the
+  locally staged Maven repository as GitHub Release assets only;
 - there is no non-human-gated roadmap task currently ready for implementation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
@@ -124,9 +126,9 @@ This repository is in **pre-1.0 interoperability completion state**:
 - optional Trading, Event, Notification, Transaction, Security, and Time
   Services are split into separately traceable human-gated design tasks, with
   no service behavior implemented by that split;
-- the G10 pre-1.0 interoperability roadmap is defined for closing
-  non-optional IDL, mapping, wire, runtime, Native Image, harness, and live peer
-  execution gaps before a `1.0.0` release can be declared;
+- the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
+  mapping, wire, runtime, Native Image, harness, and live peer execution gaps
+  needed before `1.0.0` release publication;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -183,13 +185,16 @@ This repository includes Gradle build files and wrapper metadata targeting Gradl
 
 For build setup details, see `docs/build/README.md`. For offline environments,
 see `docs/build/offline-build.md` and `tools/prepare-offline-repository.sh`.
+For release publication details, see `docs/verification/github-release-assets.md`
+and `docs/releases/1.0.0.md`.
 
 Build conventions live in `build-logic/` as composable Gradle convention plugins. Published and internal test modules live under `modules/`; non-published examples live under `examples/`.
 
 ## Ready roadmap tasks
 
 There is no non-human-gated roadmap task currently ready for implementation.
-`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md` and its child
-tasks are complete. Remaining human gates, including optional CORBA service
-approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
-record the relevant decisions.
+`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md`, its child
+tasks, and `docs/roadmap/tasks/g11-010-github-release-assets.md` are complete.
+Remaining human gates, including optional CORBA service approval, stay tracked
+as `human-gate-blocked` roadmap tasks until maintainers record the relevant
+decisions.

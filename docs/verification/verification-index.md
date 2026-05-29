@@ -12,5 +12,6 @@
 - `pre-1-0-interoperability-plan.md`
 - `native-image-matrix.md`
 - `offline-build-validation.md`
+- `github-release-assets.md`
 - `optional-services-review.md`
 - `reference-behavior-capture.md`

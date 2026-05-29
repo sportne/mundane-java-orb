@@ -33,6 +33,18 @@ Contributor-facing setup instructions live in `docs/build/README.md`. This file 
   publications, and a standalone downstream consumer.
 - `prepareOfflineRepository` remains as a compatibility alias for older docs and scripts.
 
+## Release publication
+
+Version `1.0.0` uses a GitHub Release asset workflow instead of remote Maven
+deployment. `.github/workflows/release.yml` validates the requested release tag
+against `corba.version`, runs the repository test and release gates, packages
+the locally staged Maven repository from `build/staging-repository`, and uploads
+the archive, checksum file, and publication summary as GitHub Release assets.
+
+The workflow intentionally has `contents: write` permission only. It does not
+request `packages: write`, does not configure GitHub Packages, and does not add
+Maven Central or other remote deployment repositories.
+
 ## Build properties
 
 - `corba.version` controls published artifact versions.

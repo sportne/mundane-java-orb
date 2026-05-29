@@ -145,3 +145,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g10-120-070-live-matrix-reporting-and-classification.md` - complete
 - `tasks/g10-120-080-project-owned-interop-defect-closure.md` - complete
 - `tasks/g10-120-090-final-pre-1-0-live-evidence.md` - complete
+
+## G11 1.0.0 Release Publication
+
+- `tasks/g11-010-github-release-assets.md` - complete

@@ -1,0 +1,99 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish, for example v1.0.0.
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  github-release-assets:
+    name: GitHub Release assets
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Check out and validate release tag
+        run: |
+          set -euo pipefail
+          tag="${RELEASE_TAG}"
+          if [[ ! "${tag}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must use vMAJOR.MINOR.PATCH format: ${tag}" >&2
+            exit 1
+          fi
+
+          git fetch --force --tags origin "refs/tags/${tag}:refs/tags/${tag}"
+          git checkout --detach "refs/tags/${tag}"
+
+          version="$(awk -F= '$1 == "corba.version" { print $2 }' gradle.properties)"
+          if [[ -z "${version}" ]]; then
+            echo "Missing corba.version in gradle.properties" >&2
+            exit 1
+          fi
+          if [[ "${version}" == *SNAPSHOT* ]]; then
+            echo "Release version must not be a SNAPSHOT: ${version}" >&2
+            exit 1
+          fi
+          if [[ "${tag}" != "v${version}" ]]; then
+            echo "Release tag ${tag} does not match corba.version ${version}" >&2
+            exit 1
+          fi
+      - name: Validate release inputs
+        run: |
+          set -euo pipefail
+          ./gradlew test
+          ./gradlew validateDesignControlPack qualityGate
+          ./gradlew offlineReleaseValidation
+      - name: Package release assets
+        run: |
+          set -euo pipefail
+          version="$(awk -F= '$1 == "corba.version" { print $2 }' gradle.properties)"
+          mkdir -p build/release-assets
+
+          ./gradlew printPublishedArtifacts > "build/release-assets/mundane-java-orb-${version}-published-artifacts.txt"
+
+          tar --sort=name \
+            --mtime='UTC 1970-01-01' \
+            --owner=0 \
+            --group=0 \
+            --numeric-owner \
+            -cf - \
+            -C build staging-repository \
+            | gzip -n > "build/release-assets/mundane-java-orb-${version}-maven-repository.tar.gz"
+
+          (
+            cd build/release-assets
+            sha256sum \
+              "mundane-java-orb-${version}-maven-repository.tar.gz" \
+              "mundane-java-orb-${version}-published-artifacts.txt" \
+              > "mundane-java-orb-${version}-SHA256SUMS.txt"
+          )
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="$(awk -F= '$1 == "corba.version" { print $2 }' gradle.properties)"
+          gh release create "${RELEASE_TAG}" \
+            "build/release-assets/mundane-java-orb-${version}-maven-repository.tar.gz" \
+            "build/release-assets/mundane-java-orb-${version}-published-artifacts.txt" \
+            "build/release-assets/mundane-java-orb-${version}-SHA256SUMS.txt" \
+            --verify-tag \
+            --title "mundane Java ORB ${version}" \
+            --notes-file "docs/releases/${version}.md"

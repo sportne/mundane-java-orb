@@ -53,6 +53,24 @@ the requested `JAVA_HOME`.
 
 `prepareOfflineRepository` is kept as an older compatibility alias that points contributors to the current offline instructions.
 
+## GitHub release assets
+
+The `release` GitHub Actions workflow publishes GitHub Release assets only. It
+does not publish to GitHub Packages, Maven Central, or any other remote Maven
+repository.
+
+Release runs are driven by a `vMAJOR.MINOR.PATCH` tag, such as `v1.0.0`, or by
+manual dispatch with the same tag value. The workflow checks out the exact tag,
+verifies that the tag matches `corba.version`, runs the repository tests,
+design-control/quality gates, and `offlineReleaseValidation`, then packages
+`build/staging-repository` into a deterministic archive with SHA-256 checksums.
+
+The expected GitHub Release assets are:
+
+- `mundane-java-orb-<version>-maven-repository.tar.gz`
+- `mundane-java-orb-<version>-published-artifacts.txt`
+- `mundane-java-orb-<version>-SHA256SUMS.txt`
+
 ## Convention plugins
 
 Most module build files stay short because they apply convention plugins from `build-logic/src/main/groovy`.
