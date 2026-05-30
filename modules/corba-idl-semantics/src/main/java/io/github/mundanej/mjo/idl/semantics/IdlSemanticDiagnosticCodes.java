@@ -32,5 +32,20 @@ public final class IdlSemanticDiagnosticCodes {
   /** A union case label is invalid for its discriminator. */
   public static final DiagnosticCode INVALID_UNION_LABEL = new DiagnosticCode("IDL-0408");
 
+  /** A forward declaration has no matching complete declaration or has incompatible modifiers. */
+  public static final DiagnosticCode INVALID_FORWARD_DECLARATION = new DiagnosticCode("IDL-0409");
+
+  /** A value-recursive type graph is illegal for by-value IDL members. */
+  public static final DiagnosticCode INVALID_RECURSIVE_TYPE = new DiagnosticCode("IDL-0410");
+
+  /** A repository-affecting pragma is malformed or conflicts with existing metadata. */
+  public static final DiagnosticCode INVALID_REPOSITORY_PRAGMA = new DiagnosticCode("IDL-0411");
+
+  /** An operation context clause is semantically invalid. */
+  public static final DiagnosticCode INVALID_OPERATION_CONTEXT = new DiagnosticCode("IDL-0412");
+
+  /** A name inherited through multiple base scopes is ambiguous. */
+  public static final DiagnosticCode AMBIGUOUS_NAME = new DiagnosticCode("IDL-0413");
+
   private IdlSemanticDiagnosticCodes() {}
 }

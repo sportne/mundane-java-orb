@@ -13,6 +13,7 @@ import java.util.Optional;
  * @param typeName syntactic type name for typed symbols
  * @param resolvedTypeName resolved builtin type or absolute user-defined type name
  * @param constantValue evaluated value for constants and enum values
+ * @param repositoryId repository ID assigned by default rules or repository pragmas
  * @param span source span for the declaration that introduced the symbol
  */
 public record IdlSymbol(
@@ -22,6 +23,7 @@ public record IdlSymbol(
     Optional<String> typeName,
     Optional<String> resolvedTypeName,
     Optional<IdlConstantValue> constantValue,
+    Optional<String> repositoryId,
     SourceSpan span) {
 
   /** Creates a validated semantic symbol. */
@@ -32,7 +34,29 @@ public record IdlSymbol(
     Objects.requireNonNull(typeName, "typeName");
     Objects.requireNonNull(resolvedTypeName, "resolvedTypeName");
     Objects.requireNonNull(constantValue, "constantValue");
+    Objects.requireNonNull(repositoryId, "repositoryId");
+    repositoryId.ifPresent(value -> requireNonBlank(value, "repositoryId"));
     Objects.requireNonNull(span, "span");
+  }
+
+  /** Creates a symbol without repository ID metadata. */
+  public IdlSymbol(
+      IdlSymbolKind kind,
+      String name,
+      String qualifiedName,
+      Optional<String> typeName,
+      Optional<String> resolvedTypeName,
+      Optional<IdlConstantValue> constantValue,
+      SourceSpan span) {
+    this(
+        kind,
+        name,
+        qualifiedName,
+        typeName,
+        resolvedTypeName,
+        constantValue,
+        Optional.empty(),
+        span);
   }
 
   private static String requireAbsoluteName(String value) {

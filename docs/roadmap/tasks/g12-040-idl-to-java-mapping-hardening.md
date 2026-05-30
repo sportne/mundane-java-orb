@@ -1,7 +1,7 @@
 # G12-040 IDL-To-Java Mapping Hardening
 
 Task ID: G12-040-IDL-TO-JAVA-MAPPING-HARDENING
-Status: blocked
+Status: ready-for-implementation
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-IDL-001, REQ-IDL-002, REQ-IDLJ-002, REQ-IDLJ-003, REQ-IDLJ-004, REQ-DOC-005, REQ-NATIVE-002, REQ-SEC-004
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008, ADR-0010

@@ -14,11 +14,13 @@ import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceKind;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
 import io.github.mundanej.mjo.idl.ast.IdlNative;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameter;
+import io.github.mundanej.mjo.idl.ast.IdlPragma;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTranslationUnit;
 import io.github.mundanej.mjo.idl.ast.IdlTypeReference;
@@ -37,6 +39,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -107,6 +110,24 @@ public final class IdlSemanticAnalyzer {
     private static final Set<String> FLOATING_CONSTANT_TYPES =
         Set.of("float", "double", "long double");
     private static final Pattern IDENTIFIER_PATTERN = Pattern.compile("_?[A-Za-z][A-Za-z0-9_]*");
+    private static final Pattern REPOSITORY_ID_PATTERN = Pattern.compile("IDL:.+:[0-9]+\\.[0-9]+");
+    private static final Map<String, IntegerRange> INTEGER_RANGES =
+        Map.ofEntries(
+            Map.entry("short", IntegerRange.signed(16)),
+            Map.entry("unsigned short", IntegerRange.unsigned(16)),
+            Map.entry("long", IntegerRange.signed(32)),
+            Map.entry("unsigned long", IntegerRange.unsigned(32)),
+            Map.entry("long long", IntegerRange.signed(64)),
+            Map.entry("unsigned long long", IntegerRange.unsigned(64)),
+            Map.entry("int8", IntegerRange.signed(8)),
+            Map.entry("uint8", IntegerRange.unsigned(8)),
+            Map.entry("int16", IntegerRange.signed(16)),
+            Map.entry("uint16", IntegerRange.unsigned(16)),
+            Map.entry("int32", IntegerRange.signed(32)),
+            Map.entry("uint32", IntegerRange.unsigned(32)),
+            Map.entry("int64", IntegerRange.signed(64)),
+            Map.entry("uint64", IntegerRange.unsigned(64)),
+            Map.entry("octet", IntegerRange.unsigned(8)));
 
     private final IdlTranslationUnit translationUnit;
     private final Scope globalScope = new Scope(null, "");
@@ -152,7 +173,14 @@ public final class IdlSemanticAnalyzer {
     private final IdentityHashMap<IdlValueFactory, MutableSymbol> valueFactorySymbols =
         new IdentityHashMap<>();
     private final Map<MutableSymbol, List<MutableSymbol>> interfaceBaseGraph = new HashMap<>();
+    private final Map<MutableSymbol, List<MutableSymbol>> valueBaseGraph = new HashMap<>();
+    private final Map<MutableSymbol, List<MutableSymbol>> valueRecursiveTypeGraph = new HashMap<>();
+    private final Map<MutableSymbol, IdlInterfaceKind> interfaceKinds = new HashMap<>();
+    private final Map<MutableSymbol, Boolean> valueTypeAbstracts = new HashMap<>();
+    private final Map<MutableSymbol, SourceSpan> interfaceDeclarationSpans = new HashMap<>();
     private final List<MutableSymbol> interfaceBaseValidationOrder = new ArrayList<>();
+    private final List<MutableSymbol> valueBaseValidationOrder = new ArrayList<>();
+    private final List<MutableSymbol> recursiveTypeValidationOrder = new ArrayList<>();
     private int nextOrder;
 
     private Analyzer(IdlTranslationUnit translationUnit) {
@@ -161,8 +189,13 @@ public final class IdlSemanticAnalyzer {
 
     private IdlSemanticResult analyze() {
       collectDeclarations(translationUnit.declarations(), globalScope);
-      validateDeclarations(translationUnit.declarations(), globalScope, new HashMap<>());
+      validateDeclarations(
+          translationUnit.declarations(), globalScope, new HashMap<>(), new RepositoryContext(""));
       validateInterfaceCycles();
+      validateInterfaceInheritedAmbiguity();
+      validateValueTypeCycles();
+      validateForwardDeclarations();
+      validateRecursiveTypeCycles();
       if (hasErrors()) {
         return new IdlSemanticResult(Optional.empty(), diagnostics);
       }
@@ -213,6 +246,7 @@ public final class IdlSemanticAnalyzer {
         MutableSymbol symbol = defineInterface(scope, forward.name(), forward.span(), true);
         if (symbol != null) {
           interfaceForwardSymbols.put(forward, symbol);
+          recordInterfaceKind(symbol, forward.kind(), forward.span(), forward.name());
         }
       } else if (declaration instanceof IdlNative nativeDeclaration) {
         MutableSymbol symbol =
@@ -242,6 +276,7 @@ public final class IdlSemanticAnalyzer {
         MutableSymbol symbol = defineValueType(scope, forward.name(), forward.span(), true);
         if (symbol != null) {
           valueForwardSymbols.put(forward, symbol);
+          recordValueTypeAbstract(symbol, forward.abstractValue(), forward.span(), forward.name());
         }
       }
     }
@@ -255,6 +290,8 @@ public final class IdlSemanticAnalyzer {
       symbol.childScope = valueScope;
       valueTypeSymbols.put(valueType, symbol);
       valueTypeScopes.put(valueType, valueScope);
+      recordValueTypeAbstract(
+          symbol, valueType.abstractValue(), valueType.span(), valueType.name());
       for (IdlValueMember member : valueType.members()) {
         collectValueMember(member, valueScope);
       }
@@ -420,10 +457,12 @@ public final class IdlSemanticAnalyzer {
       if (symbol == null) {
         return;
       }
+      recordInterfaceKind(symbol, idlInterface.kind(), idlInterface.span(), idlInterface.name());
       Scope interfaceScope = new Scope(scope, symbol.qualifiedName);
       symbol.childScope = interfaceScope;
       interfaceSymbols.put(idlInterface, symbol);
       interfaceScopes.put(idlInterface, interfaceScope);
+      interfaceDeclarationSpans.put(symbol, idlInterface.span());
       for (IdlInterfaceMember member : idlInterface.members()) {
         collectInterfaceMember(member, interfaceScope);
       }
@@ -538,21 +577,52 @@ public final class IdlSemanticAnalyzer {
       return null;
     }
 
+    private void recordInterfaceKind(
+        MutableSymbol symbol, IdlInterfaceKind kind, SourceSpan span, String name) {
+      IdlInterfaceKind previous = interfaceKinds.putIfAbsent(symbol, kind);
+      if (previous != null && previous != kind) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_FORWARD_DECLARATION,
+            "Interface declaration kind does not match prior declaration: " + name,
+            span);
+      }
+    }
+
+    private void recordValueTypeAbstract(
+        MutableSymbol symbol, boolean abstractValue, SourceSpan span, String name) {
+      Boolean previous = valueTypeAbstracts.putIfAbsent(symbol, abstractValue);
+      if (previous != null && previous.booleanValue() != abstractValue) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_FORWARD_DECLARATION,
+            "Valuetype declaration kind does not match prior declaration: " + name,
+            span);
+      }
+    }
+
     private void validateDeclarations(
         List<IdlDeclaration> declarations,
         Scope scope,
-        Map<String, MutableSymbol> availableValues) {
+        Map<String, MutableSymbol> availableValues,
+        RepositoryContext repositoryContext) {
       for (IdlDeclaration declaration : declarations) {
-        validateDeclaration(declaration, scope, availableValues);
+        validateDeclaration(declaration, scope, availableValues, repositoryContext);
       }
     }
 
     private void validateDeclaration(
-        IdlDeclaration declaration, Scope scope, Map<String, MutableSymbol> availableValues) {
+        IdlDeclaration declaration,
+        Scope scope,
+        Map<String, MutableSymbol> availableValues,
+        RepositoryContext repositoryContext) {
+      assignDefaultRepositoryId(declaration, repositoryContext);
       if (declaration instanceof IdlModule module) {
         Scope moduleScope = moduleScopes.get(module);
         if (moduleScope != null) {
-          validateDeclarations(module.declarations(), moduleScope, availableValues);
+          validateDeclarations(
+              module.declarations(),
+              moduleScope,
+              availableValues,
+              new RepositoryContext(repositoryContext.prefix()));
         }
       } else if (declaration instanceof IdlStruct struct) {
         validateFields(struct.fields(), structScopes.get(struct), availableValues);
@@ -578,13 +648,231 @@ public final class IdlSemanticAnalyzer {
         validateValueBox(valueBox, scope, availableValues);
       } else if (declaration instanceof IdlValueType valueType) {
         validateValueType(valueType, scope, availableValues);
+      } else if (declaration instanceof IdlPragma pragma) {
+        validateRepositoryPragma(pragma, scope, repositoryContext);
       }
+    }
+
+    private void assignDefaultRepositoryId(
+        IdlDeclaration declaration, RepositoryContext repositoryContext) {
+      MutableSymbol symbol = symbolForRepositoryDeclaration(declaration);
+      if (symbol == null || !repositoryBearing(symbol.kind)) {
+        return;
+      }
+      if (symbol.repositoryId.isPresent()) {
+        return;
+      }
+      symbol.repositoryId =
+          Optional.of(repositoryId(symbol.qualifiedName, repositoryContext.prefix(), "1.0"));
+    }
+
+    private MutableSymbol symbolForRepositoryDeclaration(IdlDeclaration declaration) {
+      if (declaration instanceof IdlStruct struct) {
+        return resolveDefinedSymbol(structScopes.get(struct));
+      }
+      if (declaration instanceof IdlUnion union) {
+        return resolveDefinedSymbol(unionScopes.get(union));
+      }
+      if (declaration instanceof IdlEnum idlEnum) {
+        return resolveDefinedSymbol(enumScopes.get(idlEnum));
+      }
+      if (declaration instanceof IdlExceptionDeclaration exception) {
+        return resolveDefinedSymbol(exceptionScopes.get(exception));
+      }
+      if (declaration instanceof IdlInterface idlInterface) {
+        return interfaceSymbols.get(idlInterface);
+      }
+      if (declaration instanceof IdlNative nativeDeclaration) {
+        return nativeSymbols.get(nativeDeclaration);
+      }
+      if (declaration instanceof IdlValueBox valueBox) {
+        return valueBoxSymbols.get(valueBox);
+      }
+      if (declaration instanceof IdlValueType valueType) {
+        return valueTypeSymbols.get(valueType);
+      }
+      return null;
+    }
+
+    private void validateRepositoryPragma(
+        IdlPragma pragma, Scope scope, RepositoryContext repositoryContext) {
+      switch (pragma.name()) {
+        case "prefix" -> validatePrefixPragma(pragma, repositoryContext);
+        case "ID", "typeid" -> validateRepositoryIdPragma(pragma, scope);
+        case "version" -> validateRepositoryVersionPragma(pragma, scope);
+        case "typeprefix" -> validateTypePrefixPragma(pragma, scope);
+        default -> {
+          // Unknown pragmas are syntax-preserved by the parser but have no semantic effect.
+        }
+      }
+    }
+
+    private void validatePrefixPragma(IdlPragma pragma, RepositoryContext repositoryContext) {
+      if (pragma.arguments().size() != 1 || !isStringLiteral(pragma.arguments().getFirst())) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "#pragma prefix requires exactly one string literal argument",
+            pragma.span());
+        return;
+      }
+      repositoryContext.setPrefix(decodeQuotedLiteral(pragma.arguments().getFirst()));
+    }
+
+    private void validateRepositoryIdPragma(IdlPragma pragma, Scope scope) {
+      if (pragma.arguments().size() != 2) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            pragma.name() + " requires a target and repository ID",
+            pragma.span());
+        return;
+      }
+      Optional<MutableSymbol> resolved =
+          resolveName(
+              scope,
+              pragma.arguments().get(0),
+              pragma.span(),
+              IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+      if (resolved.isEmpty()) {
+        return;
+      }
+      String repositoryId = stripOptionalQuotes(pragma.arguments().get(1));
+      if (!validRepositoryId(repositoryId)) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "Repository ID pragma value is not a valid IDL repository ID: " + repositoryId,
+            pragma.span());
+        return;
+      }
+      applyRepositoryId(resolved.orElseThrow(), repositoryId, true, pragma.span());
+    }
+
+    private void validateRepositoryVersionPragma(IdlPragma pragma, Scope scope) {
+      if (pragma.arguments().size() != 2) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "#pragma version requires a target and version",
+            pragma.span());
+        return;
+      }
+      Optional<MutableSymbol> resolved =
+          resolveName(
+              scope,
+              pragma.arguments().get(0),
+              pragma.span(),
+              IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+      if (resolved.isEmpty()) {
+        return;
+      }
+      MutableSymbol symbol = resolved.orElseThrow();
+      String version = stripOptionalQuotes(pragma.arguments().get(1));
+      if (!version.matches("[0-9]+\\.[0-9]+")) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "Repository version must use major.minor numeric form: " + version,
+            pragma.span());
+        return;
+      }
+      applyRepositoryId(symbol, replaceRepositoryIdVersion(symbol, version), false, pragma.span());
+    }
+
+    private void validateTypePrefixPragma(IdlPragma pragma, Scope scope) {
+      if (pragma.arguments().size() != 2 || !isStringLiteral(pragma.arguments().get(1))) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "typeprefix requires a target and string literal prefix",
+            pragma.span());
+        return;
+      }
+      Optional<MutableSymbol> resolved =
+          resolveName(
+              scope,
+              pragma.arguments().get(0),
+              pragma.span(),
+              IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+      if (resolved.isEmpty()) {
+        return;
+      }
+      MutableSymbol symbol = resolved.orElseThrow();
+      applyRepositoryId(
+          symbol,
+          repositoryIdForSimpleName(
+              symbol.name,
+              decodeQuotedLiteral(pragma.arguments().get(1)),
+              repositoryVersion(symbol.repositoryId.orElse("IDL:" + symbol.name + ":1.0"))),
+          false,
+          pragma.span());
+    }
+
+    private void applyRepositoryId(
+        MutableSymbol symbol, String repositoryId, boolean explicit, SourceSpan span) {
+      if (!repositoryBearing(symbol.kind)) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "Repository pragma target does not name a repository-bearing declaration: "
+                + symbol.qualifiedName,
+            span);
+        return;
+      }
+      if (symbol.repositoryId.isPresent()
+          && symbol.repositoryIdExplicit
+          && !symbol.repositoryId.orElseThrow().equals(repositoryId)) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA,
+            "Conflicting repository ID metadata for: " + symbol.qualifiedName,
+            span);
+        return;
+      }
+      symbol.repositoryId = Optional.of(repositoryId);
+      symbol.repositoryIdExplicit = symbol.repositoryIdExplicit || explicit;
+    }
+
+    private static boolean repositoryBearing(IdlSymbolKind kind) {
+      return kind == IdlSymbolKind.ENUM
+          || kind == IdlSymbolKind.EXCEPTION
+          || kind == IdlSymbolKind.INTERFACE
+          || kind == IdlSymbolKind.NATIVE
+          || kind == IdlSymbolKind.STRUCT
+          || kind == IdlSymbolKind.UNION
+          || kind == IdlSymbolKind.VALUE_BOX
+          || kind == IdlSymbolKind.VALUETYPE;
+    }
+
+    private static boolean validRepositoryId(String repositoryId) {
+      return REPOSITORY_ID_PATTERN.matcher(repositoryId).matches();
+    }
+
+    private static String repositoryId(String qualifiedName, String prefix, String version) {
+      String path = qualifiedName.substring(2).replace("::", "/");
+      if (!prefix.isBlank()) {
+        path = prefix + "/" + path;
+      }
+      return "IDL:" + path + ":" + version;
+    }
+
+    private static String repositoryIdForSimpleName(String name, String prefix, String version) {
+      return "IDL:" + prefix + "/" + name + ":" + version;
+    }
+
+    private static String replaceRepositoryIdVersion(MutableSymbol symbol, String version) {
+      String current = symbol.repositoryId.orElse(repositoryId(symbol.qualifiedName, "", "1.0"));
+      int separator = current.lastIndexOf(':');
+      return separator < 0 ? current : current.substring(0, separator + 1) + version;
+    }
+
+    private static String repositoryVersion(String repositoryId) {
+      int separator = repositoryId.lastIndexOf(':');
+      return separator < 0 ? "1.0" : repositoryId.substring(separator + 1);
+    }
+
+    private static String stripOptionalQuotes(String value) {
+      return isStringLiteral(value) ? decodeQuotedLiteral(value) : value;
     }
 
     private void validateValueBox(
         IdlValueBox valueBox, Scope scope, Map<String, MutableSymbol> availableValues) {
       ResolvedType boxedType = resolveType(valueBox.boxedType(), scope, false, availableValues);
       MutableSymbol symbol = valueBoxSymbols.get(valueBox);
+      registerByValueTypeReference(symbol, valueBox.boxedType(), boxedType);
       if (symbol != null && boxedType != null) {
         symbol.resolvedTypeName = Optional.of(boxedType.name());
       }
@@ -596,25 +884,72 @@ public final class IdlSemanticAnalyzer {
       if (valueScope == null) {
         return;
       }
+      MutableSymbol valueSymbol = valueTypeSymbols.get(valueType);
+      List<MutableSymbol> bases = new ArrayList<>();
+      int concreteBaseCount = 0;
       for (String baseName : valueType.baseValueTypes()) {
         Optional<MutableSymbol> resolved =
             resolveName(
                 scope, baseName, valueType.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
-        if (resolved.isPresent() && resolved.orElseThrow().kind != IdlSymbolKind.VALUETYPE) {
+        if (resolved.isEmpty()) {
+          continue;
+        }
+        MutableSymbol base = resolved.orElseThrow();
+        if (base.kind != IdlSymbolKind.VALUETYPE) {
           emit(
               IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
               "Valuetype base must resolve to a valuetype: " + baseName,
               valueType.span());
+          continue;
+        }
+        if (base == valueSymbol) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Valuetype cannot inherit from itself: " + baseName,
+              valueType.span());
+          continue;
+        }
+        bases.add(base);
+        if (!valueTypeAbstracts.getOrDefault(base, false)) {
+          concreteBaseCount++;
+        }
+        if (valueType.abstractValue() && !valueTypeAbstracts.getOrDefault(base, false)) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Abstract valuetype cannot inherit from a concrete valuetype: " + baseName,
+              valueType.span());
+        }
+      }
+      if (concreteBaseCount > 1) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+            "Valuetype may inherit from at most one concrete valuetype",
+            valueType.span());
+      }
+      if (valueSymbol != null) {
+        valueBaseGraph.put(valueSymbol, bases);
+        if (!valueBaseValidationOrder.contains(valueSymbol)) {
+          valueBaseValidationOrder.add(valueSymbol);
         }
       }
       for (String supportedName : valueType.supportedInterfaces()) {
         Optional<MutableSymbol> resolved =
             resolveName(
                 scope, supportedName, valueType.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
-        if (resolved.isPresent() && resolved.orElseThrow().kind != IdlSymbolKind.INTERFACE) {
+        if (resolved.isEmpty()) {
+          continue;
+        }
+        MutableSymbol supported = resolved.orElseThrow();
+        if (supported.kind != IdlSymbolKind.INTERFACE) {
           emit(
               IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
               "Valuetype supports target must resolve to an interface: " + supportedName,
+              valueType.span());
+        } else if (interfaceKinds.getOrDefault(supported, IdlInterfaceKind.NORMAL)
+            == IdlInterfaceKind.LOCAL) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Valuetype cannot support a local interface: " + supportedName,
               valueType.span());
         }
       }
@@ -628,6 +963,8 @@ public final class IdlSemanticAnalyzer {
       if (member instanceof IdlValueField field) {
         ResolvedType resolvedType =
             resolveType(field.type(), valueScope.parent, false, availableValues);
+        MutableSymbol owner = resolveDefinedSymbol(valueScope);
+        registerByValueTypeReference(owner, field.type(), resolvedType);
         for (IdlDeclarator declarator : field.declarators()) {
           validateDeclaratorDimensions(declarator, valueScope.parent, availableValues);
         }
@@ -666,9 +1003,11 @@ public final class IdlSemanticAnalyzer {
         return;
       }
       Scope typeLookupScope = scope.parent;
+      MutableSymbol owner = resolveDefinedSymbol(scope);
       for (IdlField field : fields) {
         ResolvedType resolvedType =
             resolveType(field.type(), typeLookupScope, false, availableValues);
+        registerByValueTypeReference(owner, field.type(), resolvedType);
         validateDeclaratorDimensions(field.declarator(), typeLookupScope, availableValues);
         MutableSymbol symbol = fieldSymbols.get(field);
         if (symbol != null && resolvedType != null) {
@@ -730,6 +1069,7 @@ public final class IdlSemanticAnalyzer {
         return;
       }
       Scope typeLookupScope = unionScope.parent;
+      MutableSymbol owner = resolveDefinedSymbol(unionScope);
       ResolvedType discriminatorType =
           resolveType(union.discriminatorType(), typeLookupScope, false, availableValues);
       if (discriminatorType == null || !validUnionDiscriminator(discriminatorType)) {
@@ -765,6 +1105,7 @@ public final class IdlSemanticAnalyzer {
         }
         ResolvedType memberType =
             resolveType(unionCase.type(), typeLookupScope, false, availableValues);
+        registerByValueTypeReference(owner, unionCase.type(), memberType);
         validateDeclaratorDimensions(unionCase.declarator(), typeLookupScope, availableValues);
         MutableSymbol symbol = unionCaseSymbols.get(unionCase);
         if (symbol != null && memberType != null) {
@@ -935,6 +1276,7 @@ public final class IdlSemanticAnalyzer {
       for (String raisesName : operation.raises()) {
         validateRaisesTarget(raisesName, operation.span(), operationSymbol, typeLookupScope);
       }
+      validateOperationContexts(operation);
     }
 
     private void validateRaisesTarget(
@@ -953,6 +1295,180 @@ public final class IdlSemanticAnalyzer {
             "Raises target must be a previously declared exception: " + raisesName,
             span);
       }
+    }
+
+    private void validateOperationContexts(IdlOperation operation) {
+      if (operation.contexts().isEmpty()) {
+        return;
+      }
+      Set<String> seen = new HashSet<>();
+      boolean wildcardSeen = false;
+      for (String literal : operation.contexts()) {
+        String context = decodeQuotedLiteral(literal);
+        if (context.isBlank()) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_OPERATION_CONTEXT,
+              "Operation context entries must not be blank",
+              operation.span());
+          continue;
+        }
+        if (!seen.add(context)) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_OPERATION_CONTEXT,
+              "Duplicate operation context entry: " + context,
+              operation.span());
+        }
+        if (context.equals("*")) {
+          wildcardSeen = true;
+        }
+      }
+      if (wildcardSeen && seen.size() > 1) {
+        emit(
+            IdlSemanticDiagnosticCodes.INVALID_OPERATION_CONTEXT,
+            "Wildcard operation context must be the only context entry",
+            operation.span());
+      }
+    }
+
+    private void validateForwardDeclarations() {
+      // Forward/full modifier compatibility is checked when a full declaration reuses the
+      // placeholder symbol. Uncompleted forwards remain usable as object/value references.
+    }
+
+    private void validateValueTypeCycles() {
+      for (MutableSymbol symbol : valueBaseValidationOrder) {
+        detectValueTypeCycle(symbol, symbol, new ArrayList<>());
+      }
+    }
+
+    private boolean detectValueTypeCycle(
+        MutableSymbol root, MutableSymbol current, List<MutableSymbol> path) {
+      if (path.contains(current)) {
+        return false;
+      }
+      path.add(current);
+      for (MutableSymbol base : valueBaseGraph.getOrDefault(current, List.of())) {
+        if (base == root) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Valuetype inheritance cycle includes: " + root.qualifiedName,
+              root.span);
+          return true;
+        }
+        if (detectValueTypeCycle(root, base, path)) {
+          return true;
+        }
+      }
+      path.removeLast();
+      return false;
+    }
+
+    private void registerByValueTypeReference(
+        MutableSymbol owner, IdlTypeReference type, ResolvedType resolvedType) {
+      if (owner == null
+          || resolvedType == null
+          || type.kind() == IdlTypeReferenceKind.SEQUENCE
+          || resolvedType.symbol().isEmpty()) {
+        return;
+      }
+      MutableSymbol target = recursiveTarget(resolvedType.symbol().orElseThrow(), resolvedType);
+      if (!isValueRecursiveTypeKind(owner.kind) || !isValueRecursiveTypeKind(target.kind)) {
+        return;
+      }
+      valueRecursiveTypeGraph.computeIfAbsent(owner, ignored -> new ArrayList<>()).add(target);
+      if (!recursiveTypeValidationOrder.contains(owner)) {
+        recursiveTypeValidationOrder.add(owner);
+      }
+    }
+
+    private void validateRecursiveTypeCycles() {
+      for (MutableSymbol symbol : recursiveTypeValidationOrder) {
+        detectRecursiveTypeCycle(symbol, symbol, new ArrayList<>());
+      }
+    }
+
+    private boolean detectRecursiveTypeCycle(
+        MutableSymbol root, MutableSymbol current, List<MutableSymbol> path) {
+      if (path.contains(current)) {
+        return false;
+      }
+      path.add(current);
+      for (MutableSymbol target : valueRecursiveTypeGraph.getOrDefault(current, List.of())) {
+        if (target == root) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_RECURSIVE_TYPE,
+              "Illegal by-value recursive type graph includes: " + root.qualifiedName,
+              root.span);
+          return true;
+        }
+        if (detectRecursiveTypeCycle(root, target, path)) {
+          return true;
+        }
+      }
+      path.removeLast();
+      return false;
+    }
+
+    private MutableSymbol recursiveTarget(MutableSymbol symbol, ResolvedType resolvedType) {
+      if (symbol.kind != IdlSymbolKind.TYPEDEF || !resolvedType.name().startsWith("::")) {
+        return symbol;
+      }
+      return findSymbolByQualifiedName(resolvedType.name()).orElse(symbol);
+    }
+
+    private Optional<MutableSymbol> findSymbolByQualifiedName(String qualifiedName) {
+      return symbols.stream()
+          .filter(symbol -> symbol.qualifiedName.equals(qualifiedName))
+          .findFirst();
+    }
+
+    private void validateInterfaceInheritedAmbiguity() {
+      for (MutableSymbol symbol : interfaceBaseValidationOrder) {
+        validateInheritedMemberAmbiguity(
+            symbol,
+            interfaceBaseGraph.getOrDefault(symbol, List.of()),
+            interfaceDeclarationSpans.get(symbol));
+      }
+    }
+
+    private void validateInheritedMemberAmbiguity(
+        MutableSymbol owner, List<MutableSymbol> bases, SourceSpan span) {
+      Map<String, MutableSymbol> inherited = new HashMap<>();
+      Set<String> reported = new HashSet<>();
+      for (MutableSymbol base : bases) {
+        for (MutableSymbol member : inheritedMembers(base, new HashSet<>())) {
+          String key = key(member.name);
+          MutableSymbol previous = inherited.putIfAbsent(key, member);
+          if (previous != null && previous != member && reported.add(key)) {
+            emit(
+                IdlSemanticDiagnosticCodes.AMBIGUOUS_NAME,
+                "Inherited IDL member name is ambiguous in "
+                    + owner.qualifiedName
+                    + ": "
+                    + member.name,
+                span);
+          }
+        }
+      }
+    }
+
+    private List<MutableSymbol> inheritedMembers(MutableSymbol symbol, Set<MutableSymbol> seen) {
+      if (!seen.add(symbol) || symbol.childScope == null) {
+        return List.of();
+      }
+      List<MutableSymbol> members = new ArrayList<>(symbol.childScope.symbolsByLowerName.values());
+      for (MutableSymbol base : interfaceBaseGraph.getOrDefault(symbol, List.of())) {
+        members.addAll(inheritedMembers(base, seen));
+      }
+      return members;
+    }
+
+    private static boolean isValueRecursiveTypeKind(IdlSymbolKind kind) {
+      return kind == IdlSymbolKind.STRUCT
+          || kind == IdlSymbolKind.UNION
+          || kind == IdlSymbolKind.EXCEPTION
+          || kind == IdlSymbolKind.VALUETYPE
+          || kind == IdlSymbolKind.VALUE_BOX;
     }
 
     private Optional<IdlConstantValue> evaluateConstant(
@@ -1217,7 +1733,13 @@ public final class IdlSemanticAnalyzer {
         if (value.isEmpty() || !consumeEnd()) {
           return Optional.empty();
         }
-        return Optional.of(IdlConstantValue.integer(idlType, value.orElseThrow()));
+        BigInteger integer = value.orElseThrow();
+        IntegerRange range = INTEGER_RANGES.get(idlType);
+        if (range != null && !range.contains(integer)) {
+          emitInvalidConstantValue("Integer constant value is outside the range of " + idlType);
+          return Optional.empty();
+        }
+        return Optional.of(IdlConstantValue.integer(idlType, integer));
       }
 
       private Optional<IdlConstantValue> evaluateFloating(String idlType) {
@@ -1692,6 +2214,41 @@ public final class IdlSemanticAnalyzer {
 
   private record ResolvedType(String name, ResolvedTypeKind kind, Optional<MutableSymbol> symbol) {}
 
+  private record IntegerRange(BigInteger minimum, BigInteger maximum) {
+
+    private static IntegerRange signed(int bits) {
+      BigInteger two = BigInteger.valueOf(2);
+      return new IntegerRange(
+          two.pow(bits - 1).negate(), two.pow(bits - 1).subtract(BigInteger.ONE));
+    }
+
+    private static IntegerRange unsigned(int bits) {
+      return new IntegerRange(
+          BigInteger.ZERO, BigInteger.valueOf(2).pow(bits).subtract(BigInteger.ONE));
+    }
+
+    private boolean contains(BigInteger value) {
+      return value.compareTo(minimum) >= 0 && value.compareTo(maximum) <= 0;
+    }
+  }
+
+  private static final class RepositoryContext {
+
+    private String prefix;
+
+    private RepositoryContext(String prefix) {
+      this.prefix = Objects.requireNonNull(prefix, "prefix");
+    }
+
+    private String prefix() {
+      return prefix;
+    }
+
+    private void setPrefix(String prefix) {
+      this.prefix = Objects.requireNonNull(prefix, "prefix");
+    }
+  }
+
   private record ResolveResult(
       Optional<MutableSymbol> symbol, boolean caseMismatch, boolean shadowed) {
 
@@ -1746,6 +2303,8 @@ public final class IdlSemanticAnalyzer {
     private final int order;
     private Optional<String> resolvedTypeName = Optional.empty();
     private Optional<IdlConstantValue> constantValue = Optional.empty();
+    private Optional<String> repositoryId = Optional.empty();
+    private boolean repositoryIdExplicit;
     private Scope childScope;
 
     private MutableSymbol(
@@ -1765,7 +2324,7 @@ public final class IdlSemanticAnalyzer {
 
     private IdlSymbol freeze() {
       return new IdlSymbol(
-          kind, name, qualifiedName, typeName, resolvedTypeName, constantValue, span);
+          kind, name, qualifiedName, typeName, resolvedTypeName, constantValue, repositoryId, span);
     }
   }
 }

@@ -248,6 +248,125 @@ final class IdlSemanticAnalyzerTest {
     assertEquals(
         "long",
         model.findSymbol("G12::Holder::create::id").orElseThrow().resolvedTypeName().orElseThrow());
+    assertEquals(
+        "IDL:example.com/G12/NameValue:1.0",
+        model.findSymbol("G12::NameValue").orElseThrow().repositoryId().orElseThrow());
+    assertEquals(
+        "IDL:example.com/G12/Holder:1.0",
+        model.findSymbol("G12::Holder").orElseThrow().repositoryId().orElseThrow());
+  }
+
+  @Test
+  void enforcesG12ConstantRangesAndRepositoryPragmaEffects() {
+    IdlSemanticModel model =
+        analyze(
+                """
+                #pragma prefix "example.com"
+                module Demo {
+                  const uint8 BYTE = 0xff;
+                  const int8 LOW = -128;
+                  struct Thing { long id; };
+                  #pragma version Thing 2.5
+                  typeprefix Thing "example.com/custom";
+                };
+                """)
+            .model()
+            .orElseThrow();
+
+    assertEquals(BigInteger.valueOf(255), integerValue(model, "Demo::BYTE").value());
+    assertEquals(BigInteger.valueOf(-128), integerValue(model, "Demo::LOW").value());
+    assertEquals(
+        "IDL:example.com/custom/Thing:2.5",
+        model.findSymbol("Demo::Thing").orElseThrow().repositoryId().orElseThrow());
+
+    IdlSemanticModel predeclaredPragmaModel =
+        analyze(
+                """
+                module Demo {
+                  typeid Thing "IDL:predeclared/Thing:9.1";
+                  struct Thing { long id; };
+                };
+                """)
+            .model()
+            .orElseThrow();
+    assertEquals(
+        "IDL:predeclared/Thing:9.1",
+        predeclaredPragmaModel
+            .findSymbol("Demo::Thing")
+            .orElseThrow()
+            .repositoryId()
+            .orElseThrow());
+
+    IdlSemanticResult rangeFailures =
+        analyze(
+            """
+            module Bad {
+              const uint8 TOO_LARGE = 256;
+              const unsigned short NEGATIVE = -1;
+            };
+            """);
+    assertEquals(
+        2,
+        count(diagnosticCodes(rangeFailures), IdlSemanticDiagnosticCodes.INVALID_CONSTANT_VALUE));
+  }
+
+  @Test
+  void rejectsG12RecursiveTypesContextsPragmasAndAmbiguousNames() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module Bad {
+              struct Direct { Direct next; };
+              typedef Aliased AliasedRef;
+              struct Aliased { AliasedRef next; };
+              struct A { B b; };
+              struct B { A a; };
+              interface Left { void op(); };
+              interface Right { void op(); };
+              interface Both : Left, Right {};
+              abstract interface Forward;
+              local interface Forward {};
+              interface Later {};
+              local interface Later;
+              abstract valuetype ValueForward;
+              valuetype ValueForward {};
+              valuetype V : W {};
+              valuetype W : V {};
+              interface Contexts {
+                void duplicate() context ("tenant", "tenant");
+                void wildcard() context ("*", "tenant");
+              };
+              struct Thing { long id; };
+              typeid Thing "IDL:bad/Thing:1.0";
+              typeid Thing "IDL:other/Thing:1.0";
+            };
+            """);
+
+    assertTrue(result.hasErrors());
+    List<DiagnosticCode> codes = diagnosticCodes(result);
+    assertTrue(codes.contains(IdlSemanticDiagnosticCodes.INVALID_RECURSIVE_TYPE));
+    assertTrue(codes.contains(IdlSemanticDiagnosticCodes.AMBIGUOUS_NAME));
+    assertEquals(3, count(codes, IdlSemanticDiagnosticCodes.INVALID_FORWARD_DECLARATION));
+    assertTrue(codes.contains(IdlSemanticDiagnosticCodes.INVALID_INHERITANCE));
+    assertEquals(2, count(codes, IdlSemanticDiagnosticCodes.INVALID_OPERATION_CONTEXT));
+    assertTrue(codes.contains(IdlSemanticDiagnosticCodes.INVALID_REPOSITORY_PRAGMA));
+  }
+
+  @Test
+  void detectsInheritedAmbiguityAfterAllInterfaceBaseGraphsAreKnown() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            module Bad {
+              interface Left : Mid {};
+              interface Both : Left, Right {};
+              interface Mid : Top {};
+              interface Top { void op(); };
+              interface Right { void op(); };
+            };
+            """);
+
+    assertEquals(List.of(IdlSemanticDiagnosticCodes.AMBIGUOUS_NAME), diagnosticCodes(result));
   }
 
   @Test

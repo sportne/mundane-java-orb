@@ -226,6 +226,28 @@ final class IdljCliTest {
   }
 
   @Test
+  void rejectsG12SemanticClosureFixtureWithoutGeneration() throws Exception {
+    Path source =
+        write(
+            "bad-g12-semantics.idl",
+            """
+            module Bad {
+              const uint8 BYTE = 256;
+              struct Node { Node next; };
+              interface Contexts { void op() context ("*", "tenant"); };
+            };
+            """);
+
+    CliRun result = run("validate", "--quiet", source.toString());
+
+    assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
+    assertEquals("", result.stdout());
+    assertTrue(result.stderr().contains("ERROR IDL-0404: Integer constant value is outside"));
+    assertTrue(result.stderr().contains("ERROR IDL-0410: Illegal by-value recursive type graph"));
+    assertTrue(result.stderr().contains("ERROR IDL-0412: Wildcard operation context"));
+  }
+
+  @Test
   void canRunRepeatedlyWithoutLeakingState() throws Exception {
     Path source = write("repeat.idl", "module Repeat { const long VALUE = 3; };\n");
     IdljCli cli = new IdljCli();

@@ -107,9 +107,13 @@ front end for the non-optional pre-1.0 interop IDL corpus:
 G12-020 adds syntax-level semantic model entries for native types, valuetypes,
 value boxes, valuetype state fields, and valuetype factories. This pass resolves
 their directly referenced types and supported interfaces so validate-only
-fixtures can flow through the CLI. Deeper repository ID effects, full
-valuetype-inheritance legality, operation context semantics, recursive type
-legality, and numeric range closure remain assigned to G12-030.
+fixtures can flow through the CLI. G12-030 closes the semantic checks needed by
+the richer mapping corpus: integer constants and bounds are range checked,
+repository-affecting pragmas assign deterministic repository ID metadata,
+operation context clauses reject duplicate or conflicting wildcard entries,
+by-value recursive type graphs fail with stable diagnostics, forward/full
+modifier compatibility is checked, valuetype inheritance legality is validated,
+and ambiguous inherited member names are diagnosed.
 
 The analyzer uses two-pass collection for type names so fields, attributes,
 operation returns, parameters, typedefs, unions, and recursive type references
@@ -117,10 +121,11 @@ may refer to types declared later in the same translation unit. Constant
 references, array/sequence/string bounds, and `raises(...)` targets remain
 declaration-order constrained in this slice.
 
-The semantic model is deliberately not a compiler back end. Repository ID
-construction, Java mapping, generated source, generated codecs, TypeCode, Any,
-CDR, GIOP/IIOP, ORB runtime behavior, reflection, dynamic classpath scanning,
-and Native Image metadata generation remain assigned to later roadmap tasks.
+The semantic model is deliberately not a compiler back end. It records
+repository ID strings needed by later mapping tasks, but Java mapping, generated
+source, generated codecs, TypeCode, Any, CDR, GIOP/IIOP, ORB runtime behavior,
+reflection, dynamic classpath scanning, and Native Image metadata generation
+remain assigned to later roadmap tasks.
 
 ## Validation CLI Boundary
 
