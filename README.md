@@ -127,8 +127,8 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-120-PERSISTENT-POA-OBJECT-KEYS` is the next non-human-gated roadmap task
-  ready for implementation after the durable ORB identity foundation;
+- `G12-130-PERSISTENT-IOR-ROUNDTRIP` is the next non-human-gated roadmap task
+  ready for implementation after persistent POA object keys;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata

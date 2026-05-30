@@ -199,12 +199,19 @@ that carries `orbId`, POA path, object id bytes, and key flags.
 
 Transient and persistent references remain separate runtime concepts. The ORB
 must not silently promote process-local object ids into durable keys, and it
-must not create an implicit global persistence location. Follow-on tasks will
-add the value codecs, persistent POA activation behavior, persistent IOR
-round-trips, and Naming persistence in that order.
+must not create an implicit global persistence location. Follow-on tasks add the
+value codecs, persistent POA activation behavior, persistent IOR round-trips,
+and Naming persistence in that order.
 
-G12-110 implements the ORB identity value and the durable object-key codec only.
+G12-110 implements the ORB identity value and the durable object-key codec.
 The codec uses a bounded `MJOK` version 1 binary envelope and rejects malformed
 versions, oversized encoded values, invalid ASCII identifiers, empty paths, and
-empty object ids before dispatch. Persistent POA activation, persistent IOR
-routing, and Naming persistence remain staged follow-on work.
+empty object ids before dispatch.
+
+G12-120 implements persistent POA object keys for retained local activations.
+`PERSISTENT` POAs require `LocalOrb.create(OrbIdentity.durable(...))`; retained
+`USER_ID` and deterministic per-POA `SYSTEM_ID` activations attach
+`DurableObjectKey` metadata to `LocalObjectReference`. Persistent key lookup is
+local and diagnostic-only for now: it validates the configured ORB id, POA path,
+ASCII object id, and active object map entry before dispatch. Persistent IOR
+routing and Naming persistence remain staged follow-on work.

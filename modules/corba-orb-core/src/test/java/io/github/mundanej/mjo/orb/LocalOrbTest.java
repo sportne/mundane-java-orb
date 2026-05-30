@@ -17,6 +17,7 @@ import io.github.mundanej.mjo.typecode.IdlParameterDescriptor;
 import io.github.mundanej.mjo.typecode.IdlParameterMode;
 import io.github.mundanej.mjo.typecode.IdlTypeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeReference;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Tag;
@@ -120,6 +121,58 @@ final class LocalOrbTest {
     assertThrows(IllegalArgumentException.class, () -> OrbIdentity.durable(" "));
     assertThrows(IllegalArgumentException.class, () -> OrbIdentity.durable("bad/orb"));
     assertThrows(BAD_PARAM.class, () -> LocalOrb.create(null));
+  }
+
+  @Test
+  void durableBindingsRequireMatchingDurableOrbIdentityAndUseKeyIdentity() {
+    LocalOrb transientOrb = LocalOrb.create();
+    LocalOrb durableOrb = LocalOrb.create(OrbIdentity.durable("orb-main"));
+    DurableObjectKey leftKey =
+        DurableObjectKey.fromPoaPath("orb-main", "/RootPOA/left", ascii("alpha"), 0);
+    DurableObjectKey rightKey =
+        DurableObjectKey.fromPoaPath("orb-main", "/RootPOA/right", ascii("alpha"), 0);
+    DurableObjectKey wrongOrbKey =
+        DurableObjectKey.fromPoaPath("other-orb", "/RootPOA/left", ascii("alpha"), 0);
+
+    assertThrows(
+        BAD_PARAM.class,
+        () ->
+            transientOrb.bindWithDurableObjectKey(
+                Greeter.class,
+                GREETER_DESCRIPTOR,
+                "alpha",
+                leftKey,
+                new GreeterDispatcher(new GreeterServant())));
+    assertThrows(
+        BAD_PARAM.class,
+        () ->
+            durableOrb.bindWithDurableObjectKey(
+                Greeter.class,
+                GREETER_DESCRIPTOR,
+                "alpha",
+                wrongOrbKey,
+                new GreeterDispatcher(new GreeterServant())));
+
+    LocalObjectReference<Greeter> left =
+        durableOrb.bindWithDurableObjectKey(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            "alpha",
+            leftKey,
+            request -> "Left " + request.arguments().get(0));
+    LocalObjectReference<Greeter> right =
+        durableOrb.bindWithDurableObjectKey(
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            "alpha",
+            rightKey,
+            request -> "Right " + request.arguments().get(0));
+
+    assertEquals("alpha", left.objectId());
+    assertEquals("alpha", right.objectId());
+    assertNotEquals(left, right);
+    assertEquals("Left Ada", durableOrb.invoke(left, GREET, List.of("Ada")));
+    assertEquals("Right Ada", durableOrb.invoke(right, GREET, List.of("Ada")));
   }
 
   @Test
@@ -468,6 +521,10 @@ final class LocalOrbTest {
     private BadName(String name) {
       super(name);
     }
+  }
+
+  private static byte[] ascii(String value) {
+    return value.getBytes(StandardCharsets.US_ASCII);
   }
 
   private static final class GreeterServant implements Greeter {

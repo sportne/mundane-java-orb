@@ -33,7 +33,6 @@ public record PoaPolicySet(
     implicitActivationPolicy =
         PoaExceptions.requireNonNull(implicitActivationPolicy, "implicitActivationPolicy");
     validateLocalPolicy(
-        lifespanPolicy,
         idAssignmentPolicy,
         servantRetentionPolicy,
         requestProcessingPolicy,
@@ -58,15 +57,10 @@ public record PoaPolicySet(
   }
 
   private static void validateLocalPolicy(
-      LifespanPolicy lifespanPolicy,
       IdAssignmentPolicy idAssignmentPolicy,
       ServantRetentionPolicy servantRetentionPolicy,
       RequestProcessingPolicy requestProcessingPolicy,
       ImplicitActivationPolicy implicitActivationPolicy) {
-    if (lifespanPolicy == LifespanPolicy.PERSISTENT) {
-      throw PoaExceptions.badParam(
-          "PERSISTENT POA references require durable POA/ORB identity and are deferred");
-    }
     if (servantRetentionPolicy == ServantRetentionPolicy.NON_RETAIN
         && requestProcessingPolicy == RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY) {
       throw PoaExceptions.badParam("NON_RETAIN cannot use USE_ACTIVE_OBJECT_MAP_ONLY");

@@ -1,7 +1,7 @@
 # G12-130 Persistent IOR Round Trip
 
 Task ID: G12-130-PERSISTENT-IOR-ROUNDTRIP
-Status: blocked
+Status: ready-for-implementation
 Gate: G12 post-1.0 runtime identity implementation
 Requirement IDs: REQ-IOR-001, REQ-IOR-002, REQ-ORB-001, REQ-POA-001, REQ-SEC-006, REQ-NATIVE-002, REQ-INTEROP-009
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014

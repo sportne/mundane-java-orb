@@ -1,10 +1,13 @@
 package io.github.mundanej.mjo.poa;
 
 import io.github.mundanej.mjo.modern.LocalInvocationRequest;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +20,7 @@ public final class Poa {
   private final Poa parent;
   private final String name;
   private final String path;
+  private final List<String> pathComponents;
   private final PoaPolicySet policySet;
   private final PoaManager manager;
   private final Map<String, ActiveServant<?>> activeObjectMap = new LinkedHashMap<>();
@@ -29,21 +33,25 @@ public final class Poa {
   private PoaServantActivator servantActivator;
   private PoaServantLocator servantLocator;
   private PoaAdapterActivator adapterActivator;
+  private long nextSystemObjectNumber = 1L;
   private boolean destroyed;
 
   private Poa(
       LocalOrb orb,
       Poa parent,
       String name,
-      String path,
+      List<String> pathComponents,
       PoaPolicySet policySet,
       PoaManager manager) {
     this.orb = PoaExceptions.requireNonNull(orb, "orb");
     this.parent = parent;
     this.name = PoaExceptions.requireNonBlank(name, "name");
-    this.path = PoaExceptions.requireNonBlank(path, "path");
+    this.pathComponents = validatePathComponents(pathComponents);
+    this.path = "/" + String.join("/", this.pathComponents);
     this.policySet = PoaExceptions.requireNonNull(policySet, "policySet");
     this.manager = PoaExceptions.requireNonNull(manager, "manager");
+    requireDurableOrbForPersistentPoa();
+    requireRepresentablePersistentPath();
   }
 
   /** Creates an active RootPOA with the retained transient default profile. */
@@ -53,7 +61,7 @@ public final class Poa {
 
   /** Creates an active RootPOA with an explicit validated policy set. */
   public static Poa createRoot(LocalOrb orb, PoaPolicySet policySet) {
-    return new Poa(orb, null, "RootPOA", "/RootPOA", policySet, new PoaManager());
+    return new Poa(orb, null, "RootPOA", List.of("RootPOA"), policySet, new PoaManager());
   }
 
   /** Returns this POA's simple adapter name. */
@@ -129,7 +137,7 @@ public final class Poa {
             orb,
             this,
             checkedName,
-            path + "/" + checkedName,
+            childPathComponents(checkedName),
             PoaExceptions.requireNonNull(childPolicySet, "childPolicySet"),
             manager);
     children.put(checkedName, child);
@@ -249,9 +257,11 @@ public final class Poa {
       throw PoaExceptions.objectNotExist("Unknown POA object id: " + checkedObjectId);
     }
     removeServantObjectId(removed.servant(), checkedObjectId);
-    referencesByObjectId.remove(checkedObjectId);
+    LocalObjectReference<?> reference = referencesByObjectId.remove(checkedObjectId);
     dispatchersByObjectId.remove(checkedObjectId);
-    orb.unbind(checkedObjectId);
+    if (reference != null) {
+      orb.unbindReference(reference);
+    }
   }
 
   /** Destroys this local POA and releases retained local state. */
@@ -262,7 +272,7 @@ public final class Poa {
     destroyed = true;
     manager.deactivate();
     for (String objectId : new ArrayList<>(referencesByObjectId.keySet())) {
-      orb.unbind(objectId);
+      orb.unbindReference(referencesByObjectId.get(objectId));
     }
     referencesByObjectId.clear();
     dispatchersByObjectId.clear();
@@ -279,6 +289,32 @@ public final class Poa {
   /** Returns the number of retained active-object-map entries. */
   public synchronized int activeObjectCount() {
     return activeObjectMap.size();
+  }
+
+  /** Resolves a retained persistent reference from a decoded durable object key. */
+  public synchronized LocalObjectReference<?> referenceForDurableKey(DurableObjectKey key) {
+    requireNotDestroyed();
+    DurableObjectKey checkedKey = PoaExceptions.requireNonNull(key, "key");
+    if (!isPersistent()) {
+      throw PoaExceptions.badParam("Durable object keys require a persistent POA");
+    }
+    String localOrbId = orb.identity().requireDurableOrbId();
+    if (!localOrbId.equals(checkedKey.orbId())) {
+      throw PoaExceptions.objectNotExist("Durable object key belongs to a different ORB");
+    }
+    if (!path.equals(checkedKey.poaPathString())) {
+      throw PoaExceptions.objectNotExist("Durable object key belongs to a different POA");
+    }
+    String objectId = objectIdFromKey(checkedKey);
+    LocalObjectReference<?> reference = referencesByObjectId.get(objectId);
+    if (reference == null) {
+      throw PoaExceptions.objectNotExist("Unknown persistent POA object id: " + objectId);
+    }
+    DurableObjectKey activeKey = reference.durableObjectKey().orElseThrow();
+    if (!activeKey.equals(checkedKey)) {
+      throw PoaExceptions.badParam("Durable object key metadata does not match active reference");
+    }
+    return reference;
   }
 
   private <T, S> LocalObjectReference<T> activateRetained(
@@ -315,17 +351,20 @@ public final class Poa {
     PoaExceptions.requireNonNull(javaType, "javaType");
     PoaExceptions.requireNonNull(descriptor, "descriptor");
     LocalObjectReference<T> reference;
-    if (requestedObjectId == null) {
-      String[] assignedObjectId = new String[1];
-      reference = orb.bind(javaType, descriptor, request -> dispatch(assignedObjectId[0], request));
-      assignedObjectId[0] = reference.objectId();
-    } else {
+    String objectId = requestedObjectId == null ? nextSystemObjectId() : requestedObjectId;
+    DurableObjectKey durableObjectKey = durableObjectKey(objectId);
+    if (durableObjectKey == null) {
       reference =
           orb.bindWithObjectId(
+              javaType, descriptor, objectId, request -> dispatch(objectId, request));
+    } else {
+      reference =
+          orb.bindWithDurableObjectKey(
               javaType,
               descriptor,
-              requestedObjectId,
-              request -> dispatch(requestedObjectId, request));
+              objectId,
+              durableObjectKey,
+              request -> dispatch(objectId, request));
     }
     referencesByObjectId.put(reference.objectId(), reference);
     if (dispatcher != null) {
@@ -425,6 +464,79 @@ public final class Poa {
     if (policySet.idAssignmentPolicy() != PoaPolicySet.IdAssignmentPolicy.USER_ID) {
       throw PoaExceptions.badParam("This POA requires system-assigned object ids");
     }
+  }
+
+  private boolean isPersistent() {
+    return policySet.lifespanPolicy() == PoaPolicySet.LifespanPolicy.PERSISTENT;
+  }
+
+  private void requireDurableOrbForPersistentPoa() {
+    if (isPersistent() && !orb.identity().durable()) {
+      throw PoaExceptions.badParam("PERSISTENT POA references require a durable ORB identity");
+    }
+  }
+
+  private String nextSystemObjectId() {
+    return "sys-" + nextSystemObjectNumber++;
+  }
+
+  private DurableObjectKey durableObjectKey(String objectId) {
+    if (!isPersistent()) {
+      return null;
+    }
+    try {
+      byte[] objectIdOctets = asciiObjectId(objectId);
+      return new DurableObjectKey(
+          orb.identity().requireDurableOrbId(), pathComponents, objectIdOctets, 0);
+    } catch (IllegalArgumentException exception) {
+      throw PoaExceptions.badParam("Invalid persistent POA object id: " + exception.getMessage());
+    }
+  }
+
+  private byte[] asciiObjectId(String objectId) {
+    byte[] octets = objectId.getBytes(StandardCharsets.US_ASCII);
+    if (!objectId.equals(new String(octets, StandardCharsets.US_ASCII))) {
+      throw new IllegalArgumentException("objectId must be ASCII");
+    }
+    return octets;
+  }
+
+  private String objectIdFromKey(DurableObjectKey key) {
+    byte[] objectId = key.objectId();
+    String decoded = new String(objectId, StandardCharsets.US_ASCII);
+    if (!Arrays.equals(decoded.getBytes(StandardCharsets.US_ASCII), objectId)) {
+      throw PoaExceptions.badParam("Durable object key object id is not ASCII");
+    }
+    return decoded;
+  }
+
+  private void requireRepresentablePersistentPath() {
+    if (!isPersistent()) {
+      return;
+    }
+    try {
+      new DurableObjectKey(orb.identity().requireDurableOrbId(), pathComponents, new byte[] {1}, 0);
+    } catch (IllegalArgumentException exception) {
+      throw PoaExceptions.badParam("Invalid persistent POA path: " + exception.getMessage());
+    }
+  }
+
+  private static List<String> validatePathComponents(List<String> components) {
+    PoaExceptions.requireNonNull(components, "pathComponents");
+    if (components.isEmpty()) {
+      throw PoaExceptions.badParam("POA path must not be empty");
+    }
+    List<String> checked = new ArrayList<>(components.size());
+    for (String component : components) {
+      checked.add(PoaExceptions.requireNonBlank(component, "path component"));
+    }
+    return List.copyOf(checked);
+  }
+
+  private List<String> childPathComponents(String childName) {
+    List<String> childComponents = new ArrayList<>(pathComponents);
+    childComponents.add(childName);
+    return childComponents;
   }
 
   private void requireManagerActiveForActivation() {

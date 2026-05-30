@@ -131,10 +131,11 @@ diagnostics. Implemented local behavior includes:
 - adapter activators and child POA lookup behavior;
 - holding and discarding POA manager semantics.
 
-`PERSISTENT` remains deferred because the repository does not yet define durable
-POA/ORB identity, restart rules, or persistent object-reference encoding.
-Network dispatch, peer interoperability, and `org.omg.PortableServer`
-compatibility types also remain outside the G6-630 local slice.
+`PERSISTENT` was deferred in G6-630 because the repository did not yet define
+durable POA/ORB identity, restart rules, or persistent object-reference
+encoding. G12-120 enables the local persistent POA identity slice under an
+explicit durable ORB identity; network IOR round trips and peer
+interoperability remain separate staged work.
 
 ### Durable Persistent POA Direction
 
@@ -145,10 +146,19 @@ system-assigned byte sequences within that POA path. Persistent references must
 encode enough information to distinguish unknown, stale, malformed, and
 transient object keys after restart.
 
-Persistent POA implementation remains staged behind follow-on tasks. Until the
-durable key codec and persistent POA activation tasks complete, existing
-deterministic deferral for persistent references remains the correct runtime
-behavior.
+G12-120 implements the local persistent POA activation slice. A `PERSISTENT` POA
+is accepted only when its `LocalOrb` was created with `OrbIdentity.durable(...)`.
+Retained `USER_ID` activations encode the caller-supplied object id into a
+`DurableObjectKey`; retained `SYSTEM_ID` activations use deterministic per-POA
+ids such as `sys-1`, `sys-2`, and so on, so restart simulations reproduce keys
+when activations happen in the same order. Transient POA references do not carry
+durable-key metadata.
+
+Persistent POAs expose deterministic local lookup for decoded durable keys.
+Wrong-ORB, wrong-POA, stale-object, malformed, and hostile object-id inputs fail
+with explicit CORBA system exceptions before dispatch. The POA still stores
+servants and active object map entries only in memory; G12-120 does not add
+persistent servant storage or claim persistent IOR round trips.
 
 ### Network IIOP Dispatch Bridge
 
@@ -159,11 +169,12 @@ operation descriptor, invokes `LocalOrb`, and maps the result to GIOP normal,
 declared user-exception, or system-exception replies.
 
 The bridge supports transient object references and GIOP KeyAddr, ProfileAddr,
-and ReferenceAddr routing for the implemented local profile. Persistent POA
-references remain rejected or deferred by the existing POA policy rules; G10-050
-does not define durable adapter identity, restart recovery, or persistent IOR
-encoding. Naming, Portable Interceptors, CORBA Security Service policy, and live
-peer behavior remain later G10 tasks.
+and ReferenceAddr routing for the implemented local profile. G12-120 adds
+durable object-key metadata to persistent POA local references, but loopback
+IIOP continues to use the transient ASCII object-key path until G12-130 updates
+IOR emission and server routing for opaque durable keys. Naming, Portable
+Interceptors, CORBA Security Service policy, and live peer behavior remain
+separate staged tasks.
 
 ### RMI-IIOP Generated Adapters
 

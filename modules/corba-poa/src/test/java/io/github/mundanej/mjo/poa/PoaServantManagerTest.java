@@ -29,7 +29,7 @@ final class PoaServantManagerTest {
     poa.setServantActivator(
         (targetPoa, objectId) -> {
           assertEquals(poa, targetPoa);
-          assertEquals("local-1", objectId);
+          assertEquals("sys-1", objectId);
           incarnations.incrementAndGet();
           return new PoaTestFixtures.GreeterServant("Activated ");
         });
@@ -63,7 +63,7 @@ final class PoaServantManagerTest {
               String objectId,
               io.github.mundanej.mjo.modern.LocalInvocationRequest request) {
             assertEquals(poa, targetPoa);
-            assertEquals("local-1", objectId);
+            assertEquals("sys-1", objectId);
             preinvoke.incrementAndGet();
             return new PoaServantLocatorResult(new PoaTestFixtures.GreeterServant("Located "), "c");
           }

@@ -1,7 +1,7 @@
 # G12-120 Persistent POA Object Keys
 
 Task ID: G12-120-PERSISTENT-POA-OBJECT-KEYS
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 runtime identity implementation
 Requirement IDs: REQ-POA-001, REQ-POA-002, REQ-ORB-001, REQ-IOR-001, REQ-SEC-006, REQ-NATIVE-002
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014
@@ -14,4 +14,9 @@ Tests to add/update: POA policy tests for persistent lifespan acceptance, object
 Documentation to update: POA design, runtime architecture, CORBA conformance matrix, roadmap index, README ready-task status, this task, and G12-130 status when complete.
 Commands to run: ./gradlew :modules:corba-poa:test :modules:corba-orb-core:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Persistent POA activations produce stable durable object keys under configured ORB identity; malformed and stale keys fail deterministically; G12-130 is promoted to ready-for-implementation.
+Evidence: Implemented `OrbIdentity`-guarded persistent POA creation, durable
+object-key metadata on local references, deterministic per-POA `sys-N` system
+ids, and durable-key lookup diagnostics for wrong ORB, wrong POA, stale object
+ids, non-ASCII object ids, and bounded object-id inputs.
+Validation: `./gradlew :modules:corba-poa:test :modules:corba-orb-core:test :modules:corba-native-image:test --console=plain`; full G12-120 gates rerun before commit.
 Rollback notes: Revert POA persistent-key runtime, tests, Native Image, and documentation updates together.

@@ -5,6 +5,7 @@ import io.github.mundanej.mjo.modern.LocalInvocationRequest;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import io.github.mundanej.mjo.typecode.IdlParameterMode;
+import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +53,7 @@ public final class LocalOrb {
     LocalExceptionMapper.requireNonNull(descriptor, "descriptor");
     LocalExceptionMapper.requireNonNull(dispatcher, "dispatcher");
     String objectId = "local-" + nextObjectNumber++;
-    return bindWithCheckedId(javaType, descriptor, dispatcher, objectId);
+    return bindWithCheckedId(javaType, descriptor, dispatcher, objectId, objectId, null);
   }
 
   /** Binds a generated-style dispatcher to a caller-supplied local object id. */
@@ -69,13 +70,52 @@ public final class LocalOrb {
     if (bindings.containsKey(checkedObjectId)) {
       throw LocalExceptionMapper.badParam("Local object id is already bound: " + checkedObjectId);
     }
-    return bindWithCheckedId(javaType, descriptor, dispatcher, checkedObjectId);
+    return bindWithCheckedId(
+        javaType, descriptor, dispatcher, checkedObjectId, checkedObjectId, null);
+  }
+
+  /** Binds a generated-style dispatcher to a persistent POA object id and durable key. */
+  public synchronized <T> LocalObjectReference<T> bindWithDurableObjectKey(
+      Class<T> javaType,
+      IdlGeneratedTypeDescriptor descriptor,
+      String objectId,
+      DurableObjectKey durableObjectKey,
+      LocalInvocationDispatcher dispatcher) {
+    requireActive();
+    LocalExceptionMapper.requireNonNull(javaType, "javaType");
+    LocalExceptionMapper.requireNonNull(descriptor, "descriptor");
+    LocalExceptionMapper.requireNonNull(durableObjectKey, "durableObjectKey");
+    LocalExceptionMapper.requireNonNull(dispatcher, "dispatcher");
+    String checkedObjectId = requireNonBlank(objectId, "objectId");
+    if (!identity.durable()) {
+      throw LocalExceptionMapper.badParam("Durable object keys require a durable ORB identity");
+    }
+    if (!identity.requireDurableOrbId().equals(durableObjectKey.orbId())) {
+      throw LocalExceptionMapper.badParam("Durable object key belongs to a different ORB");
+    }
+    String bindingId = durableBindingId(durableObjectKey);
+    if (bindings.containsKey(bindingId)) {
+      throw LocalExceptionMapper.badParam("Local object id is already bound: " + checkedObjectId);
+    }
+    return bindWithCheckedId(
+        javaType, descriptor, dispatcher, bindingId, checkedObjectId, durableObjectKey);
   }
 
   /** Removes one local object binding. Missing object ids are ignored. */
   public synchronized void unbind(String objectId) {
     requireActive();
     bindings.remove(requireNonBlank(objectId, "objectId"));
+  }
+
+  /** Removes one local object binding by reference identity. Missing references are ignored. */
+  public synchronized void unbindReference(LocalObjectReference<?> reference) {
+    requireActive();
+    LocalExceptionMapper.requireNonNull(reference, "reference");
+    if (reference.ownerToken() != ownerToken) {
+      throw LocalExceptionMapper.objectNotExist(
+          "Local object reference belongs to a different local ORB");
+    }
+    bindings.remove(reference.bindingId());
   }
 
   /** Registers a typed local initial reference. */
@@ -124,10 +164,13 @@ public final class LocalOrb {
       Class<T> javaType,
       IdlGeneratedTypeDescriptor descriptor,
       LocalInvocationDispatcher dispatcher,
-      String objectId) {
+      String bindingId,
+      String objectId,
+      DurableObjectKey durableObjectKey) {
     LocalObjectReference<T> reference =
-        new LocalObjectReference<>(ownerToken, objectId, javaType, descriptor);
-    bindings.put(objectId, new Binding(descriptor, dispatcher));
+        new LocalObjectReference<>(
+            ownerToken, bindingId, objectId, javaType, descriptor, durableObjectKey);
+    bindings.put(bindingId, new Binding(descriptor, dispatcher));
     return reference;
   }
 
@@ -168,7 +211,7 @@ public final class LocalOrb {
       throw LocalExceptionMapper.objectNotExist(
           "Local object reference belongs to a different local ORB");
     }
-    Binding binding = bindings.get(reference.objectId());
+    Binding binding = bindings.get(reference.bindingId());
     if (binding == null) {
       throw LocalExceptionMapper.objectNotExist(
           "Unknown local object reference: " + reference.objectId());
@@ -212,6 +255,11 @@ public final class LocalOrb {
       throw LocalExceptionMapper.badParam(name + " must not be blank");
     }
     return value;
+  }
+
+  private static String durableBindingId(DurableObjectKey durableObjectKey) {
+    return "durable:"
+        + Base64.getUrlEncoder().withoutPadding().encodeToString(durableObjectKey.encode());
   }
 
   private record Binding(
