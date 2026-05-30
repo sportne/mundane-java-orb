@@ -1,6 +1,7 @@
 package io.github.mundanej.mjo.orb;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -106,6 +107,19 @@ final class LocalOrbTest {
     assertEquals(first.hashCode(), first.hashCode());
     assertNotEquals(first, second);
     assertNotEquals(first, otherOrbFirst);
+  }
+
+  @Test
+  void orbIdentityDefaultsToTransientAndCanBeConfiguredDurably() {
+    LocalOrb defaultOrb = LocalOrb.create();
+    LocalOrb durableOrb = LocalOrb.create(OrbIdentity.durable("orb-main"));
+
+    assertFalse(defaultOrb.identity().durable());
+    assertEquals("orb-main", durableOrb.identity().requireDurableOrbId());
+    assertEquals(durableOrb.identity(), OrbIdentity.durable("orb-main"));
+    assertThrows(IllegalArgumentException.class, () -> OrbIdentity.durable(" "));
+    assertThrows(IllegalArgumentException.class, () -> OrbIdentity.durable("bad/orb"));
+    assertThrows(BAD_PARAM.class, () -> LocalOrb.create(null));
   }
 
   @Test

@@ -136,6 +136,11 @@ the existing IOR, GIOP target-address, and IIOP dispatch paths. The binary and
 stringified forms must preserve the key without relying on process-local
 registries.
 
+G12-110 defines the project-owned durable object-key value used by those later
+IORs. The key bytes are opaque to the IOR layer but have a bounded `MJOK`
+version 1 structure owned by ORB/POA runtime identity code: configured ORB id,
+stable POA path components, object id bytes, and one-octet flags.
+
 Malformed key versions, oversized path segments, path traversal, and stale ORB
 or POA identities are hostile inputs. Persistent IOR parsing must reject those
 cases before allocation or dispatch and must keep diagnostics deterministic.

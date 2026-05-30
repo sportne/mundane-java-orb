@@ -17,16 +17,29 @@ public final class LocalOrb {
   private static final AtomicLong NEXT_OWNER_TOKEN = new AtomicLong(1L);
 
   private final long ownerToken = NEXT_OWNER_TOKEN.getAndIncrement();
+  private final OrbIdentity identity;
   private final Map<String, Binding> bindings = new LinkedHashMap<>();
   private final Map<String, InitialReference> initialReferences = new LinkedHashMap<>();
   private long nextObjectNumber = 1L;
   private boolean shutdown;
 
-  private LocalOrb() {}
+  private LocalOrb(OrbIdentity identity) {
+    this.identity = LocalExceptionMapper.requireNonNull(identity, "identity");
+  }
 
   /** Creates an active local ORB instance. */
   public static LocalOrb create() {
-    return new LocalOrb();
+    return new LocalOrb(OrbIdentity.transientLocal());
+  }
+
+  /** Creates an active local ORB instance with an explicit identity. */
+  public static LocalOrb create(OrbIdentity identity) {
+    return new LocalOrb(identity);
+  }
+
+  /** Returns this ORB's configured identity. */
+  public OrbIdentity identity() {
+    return identity;
   }
 
   /** Binds a generated-style dispatcher and returns a local object reference. */

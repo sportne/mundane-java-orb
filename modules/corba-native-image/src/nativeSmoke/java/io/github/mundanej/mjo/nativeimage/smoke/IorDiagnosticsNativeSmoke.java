@@ -9,6 +9,8 @@ import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.StringifiedIor;
 import io.github.mundanej.mjo.ior.TaggedProfile;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
+import io.github.mundanej.mjo.orb.OrbIdentity;
 import java.util.List;
 
 /** Native Image smoke entry point for IOR and object URL diagnostics. */
@@ -36,5 +38,13 @@ public final class IorDiagnosticsNativeSmoke {
 
     CorbanameUrl corbaname = CorbanameUrl.parse("corbaname:rir:#apps/service");
     SmokeAssertions.requireEquals("apps/service", corbaname.stringName(), "corbaname name");
+
+    OrbIdentity identity = OrbIdentity.durable("native-orb");
+    DurableObjectKey key =
+        DurableObjectKey.fromPoaPath(
+            identity.requireDurableOrbId(), "/RootPOA/apps", new byte[] {4, 5, 6}, 1);
+    DurableObjectKey decoded = DurableObjectKey.decode(key.encode());
+    SmokeAssertions.requireEquals(identity.requireDurableOrbId(), decoded.orbId(), "orb id");
+    SmokeAssertions.requireEquals("/RootPOA/apps", decoded.poaPathString(), "POA path");
   }
 }

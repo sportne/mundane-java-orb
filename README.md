@@ -127,8 +127,8 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-110-DURABLE-ORB-IDENTITY-FOUNDATION` is the next non-human-gated roadmap task
-  ready for implementation;
+- `G12-120-PERSISTENT-POA-OBJECT-KEYS` is the next non-human-gated roadmap task
+  ready for implementation after the durable ORB identity foundation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
@@ -206,9 +206,9 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g12-110-durable-orb-identity-foundation.md` is the next
-non-human-gated task ready for implementation. Dependent durable POA, persistent
-IOR, and Naming persistence tasks remain blocked until their predecessors
-complete. Remaining human gates, including optional CORBA service approval, stay
-tracked as `human-gate-blocked` roadmap tasks until maintainers record the
-relevant decisions.
+`docs/roadmap/tasks/g12-120-persistent-poa-object-keys.md` is the next
+non-human-gated task ready for implementation. Persistent IOR and Naming
+persistence tasks remain blocked until their predecessors complete. Remaining
+human gates, including optional CORBA service approval, stay tracked as
+`human-gate-blocked` roadmap tasks until maintainers record the relevant
+decisions.

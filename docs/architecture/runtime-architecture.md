@@ -66,6 +66,11 @@ dispatcher registration, typed local initial references, lifecycle checks,
 exception mapping, and shutdown coordination. `corba-omg-api` owns the minimal
 `org.omg.CORBA` exception compatibility surface used by this local slice.
 
+G12-110 adds explicit ORB identity values to this local runtime. The default
+`LocalOrb.create()` remains transient and process-local. Callers that need
+restart-safe references must choose `LocalOrb.create(OrbIdentity.durable(...))`
+with a stable configured `orbId`; durable IDs are never generated implicitly.
+
 ## Local Naming Service Path
 
 G6-810 adds a local Naming Service path over in-process initial references:
@@ -197,3 +202,9 @@ must not silently promote process-local object ids into durable keys, and it
 must not create an implicit global persistence location. Follow-on tasks will
 add the value codecs, persistent POA activation behavior, persistent IOR
 round-trips, and Naming persistence in that order.
+
+G12-110 implements the ORB identity value and the durable object-key codec only.
+The codec uses a bounded `MJOK` version 1 binary envelope and rejects malformed
+versions, oversized encoded values, invalid ASCII identifiers, empty paths, and
+empty object ids before dispatch. Persistent POA activation, persistent IOR
+routing, and Naming persistence remain staged follow-on work.

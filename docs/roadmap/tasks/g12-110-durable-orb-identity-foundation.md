@@ -1,7 +1,7 @@
 # G12-110 Durable ORB Identity Foundation
 
 Task ID: G12-110-DURABLE-ORB-IDENTITY-FOUNDATION
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 runtime identity implementation
 Requirement IDs: REQ-ORB-001, REQ-IOR-001, REQ-SEC-006, REQ-NATIVE-002, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014
@@ -15,3 +15,11 @@ Documentation to update: Runtime architecture, CDR/GIOP/IIOP architecture, CORBA
 Commands to run: ./gradlew :modules:corba-orb-core:test :modules:corba-ior:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Durable ORB identity and object-key value codecs are explicit, bounded, Native Image friendly, and covered by tests; persistent POA behavior remains deferred; G12-120 is promoted to ready-for-implementation.
 Rollback notes: Revert ORB identity, object-key codec, Native Image, and documentation updates together.
+
+Completion evidence: G12-110 adds explicit transient and durable `OrbIdentity`
+values, carries ORB identity on `LocalOrb`, and introduces a bounded `MJOK`
+version 1 `DurableObjectKey` codec for configured ORB ids, POA path components,
+object id bytes, and key flags. Unit tests cover configured IDs, invalid IDs,
+round-trip encode/decode, transient prefix separation, and hostile inputs.
+Native Image smoke coverage exercises the identity/key codec without reflection
+or serialization. Persistent POA dispatch remains deferred to G12-120.
