@@ -145,11 +145,14 @@ public final class IiopServer implements AutoCloseable {
 
   private static ServerSocket createServerSocket(IiopOptions options) throws IOException {
     if (!options.tlsOptions().enabled()) {
-      return new ServerSocket();
+      ServerSocket serverSocket = new ServerSocket();
+      serverSocket.setReuseAddress(true);
+      return serverSocket;
     }
     SSLServerSocket serverSocket =
         (SSLServerSocket)
             options.tlsOptions().sslContext().getServerSocketFactory().createServerSocket();
+    serverSocket.setReuseAddress(true);
     configureTls(serverSocket, options.tlsOptions());
     serverSocket.setNeedClientAuth(options.tlsOptions().mutualTls());
     return serverSocket;
