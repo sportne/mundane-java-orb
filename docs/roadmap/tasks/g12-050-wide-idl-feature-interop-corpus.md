@@ -1,7 +1,7 @@
 # G12-050 Wide IDL Feature Interop Corpus
 
 Task ID: G12-050-WIDE-IDL-FEATURE-INTEROP-CORPUS
-Status: blocked
+Status: ready-for-implementation
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-IDL-001, REQ-IDL-002, REQ-IDLJ-002, REQ-IDLJ-004, REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-009, REQ-NATIVE-005
 ADR IDs: ADR-0001, ADR-0005, ADR-0006, ADR-0007, ADR-0008, ADR-0010

@@ -42,6 +42,9 @@ public final class WireTypeCodes {
               typeCode.repositoryId().orElseThrow().value(),
               typeCode.idlName(),
               typeCode.enumConstants());
+      case TYPEDEF, UNION, NATIVE, VALUE_BOX, VALUETYPE ->
+          throw new IllegalArgumentException(
+              "wire TypeCode mapping deferred for " + typeCode.kind());
       case SEQUENCE -> WireTypeCode.sequence(fromLocal(typeCode.elementType().orElseThrow()), 0);
     };
   }

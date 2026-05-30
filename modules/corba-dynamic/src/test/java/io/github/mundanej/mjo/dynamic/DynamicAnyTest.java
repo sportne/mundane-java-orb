@@ -5,11 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import io.github.mundanej.mjo.any.AnyValue;
 import io.github.mundanej.mjo.ior.Ior;
+import io.github.mundanej.mjo.repositoryid.RepositoryId;
+import io.github.mundanej.mjo.typecode.IdlFieldDescriptor;
+import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import io.github.mundanej.mjo.typecode.IdlTypeCode;
+import io.github.mundanej.mjo.typecode.IdlTypeKind;
+import io.github.mundanej.mjo.typecode.IdlTypeReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -136,6 +142,48 @@ final class DynamicAnyTest {
         DynamicException.class,
         () -> DynamicAnyFactory.value(IdlTypeCode.LONG_DOUBLE, new byte[15]));
     assertThrows(DynamicException.class, () -> DynamicAnyFactory.value(IdlTypeCode.LONG, null));
+  }
+
+  @Test
+  void rejectsG12DeferredDynamicAnyTypeCodeKindsWithStableDiagnostics() {
+    IdlTypeCode nativeType =
+        IdlTypeCode.fromTypeReference(
+            new IdlTypeReference(
+                IdlTypeKind.NATIVE,
+                "::demo::Handle",
+                "demo.Handle",
+                Optional.of(RepositoryId.parse("IDL:demo/Handle:1.0"))));
+    IdlTypeCode valueBox =
+        IdlTypeCode.fromDescriptor(
+            new IdlGeneratedTypeDescriptor(
+                IdlTypeKind.VALUE_BOX,
+                "::demo::Name",
+                "demo.Name",
+                RepositoryId.parse("IDL:demo/Name:1.0"),
+                List.of(
+                    new IdlFieldDescriptor(
+                        "value",
+                        new IdlTypeReference(
+                            IdlTypeKind.PRIMITIVE,
+                            "string",
+                            "java.lang.String",
+                            Optional.empty()))),
+                List.of(),
+                List.of()));
+
+    DynamicException nativeFailure =
+        assertThrows(
+            DynamicException.class,
+            () -> DynamicAnyFactory.fromAny(new AnyValue<>(nativeType, Ior.nullReference())));
+    DynamicException valueBoxFailure =
+        assertThrows(
+            DynamicException.class,
+            () -> DynamicAnyFactory.fromAny(new AnyValue<>(valueBox, "name")));
+
+    assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, nativeFailure.code());
+    assertEquals(DynamicDiagnosticCodes.UNSUPPORTED_TYPE, valueBoxFailure.code());
+    assertEquals("unsupported DynamicAny TypeCode kind: NATIVE", nativeFailure.getMessage());
+    assertEquals("unsupported DynamicAny TypeCode kind: VALUE_BOX", valueBoxFailure.getMessage());
   }
 
   @Test

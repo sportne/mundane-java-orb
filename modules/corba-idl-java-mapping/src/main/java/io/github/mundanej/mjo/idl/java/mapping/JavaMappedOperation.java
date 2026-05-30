@@ -10,12 +10,14 @@ import java.util.Objects;
  * @param name Java method name
  * @param parameters parameters in deterministic IDL order
  * @param thrownTypes Java exception type spellings from IDL raises clauses
+ * @param factory whether the operation represents an IDL valuetype factory
  */
 public record JavaMappedOperation(
     String returnType,
     String name,
     List<JavaMappedParameter> parameters,
-    List<String> thrownTypes) {
+    List<String> thrownTypes,
+    boolean factory) {
 
   /** Creates a validated mapped operation. */
   public JavaMappedOperation {
@@ -23,6 +25,15 @@ public record JavaMappedOperation(
     name = requireNonBlank(name, "name");
     parameters = List.copyOf(Objects.requireNonNull(parameters, "parameters"));
     thrownTypes = List.copyOf(Objects.requireNonNull(thrownTypes, "thrownTypes"));
+  }
+
+  /** Creates a normal mapped operation. */
+  public JavaMappedOperation(
+      String returnType,
+      String name,
+      List<JavaMappedParameter> parameters,
+      List<String> thrownTypes) {
+    this(returnType, name, parameters, thrownTypes, false);
   }
 
   private static String requireNonBlank(String value, String name) {

@@ -103,7 +103,7 @@ public final class DynamicAnyFactory {
 
   static void requireSupported(IdlTypeCode typeCode) {
     Objects.requireNonNull(typeCode, "typeCode");
-    if (typeCode.kind() == IdlTypeCodeKind.VOID) {
+    if (unsupportedKind(typeCode.kind())) {
       throw new DynamicException(
           DynamicDiagnosticCodes.UNSUPPORTED_TYPE,
           "unsupported DynamicAny TypeCode kind: " + typeCode.kind());
@@ -147,10 +147,17 @@ public final class DynamicAnyFactory {
       case STRUCT, EXCEPTION -> requireAggregatePayload(typeCode, value);
       case SEQUENCE -> requireSequencePayload(typeCode, value);
       case INTERFACE -> requireIor(typeCode, value);
-      case VOID ->
+      case VOID, TYPEDEF, UNION, NATIVE, VALUE_BOX, VALUETYPE ->
           throw new DynamicException(
               DynamicDiagnosticCodes.UNSUPPORTED_TYPE,
               "unsupported DynamicAny TypeCode kind: " + typeCode.kind());
+    };
+  }
+
+  private static boolean unsupportedKind(IdlTypeCodeKind kind) {
+    return switch (kind) {
+      case VOID, TYPEDEF, UNION, NATIVE, VALUE_BOX, VALUETYPE -> true;
+      default -> false;
     };
   }
 

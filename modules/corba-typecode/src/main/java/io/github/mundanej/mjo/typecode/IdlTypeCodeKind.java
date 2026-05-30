@@ -20,5 +20,10 @@ public enum IdlTypeCodeKind {
   STRUCT,
   ENUM,
   EXCEPTION,
+  TYPEDEF,
+  UNION,
+  NATIVE,
+  VALUE_BOX,
+  VALUETYPE,
   SEQUENCE
 }

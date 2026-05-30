@@ -413,6 +413,70 @@ final class JavaSourceGeneratorTest {
   }
 
   @Test
+  void generatesCompileSafeLegacyAndModernG12RicherSurfaces() throws Exception {
+    IdlSemanticModel semanticModel = semanticModel("g12-rich.idl", g12RicherIdl());
+    List<GeneratedJavaSource> legacySources =
+        generator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
+    List<GeneratedJavaSource> modernSources =
+        generator.generate(mapper.map(semanticModel, JavaMappingMode.MODERN));
+    List<GeneratedJavaSource> allSources = new ArrayList<>();
+    allSources.addAll(legacySources);
+    allSources.addAll(modernSources);
+
+    assertEquals(
+        List.of(
+            "g12/AbstractBase.java",
+            "g12/AbstractBaseHelper.java",
+            "g12/AbstractBaseHolder.java",
+            "g12/AbstractBasePOA.java",
+            "g12/BaseValue.java",
+            "g12/BaseValueHelper.java",
+            "g12/BaseValueHolder.java",
+            "g12/Handle.java",
+            "g12/HandleHelper.java",
+            "g12/HandleHolder.java",
+            "g12/NameValue.java",
+            "g12/NameValueHelper.java",
+            "g12/NameValueHolder.java",
+            "g12/Problem.java",
+            "g12/ProblemHelper.java",
+            "g12/ProblemHolder.java",
+            "g12/ValueThing.java",
+            "g12/ValueThingHelper.java",
+            "g12/ValueThingHolder.java",
+            "g12/_AbstractBaseStub.java"),
+        sourcePaths(legacySources));
+    assertEquals(
+        List.of(
+            "modern/g12/AbstractBase.java",
+            "modern/g12/BaseValue.java",
+            "modern/g12/Handle.java",
+            "modern/g12/NameValue.java",
+            "modern/g12/Problem.java",
+            "modern/g12/ValueThing.java"),
+        sourcePaths(modernSources));
+
+    String valueThing = sourceText(legacySources, "g12/ValueThing.java");
+    assertContains(
+        valueThing, "public class ValueThing extends g12.BaseValue implements g12.AbstractBase");
+    assertContains(valueThing, "public final int id;");
+    assertContains(valueThing, "public final java.lang.String[] names;");
+    assertContains(valueThing, "public static g12.ValueThing create(int id) throws g12.Problem");
+    assertContains(valueThing, "public void touch(g12.Handle handle)");
+    assertContains(
+        sourceText(legacySources, "g12/BaseValue.java"), "public abstract class BaseValue");
+    assertContains(
+        sourceText(legacySources, "g12/ValueThingHelper.java"),
+        "private static final String ID = \"IDL:example.com/G12/ValueThing:1.0\";");
+    assertContains(
+        sourceText(legacySources, "g12/NameValue.java"), "public final java.lang.String value;");
+    assertContains(sourceText(legacySources, "g12/Handle.java"), "private Handle() {}");
+    assertNoForbiddenGeneratedSourceTokens(
+        allSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat));
+    compile(allSources);
+  }
+
+  @Test
   void rejectsDuplicateGeneratedSourcePaths() {
     JavaMappingModel model =
         new JavaMappingModel(
@@ -529,6 +593,27 @@ final class JavaSourceGeneratorTest {
             void submit(in Names names, out Choice result, inout Count count) raises (Problem);
             void collect(out sequence<string<32>> values);
           };
+        };
+        """;
+  }
+
+  private static String g12RicherIdl() {
+    return """
+        #pragma prefix "example.com"
+        module G12 {
+          native Handle;
+          exception Problem {};
+          abstract interface AbstractBase {};
+          valuetype NameValue string<32>;
+          abstract valuetype BaseValue {};
+          valuetype ValueThing : BaseValue supports AbstractBase {
+            public long id;
+            private sequence<string, 8> names;
+            factory create(in long id) raises (Problem);
+            void touch(in Handle handle);
+          };
+          typeprefix BaseValue "example.com/G12";
+          typeprefix ValueThing "example.com/G12";
         };
         """;
   }

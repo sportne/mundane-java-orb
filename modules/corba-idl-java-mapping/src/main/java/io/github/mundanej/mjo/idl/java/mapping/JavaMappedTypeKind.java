@@ -16,6 +16,12 @@ public enum JavaMappedTypeKind {
   TYPEDEF,
   /** IDL union mapped to a compile-safe Java value class. */
   UNION,
+  /** IDL native declaration mapped to a compile-safe opaque Java type. */
+  NATIVE,
+  /** IDL value box mapped to a compile-safe Java value class. */
+  VALUE_BOX,
+  /** IDL valuetype mapped to a compile-safe Java value class with operation placeholders. */
+  VALUETYPE,
   /** Synthetic holder required for out/inout primitive or anonymous constructed parameters. */
   HOLDER
 }

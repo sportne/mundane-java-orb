@@ -153,6 +153,11 @@ final class IdlTypeCodeTest {
             IdlTypeCodeKind.STRUCT,
             IdlTypeCodeKind.ENUM,
             IdlTypeCodeKind.EXCEPTION,
+            IdlTypeCodeKind.TYPEDEF,
+            IdlTypeCodeKind.UNION,
+            IdlTypeCodeKind.NATIVE,
+            IdlTypeCodeKind.VALUE_BOX,
+            IdlTypeCodeKind.VALUETYPE,
             IdlTypeCodeKind.SEQUENCE),
         List.of(IdlTypeCodeKind.values()));
   }

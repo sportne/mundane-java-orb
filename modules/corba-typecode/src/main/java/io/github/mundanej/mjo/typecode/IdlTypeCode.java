@@ -89,7 +89,7 @@ public record IdlTypeCode(
     Objects.requireNonNull(typeResolver, "typeResolver");
     IdlTypeCodeKind typeCodeKind = generatedKind(descriptor.kind());
     return switch (typeCodeKind) {
-      case STRUCT, EXCEPTION ->
+      case STRUCT, EXCEPTION, TYPEDEF, UNION, VALUE_BOX, VALUETYPE ->
           new IdlTypeCode(
               typeCodeKind,
               descriptor.idlScopedName(),
@@ -107,9 +107,9 @@ public record IdlTypeCode(
               List.of(),
               descriptor.enumConstants(),
               Optional.empty());
-      case INTERFACE ->
+      case INTERFACE, NATIVE ->
           new IdlTypeCode(
-              IdlTypeCodeKind.INTERFACE,
+              typeCodeKind,
               descriptor.idlScopedName(),
               descriptor.javaName(),
               Optional.of(descriptor.repositoryId()),
@@ -127,13 +127,15 @@ public record IdlTypeCode(
     if (reference.kind() == IdlTypeKind.PRIMITIVE) {
       return primitiveFromName(reference.idlName());
     }
-    if (reference.kind() != IdlTypeKind.INTERFACE) {
+    if (reference.kind() != IdlTypeKind.INTERFACE && reference.kind() != IdlTypeKind.NATIVE) {
       throw new IllegalArgumentException(
           "generated aggregate TypeCode reference requires a descriptor resolver: "
               + reference.idlName());
     }
     return new IdlTypeCode(
-        IdlTypeCodeKind.INTERFACE,
+        reference.kind() == IdlTypeKind.INTERFACE
+            ? IdlTypeCodeKind.INTERFACE
+            : IdlTypeCodeKind.NATIVE,
         reference.idlName(),
         reference.javaName(),
         requireRepositoryId(reference),
@@ -159,7 +161,7 @@ public record IdlTypeCode(
 
   /** Returns true when this TypeCode describes a struct or exception aggregate. */
   public boolean isAggregate() {
-    return kind == IdlTypeCodeKind.STRUCT || kind == IdlTypeCodeKind.EXCEPTION;
+    return isAggregateKind(kind);
   }
 
   private static Optional<RepositoryId> requireRepositoryId(IdlTypeReference reference) {
@@ -205,6 +207,11 @@ public record IdlTypeCode(
       case STRUCT -> IdlTypeCodeKind.STRUCT;
       case ENUM -> IdlTypeCodeKind.ENUM;
       case EXCEPTION -> IdlTypeCodeKind.EXCEPTION;
+      case TYPEDEF -> IdlTypeCodeKind.TYPEDEF;
+      case UNION -> IdlTypeCodeKind.UNION;
+      case NATIVE -> IdlTypeCodeKind.NATIVE;
+      case VALUE_BOX -> IdlTypeCodeKind.VALUE_BOX;
+      case VALUETYPE -> IdlTypeCodeKind.VALUETYPE;
       case PRIMITIVE, VOID ->
           throw new IllegalArgumentException("not a generated TypeCode: " + kind);
     };
@@ -243,11 +250,11 @@ public record IdlTypeCode(
       }
       return;
     }
-    if (kind == IdlTypeCodeKind.INTERFACE) {
+    if (kind == IdlTypeCodeKind.INTERFACE || kind == IdlTypeCodeKind.NATIVE) {
       requireRepositoryId(repositoryId, kind);
-      requireEmpty(members, "INTERFACE TypeCode must not have members");
-      requireEmpty(enumConstants, "INTERFACE TypeCode must not have enum constants");
-      requireEmpty(elementType, "INTERFACE TypeCode must not have an element type");
+      requireEmpty(members, kind + " TypeCode must not have members");
+      requireEmpty(enumConstants, kind + " TypeCode must not have enum constants");
+      requireEmpty(elementType, kind + " TypeCode must not have an element type");
       return;
     }
     requireEmpty(repositoryId, kind + " TypeCode must not have a repository ID");
@@ -257,7 +264,12 @@ public record IdlTypeCode(
   }
 
   private static boolean isAggregateKind(IdlTypeCodeKind kind) {
-    return kind == IdlTypeCodeKind.STRUCT || kind == IdlTypeCodeKind.EXCEPTION;
+    return kind == IdlTypeCodeKind.STRUCT
+        || kind == IdlTypeCodeKind.EXCEPTION
+        || kind == IdlTypeCodeKind.TYPEDEF
+        || kind == IdlTypeCodeKind.UNION
+        || kind == IdlTypeCodeKind.VALUE_BOX
+        || kind == IdlTypeCodeKind.VALUETYPE;
   }
 
   private static void requireRepositoryId(

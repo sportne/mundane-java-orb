@@ -13,5 +13,15 @@ public enum IdlTypeKind {
   /** IDL enum declaration. */
   ENUM,
   /** IDL user exception declaration. */
-  EXCEPTION
+  EXCEPTION,
+  /** IDL typedef declaration. */
+  TYPEDEF,
+  /** IDL union declaration. */
+  UNION,
+  /** IDL native declaration. */
+  NATIVE,
+  /** IDL value box declaration. */
+  VALUE_BOX,
+  /** IDL valuetype declaration. */
+  VALUETYPE
 }

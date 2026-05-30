@@ -54,6 +54,20 @@ final class IdlDescriptorTest {
             List.of(operation)));
     assertThrows(UnsupportedOperationException.class, () -> descriptor.operations().clear());
     assertThrows(IllegalArgumentException.class, () -> new IdlFieldDescriptor(" ", stringType));
+    assertEquals(
+        List.of(
+            IdlTypeKind.VOID,
+            IdlTypeKind.PRIMITIVE,
+            IdlTypeKind.INTERFACE,
+            IdlTypeKind.STRUCT,
+            IdlTypeKind.ENUM,
+            IdlTypeKind.EXCEPTION,
+            IdlTypeKind.TYPEDEF,
+            IdlTypeKind.UNION,
+            IdlTypeKind.NATIVE,
+            IdlTypeKind.VALUE_BOX,
+            IdlTypeKind.VALUETYPE),
+        List.of(IdlTypeKind.values()));
   }
 
   @Test
@@ -261,7 +275,12 @@ final class IdlDescriptorTest {
             IdlTypeKind.INTERFACE,
             IdlTypeKind.STRUCT,
             IdlTypeKind.ENUM,
-            IdlTypeKind.EXCEPTION),
+            IdlTypeKind.EXCEPTION,
+            IdlTypeKind.TYPEDEF,
+            IdlTypeKind.UNION,
+            IdlTypeKind.NATIVE,
+            IdlTypeKind.VALUE_BOX,
+            IdlTypeKind.VALUETYPE),
         List.of(IdlTypeKind.values()));
     assertEquals(
         List.of(IdlParameterMode.IN, IdlParameterMode.OUT, IdlParameterMode.INOUT),

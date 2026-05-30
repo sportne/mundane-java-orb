@@ -345,6 +345,92 @@ final class IdlJavaMapperTest {
   }
 
   @Test
+  void mapsG12RicherIdlConstructsForLegacyAndModernModes() {
+    IdlSemanticModel semanticModel = semanticModel(g12RicherIdl());
+
+    JavaMappingModel legacy = mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY);
+    JavaMappingModel modern = mapper.map(semanticModel, JavaMappingMode.MODERN);
+
+    assertEquals(
+        List.of(
+            JavaMappedTypeKind.NATIVE,
+            JavaMappedTypeKind.EXCEPTION,
+            JavaMappedTypeKind.INTERFACE,
+            JavaMappedTypeKind.VALUE_BOX,
+            JavaMappedTypeKind.VALUETYPE,
+            JavaMappedTypeKind.VALUETYPE),
+        legacy.types().stream()
+            .filter(type -> type.kind() != JavaMappedTypeKind.HOLDER)
+            .map(JavaMappedType::kind)
+            .toList());
+    assertEquals(
+        List.of(
+            "g12.Handle",
+            "g12.Problem",
+            "g12.AbstractBase",
+            "g12.NameValue",
+            "g12.BaseValue",
+            "g12.ValueThing"),
+        legacy.types().stream()
+            .filter(type -> type.kind() != JavaMappedTypeKind.HOLDER)
+            .map(type -> type.name().qualifiedName())
+            .toList());
+    assertEquals(
+        List.of(
+            "modern.g12.Handle",
+            "modern.g12.Problem",
+            "modern.g12.AbstractBase",
+            "modern.g12.NameValue",
+            "modern.g12.BaseValue",
+            "modern.g12.ValueThing"),
+        modern.types().stream().map(type -> type.name().qualifiedName()).toList());
+
+    JavaMappedType valueBox = legacy.types().get(3);
+    assertEquals("java.lang.String", valueBox.aliasType());
+    assertEquals(List.of("value"), valueBox.fields().stream().map(JavaMappedField::name).toList());
+
+    JavaMappedType baseValue = legacy.types().get(4);
+    assertEquals(true, baseValue.abstractType());
+    assertEquals("IDL:example.com/G12/BaseValue:1.0", baseValue.repositoryId());
+
+    JavaMappedType valueThing = legacy.types().get(5);
+    assertEquals(List.of("g12.BaseValue"), valueThing.baseInterfaces());
+    assertEquals(List.of("g12.AbstractBase"), valueThing.supportedInterfaces());
+    assertEquals("IDL:example.com/G12/ValueThing:1.0", valueThing.repositoryId());
+    assertEquals(
+        List.of("int", "java.lang.String[]"),
+        valueThing.fields().stream().map(JavaMappedField::javaType).toList());
+    assertEquals(
+        List.of("create", "touch"),
+        valueThing.operations().stream().map(JavaMappedOperation::name).toList());
+    assertEquals(true, valueThing.operations().getFirst().factory());
+    assertEquals("g12.ValueThing", valueThing.operations().getFirst().returnType());
+    assertEquals("g12.Handle", valueThing.operations().get(1).parameters().getFirst().javaType());
+  }
+
+  @Test
+  void rejectsCustomValuetypesUntilCustomMarshalingMappingExists() {
+    IdlSemanticModel semanticModel =
+        semanticModel(
+            """
+            module Demo {
+              custom valuetype CustomValue {
+                public long id;
+              };
+            };
+            """);
+
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
+
+    assertEquals(
+        "Unsupported IDL-to-Java mapping: custom valuetype ::Demo::CustomValue",
+        exception.getMessage());
+  }
+
+  @Test
   void avoidsConstantHolderNameCollisionsWithGeneratedTypes() {
     JavaMappingModel model =
         mapper.map(
@@ -417,6 +503,27 @@ final class IdlJavaMapperTest {
             void submit(in Names names, out Choice result, inout Count count) raises (Problem);
             void collect(out sequence<string<32>> values);
           };
+        };
+        """;
+  }
+
+  private static String g12RicherIdl() {
+    return """
+        #pragma prefix "example.com"
+        module G12 {
+          native Handle;
+          exception Problem {};
+          abstract interface AbstractBase {};
+          valuetype NameValue string<32>;
+          abstract valuetype BaseValue {};
+          valuetype ValueThing : BaseValue supports AbstractBase {
+            public long id;
+            private sequence<string, 8> names;
+            factory create(in long id) raises (Problem);
+            void touch(in Handle handle);
+          };
+          typeprefix BaseValue "example.com/G12";
+          typeprefix ValueThing "example.com/G12";
         };
         """;
   }

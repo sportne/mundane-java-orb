@@ -9,6 +9,7 @@ import io.github.mundanej.mjo.idl.ast.IdlInterface;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
+import io.github.mundanej.mjo.idl.ast.IdlNative;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameter;
 import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
@@ -16,6 +17,11 @@ import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTypedef;
 import io.github.mundanej.mjo.idl.ast.IdlUnion;
 import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
+import io.github.mundanej.mjo.idl.ast.IdlValueBox;
+import io.github.mundanej.mjo.idl.ast.IdlValueFactory;
+import io.github.mundanej.mjo.idl.ast.IdlValueField;
+import io.github.mundanej.mjo.idl.ast.IdlValueMember;
+import io.github.mundanej.mjo.idl.ast.IdlValueType;
 import io.github.mundanej.mjo.idl.java.mapping.IdlJavaMapper;
 import io.github.mundanej.mjo.idl.java.mapping.JavaMappedType;
 import io.github.mundanej.mjo.idl.java.mapping.JavaMappedTypeKind;
@@ -108,11 +114,15 @@ public final class JavaDescriptorSourceGenerator {
         .append(simpleName)
         .append(" {\n\n")
         .append("  public static final RepositoryId REPOSITORY_ID = RepositoryId.parse(\"")
-        .append(repositoryId(declaration.idlScopedName()))
+        .append(declaration.repositoryId())
         .append("\");\n\n")
         .append("  public static final IdlTypeReference TYPE = ")
         .append(
-            typeReference(declaration.kind(), declaration.idlScopedName(), declaration.javaName()))
+            typeReference(
+                declaration.kind(),
+                declaration.idlScopedName(),
+                declaration.javaName(),
+                declaration.repositoryId()))
         .append(";\n");
     renderOperationConstants(source, descriptorModel, declaration);
     source
@@ -308,11 +318,15 @@ public final class JavaDescriptorSourceGenerator {
         .map(
             declaration ->
                 typeReference(
-                    declaration.kind(), declaration.idlScopedName(), declaration.javaName()))
+                    declaration.kind(),
+                    declaration.idlScopedName(),
+                    declaration.javaName(),
+                    declaration.repositoryId()))
         .orElseGet(() -> descriptorModel.fallbackTypeReference(idlType, modules));
   }
 
-  private static String typeReference(IdlSymbolKind kind, String idlScopedName, String javaName) {
+  private static String typeReference(
+      IdlSymbolKind kind, String idlScopedName, String javaName, String repositoryId) {
     return "new IdlTypeReference("
         + typeKind(kind)
         + ", \""
@@ -320,7 +334,7 @@ public final class JavaDescriptorSourceGenerator {
         + "\", \""
         + escapeJava(javaName)
         + "\", Optional.of(RepositoryId.parse(\""
-        + repositoryId(idlScopedName)
+        + repositoryId
         + "\")))";
   }
 
@@ -330,7 +344,11 @@ public final class JavaDescriptorSourceGenerator {
       case STRUCT -> "IdlTypeKind.STRUCT";
       case ENUM -> "IdlTypeKind.ENUM";
       case EXCEPTION -> "IdlTypeKind.EXCEPTION";
-      case TYPEDEF, UNION -> "IdlTypeKind.PRIMITIVE";
+      case TYPEDEF -> "IdlTypeKind.TYPEDEF";
+      case UNION -> "IdlTypeKind.UNION";
+      case NATIVE -> "IdlTypeKind.NATIVE";
+      case VALUE_BOX -> "IdlTypeKind.VALUE_BOX";
+      case VALUETYPE -> "IdlTypeKind.VALUETYPE";
       default -> throw new IllegalArgumentException("Unsupported descriptor kind: " + kind);
     };
   }
@@ -469,6 +487,7 @@ public final class JavaDescriptorSourceGenerator {
       IdlSymbolKind kind,
       String idlScopedName,
       String javaName,
+      String repositoryId,
       List<String> modules,
       JavaMappedType javaType,
       List<FieldDescriptor> fields,
@@ -486,6 +505,7 @@ public final class JavaDescriptorSourceGenerator {
       collect(
           semanticModel.translationUnit().declarations(),
           List.of(),
+          semanticModel,
           mappingModel.types(),
           new int[] {0},
           declarations);
@@ -507,7 +527,9 @@ public final class JavaDescriptorSourceGenerator {
       return "new IdlTypeReference(IdlTypeKind.PRIMITIVE, \""
           + escapeJava(symbol.qualifiedName())
           + "\", \"java.lang.Object\", Optional.of(RepositoryId.parse(\""
-          + repositoryId(symbol.qualifiedName())
+          + symbol
+              .repositoryId()
+              .orElseGet(() -> JavaDescriptorSourceGenerator.repositoryId(symbol.qualifiedName()))
           + "\")))";
     }
 
@@ -543,6 +565,7 @@ public final class JavaDescriptorSourceGenerator {
     private static void collect(
         List<IdlDeclaration> declarations,
         List<String> modules,
+        IdlSemanticModel semanticModel,
         List<JavaMappedType> javaTypes,
         int[] index,
         List<DescriptorDeclaration> output) {
@@ -550,15 +573,17 @@ public final class JavaDescriptorSourceGenerator {
         if (declaration instanceof IdlModule module) {
           List<String> childModules = new ArrayList<>(modules);
           childModules.add(module.name());
-          collect(module.declarations(), childModules, javaTypes, index, output);
+          collect(module.declarations(), childModules, semanticModel, javaTypes, index, output);
         } else if (declaration instanceof IdlStruct struct) {
-          output.add(structDescriptor(struct, modules, javaTypes.get(index[0]++)));
+          output.add(structDescriptor(struct, modules, semanticModel, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlEnum idlEnum) {
-          output.add(enumDescriptor(idlEnum, modules, javaTypes.get(index[0]++)));
+          output.add(enumDescriptor(idlEnum, modules, semanticModel, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlExceptionDeclaration exception) {
-          output.add(exceptionDescriptor(exception, modules, javaTypes.get(index[0]++)));
+          output.add(
+              exceptionDescriptor(exception, modules, semanticModel, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlInterface idlInterface) {
-          output.add(interfaceDescriptor(idlInterface, modules, javaTypes.get(index[0]++)));
+          output.add(
+              interfaceDescriptor(idlInterface, modules, semanticModel, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlTypedef typedef) {
           for (int typedefIndex = 0; typedefIndex < typedef.declarators().size(); typedefIndex++) {
             output.add(
@@ -566,10 +591,21 @@ public final class JavaDescriptorSourceGenerator {
                     typedef,
                     typedef.declarators().get(typedefIndex),
                     modules,
+                    semanticModel,
                     javaTypes.get(index[0]++)));
           }
         } else if (declaration instanceof IdlUnion union) {
-          output.add(unionDescriptor(union, modules, javaTypes.get(index[0]++)));
+          output.add(unionDescriptor(union, modules, semanticModel, javaTypes.get(index[0]++)));
+        } else if (declaration instanceof IdlNative nativeDeclaration) {
+          output.add(
+              nativeDescriptor(
+                  nativeDeclaration, modules, semanticModel, javaTypes.get(index[0]++)));
+        } else if (declaration instanceof IdlValueBox valueBox) {
+          output.add(
+              valueBoxDescriptor(valueBox, modules, semanticModel, javaTypes.get(index[0]++)));
+        } else if (declaration instanceof IdlValueType valueType) {
+          output.add(
+              valueTypeDescriptor(valueType, modules, semanticModel, javaTypes.get(index[0]++)));
         } else if (declaration instanceof IdlInterfaceForward
             && index[0] < javaTypes.size()
             && javaTypes.get(index[0]).kind() == JavaMappedTypeKind.INTERFACE_FORWARD) {
@@ -579,11 +615,16 @@ public final class JavaDescriptorSourceGenerator {
     }
 
     private static DescriptorDeclaration structDescriptor(
-        IdlStruct struct, List<String> modules, JavaMappedType javaType) {
+        IdlStruct struct,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, struct.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.STRUCT,
-          absoluteName(modules, struct.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           fields(struct.fields()),
@@ -592,11 +633,16 @@ public final class JavaDescriptorSourceGenerator {
     }
 
     private static DescriptorDeclaration enumDescriptor(
-        IdlEnum idlEnum, List<String> modules, JavaMappedType javaType) {
+        IdlEnum idlEnum,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, idlEnum.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.ENUM,
-          absoluteName(modules, idlEnum.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           List.of(),
@@ -605,11 +651,16 @@ public final class JavaDescriptorSourceGenerator {
     }
 
     private static DescriptorDeclaration exceptionDescriptor(
-        IdlExceptionDeclaration exception, List<String> modules, JavaMappedType javaType) {
+        IdlExceptionDeclaration exception,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, exception.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.EXCEPTION,
-          absoluteName(modules, exception.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           fields(exception.fields()),
@@ -618,17 +669,22 @@ public final class JavaDescriptorSourceGenerator {
     }
 
     private static DescriptorDeclaration interfaceDescriptor(
-        IdlInterface idlInterface, List<String> modules, JavaMappedType javaType) {
+        IdlInterface idlInterface,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
       List<OperationDescriptor> operations = new ArrayList<>();
       for (IdlInterfaceMember member : idlInterface.members()) {
         if (member instanceof IdlOperation operation) {
           operations.add(operation(operation));
         }
       }
+      String idlName = absoluteName(modules, idlInterface.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.INTERFACE,
-          absoluteName(modules, idlInterface.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           List.of(),
@@ -640,11 +696,14 @@ public final class JavaDescriptorSourceGenerator {
         IdlTypedef typedef,
         IdlDeclarator declarator,
         List<String> modules,
+        IdlSemanticModel semanticModel,
         JavaMappedType javaType) {
+      String idlName = absoluteName(modules, declarator.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.TYPEDEF,
-          absoluteName(modules, declarator.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           List.of(new FieldDescriptor("value", typedef.type().name())),
@@ -653,16 +712,75 @@ public final class JavaDescriptorSourceGenerator {
     }
 
     private static DescriptorDeclaration unionDescriptor(
-        IdlUnion union, List<String> modules, JavaMappedType javaType) {
+        IdlUnion union,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, union.name());
       return new DescriptorDeclaration(
           IdlSymbolKind.UNION,
-          absoluteName(modules, union.name()),
+          idlName,
           javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
           List.copyOf(modules),
           javaType,
           unionFields(union.cases()),
           List.of(),
           List.of());
+    }
+
+    private static DescriptorDeclaration nativeDescriptor(
+        IdlNative nativeDeclaration,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, nativeDeclaration.name());
+      return new DescriptorDeclaration(
+          IdlSymbolKind.NATIVE,
+          idlName,
+          javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
+          List.copyOf(modules),
+          javaType,
+          List.of(),
+          List.of(),
+          List.of());
+    }
+
+    private static DescriptorDeclaration valueBoxDescriptor(
+        IdlValueBox valueBox,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, valueBox.name());
+      return new DescriptorDeclaration(
+          IdlSymbolKind.VALUE_BOX,
+          idlName,
+          javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
+          List.copyOf(modules),
+          javaType,
+          List.of(new FieldDescriptor("value", valueBox.boxedType().name())),
+          List.of(),
+          List.of());
+    }
+
+    private static DescriptorDeclaration valueTypeDescriptor(
+        IdlValueType valueType,
+        List<String> modules,
+        IdlSemanticModel semanticModel,
+        JavaMappedType javaType) {
+      String idlName = absoluteName(modules, valueType.name());
+      return new DescriptorDeclaration(
+          IdlSymbolKind.VALUETYPE,
+          idlName,
+          javaType.name().qualifiedName(),
+          repositoryId(semanticModel, idlName),
+          List.copyOf(modules),
+          javaType,
+          valueFields(valueType.members()),
+          List.of(),
+          valueOperations(valueType, modules));
     }
 
     private static List<FieldDescriptor> fields(List<IdlField> fields) {
@@ -679,6 +797,31 @@ public final class JavaDescriptorSourceGenerator {
           .toList();
     }
 
+    private static List<FieldDescriptor> valueFields(List<IdlValueMember> members) {
+      List<FieldDescriptor> fields = new ArrayList<>();
+      for (IdlValueMember member : members) {
+        if (member instanceof IdlValueField valueField) {
+          for (IdlDeclarator declarator : valueField.declarators()) {
+            fields.add(new FieldDescriptor(declarator.name(), valueField.type().name()));
+          }
+        }
+      }
+      return fields;
+    }
+
+    private static List<OperationDescriptor> valueOperations(
+        IdlValueType valueType, List<String> modules) {
+      List<OperationDescriptor> operations = new ArrayList<>();
+      for (IdlValueMember member : valueType.members()) {
+        if (member instanceof IdlOperation operation) {
+          operations.add(operation(operation));
+        } else if (member instanceof IdlValueFactory factory) {
+          operations.add(valueFactory(valueType, modules, factory));
+        }
+      }
+      return operations;
+    }
+
     private static OperationDescriptor operation(IdlOperation operation) {
       return new OperationDescriptor(
           operation.name(),
@@ -687,9 +830,25 @@ public final class JavaDescriptorSourceGenerator {
           operation.raises());
     }
 
+    private static OperationDescriptor valueFactory(
+        IdlValueType valueType, List<String> modules, IdlValueFactory factory) {
+      return new OperationDescriptor(
+          factory.name(),
+          absoluteName(modules, valueType.name()),
+          factory.parameters().stream().map(DescriptorModel::parameter).toList(),
+          factory.raises());
+    }
+
     private static ParameterDescriptor parameter(IdlParameter parameter) {
       return new ParameterDescriptor(
           parameter.name(), parameter.direction(), parameter.type().name());
+    }
+
+    private static String repositoryId(IdlSemanticModel semanticModel, String idlName) {
+      return semanticModel
+          .findSymbol(idlName)
+          .flatMap(IdlSymbol::repositoryId)
+          .orElseGet(() -> JavaDescriptorSourceGenerator.repositoryId(idlName));
     }
   }
 }

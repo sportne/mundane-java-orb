@@ -95,6 +95,9 @@ public final class JavaSourceGenerator {
       case EXCEPTION -> renderException(source, type);
       case TYPEDEF -> renderTypedef(source, type);
       case UNION -> renderUnion(source, type);
+      case NATIVE -> renderNative(source, type);
+      case VALUE_BOX -> renderStruct(source, type);
+      case VALUETYPE -> renderValueType(source, type);
       case HOLDER -> renderHolderClass(source, type.name().simpleName(), type.aliasType());
     }
     return new GeneratedJavaSource(
@@ -109,7 +112,7 @@ public final class JavaSourceGenerator {
         .append(simpleName)
         .append(" {\n\n")
         .append("  private static final String ID = \"")
-        .append(escapeJava(type.name().qualifiedName()))
+        .append(escapeJava(type.repositoryId()))
         .append("\";\n\n")
         .append("  private ")
         .append(simpleName)
@@ -282,6 +285,58 @@ public final class JavaSourceGenerator {
     source.append("}\n");
   }
 
+  private static void renderNative(StringBuilder source, JavaMappedType type) {
+    source
+        .append("public final class ")
+        .append(type.name().simpleName())
+        .append(" {\n\n")
+        .append("  private ")
+        .append(type.name().simpleName())
+        .append("() {}\n")
+        .append("}\n");
+  }
+
+  private static void renderValueType(StringBuilder source, JavaMappedType type) {
+    source.append("public ");
+    if (type.abstractType()) {
+      source.append("abstract ");
+    }
+    source.append("class ").append(type.name().simpleName());
+    if (!type.baseInterfaces().isEmpty()) {
+      source.append(" extends ").append(type.baseInterfaces().getFirst());
+    }
+    if (!type.supportedInterfaces().isEmpty()) {
+      source.append(" implements ").append(String.join(", ", type.supportedInterfaces()));
+    }
+    source.append(" {\n");
+    renderFields(source, type.fields());
+    renderConstructor(source, type.name().simpleName(), type.fields(), false);
+    for (JavaMappedAttribute attribute : type.attributes()) {
+      String accessorSuffix = accessorSuffix(attribute.name());
+      renderThrowingMethod(
+          source, false, attribute.javaType(), "get" + accessorSuffix, List.of(), List.of());
+      if (!attribute.readonly()) {
+        renderThrowingMethod(
+            source,
+            false,
+            "void",
+            "set" + accessorSuffix,
+            List.of(new JavaMappedParameter(attribute.javaType(), attribute.name())),
+            List.of());
+      }
+    }
+    for (JavaMappedOperation operation : type.operations()) {
+      renderThrowingMethod(
+          source,
+          operation.factory(),
+          operation.returnType(),
+          operation.name(),
+          operation.parameters(),
+          operation.thrownTypes());
+    }
+    source.append("}\n");
+  }
+
   private static void renderHolderClass(StringBuilder source, String simpleName, String valueType) {
     source
         .append("public final class ")
@@ -307,10 +362,11 @@ public final class JavaSourceGenerator {
     for (JavaMappedAttribute attribute : type.attributes()) {
       String accessorSuffix = accessorSuffix(attribute.name());
       renderThrowingMethod(
-          source, attribute.javaType(), "get" + accessorSuffix, List.of(), List.of());
+          source, false, attribute.javaType(), "get" + accessorSuffix, List.of(), List.of());
       if (!attribute.readonly()) {
         renderThrowingMethod(
             source,
+            false,
             "void",
             "set" + accessorSuffix,
             List.of(new JavaMappedParameter(attribute.javaType(), attribute.name())),
@@ -320,6 +376,7 @@ public final class JavaSourceGenerator {
     for (JavaMappedOperation operation : type.operations()) {
       renderThrowingMethod(
           source,
+          false,
           operation.returnType(),
           operation.name(),
           operation.parameters(),
@@ -329,11 +386,16 @@ public final class JavaSourceGenerator {
 
   private static void renderThrowingMethod(
       StringBuilder source,
+      boolean staticMethod,
       String returnType,
       String name,
       List<JavaMappedParameter> parameters,
       List<String> thrownTypes) {
-    source.append("\n  public ").append(returnType).append(' ').append(name).append('(');
+    source.append("\n  public ");
+    if (staticMethod) {
+      source.append("static ");
+    }
+    source.append(returnType).append(' ').append(name).append('(');
     source.append(
         parameters.stream().map(JavaSourceGenerator::parameter).collect(Collectors.joining(", ")));
     source.append(')');

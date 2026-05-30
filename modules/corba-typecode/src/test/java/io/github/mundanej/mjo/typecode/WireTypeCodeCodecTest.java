@@ -70,6 +70,42 @@ final class WireTypeCodeCodecTest {
   }
 
   @Test
+  void g12DeferredLocalTypeCodesFailWithStableWireMappingMessage() {
+    IdlTypeCode nativeType =
+        IdlTypeCode.fromTypeReference(
+            new IdlTypeReference(
+                IdlTypeKind.NATIVE,
+                "::demo::Handle",
+                "demo.Handle",
+                Optional.of(RepositoryId.parse("IDL:demo/Handle:1.0"))));
+    IdlTypeCode valueBox =
+        IdlTypeCode.fromDescriptor(
+            new IdlGeneratedTypeDescriptor(
+                IdlTypeKind.VALUE_BOX,
+                "::demo::Name",
+                "demo.Name",
+                RepositoryId.parse("IDL:demo/Name:1.0"),
+                List.of(
+                    new IdlFieldDescriptor(
+                        "value",
+                        new IdlTypeReference(
+                            IdlTypeKind.PRIMITIVE,
+                            "string",
+                            "java.lang.String",
+                            Optional.empty()))),
+                List.of(),
+                List.of()));
+
+    IllegalArgumentException nativeFailure =
+        assertThrows(IllegalArgumentException.class, () -> WireTypeCodes.fromLocal(nativeType));
+    IllegalArgumentException valueBoxFailure =
+        assertThrows(IllegalArgumentException.class, () -> WireTypeCodes.fromLocal(valueBox));
+
+    assertEquals("wire TypeCode mapping deferred for NATIVE", nativeFailure.getMessage());
+    assertEquals("wire TypeCode mapping deferred for VALUE_BOX", valueBoxFailure.getMessage());
+  }
+
+  @Test
   void malformedWireTypeCodesFailDeterministically() {
     assertThrows(
         IllegalArgumentException.class, () -> WireTypeCode.array(WireTypeCode.string(0), 0));

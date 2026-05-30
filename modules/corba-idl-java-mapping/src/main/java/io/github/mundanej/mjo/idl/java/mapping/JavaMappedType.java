@@ -12,8 +12,11 @@ import java.util.Objects;
  * @param enumConstants enum constants
  * @param operations interface operations
  * @param attributes interface attributes
- * @param baseInterfaces inherited Java interface names
+ * @param baseInterfaces inherited Java interface or valuetype names
+ * @param supportedInterfaces supported Java interface names for valuetypes
  * @param aliasType mapped Java target type for typedefs and synthetic holders
+ * @param repositoryId IDL repository ID for helper and descriptor metadata
+ * @param abstractType whether the generated type should be abstract
  */
 public record JavaMappedType(
     JavaMappedTypeKind kind,
@@ -23,7 +26,10 @@ public record JavaMappedType(
     List<JavaMappedOperation> operations,
     List<JavaMappedAttribute> attributes,
     List<String> baseInterfaces,
-    String aliasType) {
+    List<String> supportedInterfaces,
+    String aliasType,
+    String repositoryId,
+    boolean abstractType) {
 
   /** Creates a validated mapped type. */
   public JavaMappedType {
@@ -34,11 +40,38 @@ public record JavaMappedType(
     operations = List.copyOf(Objects.requireNonNull(operations, "operations"));
     attributes = List.copyOf(Objects.requireNonNull(attributes, "attributes"));
     baseInterfaces = List.copyOf(Objects.requireNonNull(baseInterfaces, "baseInterfaces"));
+    supportedInterfaces =
+        List.copyOf(Objects.requireNonNull(supportedInterfaces, "supportedInterfaces"));
     Objects.requireNonNull(aliasType, "aliasType");
+    Objects.requireNonNull(repositoryId, "repositoryId");
     if ((kind == JavaMappedTypeKind.TYPEDEF || kind == JavaMappedTypeKind.HOLDER)
         && aliasType.isBlank()) {
       throw new IllegalArgumentException("aliasType must not be blank for " + kind);
     }
+  }
+
+  /** Creates a mapped type without valuetype support or explicit repository metadata. */
+  public JavaMappedType(
+      JavaMappedTypeKind kind,
+      JavaMappedName name,
+      List<JavaMappedField> fields,
+      List<String> enumConstants,
+      List<JavaMappedOperation> operations,
+      List<JavaMappedAttribute> attributes,
+      List<String> baseInterfaces,
+      String aliasType) {
+    this(
+        kind,
+        name,
+        fields,
+        enumConstants,
+        operations,
+        attributes,
+        baseInterfaces,
+        List.of(),
+        aliasType,
+        name.qualifiedName(),
+        false);
   }
 
   /** Creates a mapped type without G10 inheritance or alias metadata. */

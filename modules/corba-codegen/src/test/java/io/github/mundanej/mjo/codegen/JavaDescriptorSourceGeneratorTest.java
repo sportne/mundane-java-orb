@@ -306,6 +306,48 @@ final class JavaDescriptorSourceGeneratorTest {
     compile(compileSources);
   }
 
+  @Test
+  void generatedG12RicherIdlFixtureMapsThroughDescriptorAndCodegenPaths() throws Exception {
+    IdlSemanticModel semanticModel = semanticModel("g12-rich.idl", g12RicherIdl());
+
+    List<GeneratedJavaSource> descriptorSources =
+        generator.generate(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY);
+    List<GeneratedJavaSource> compileSources = new ArrayList<>(descriptorSources);
+    compileSources.addAll(
+        sourceGenerator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY)));
+
+    assertEquals(
+        List.of(
+            "g12/codec/AbstractBaseCodec.java",
+            "g12/codec/BaseValueCodec.java",
+            "g12/codec/HandleCodec.java",
+            "g12/codec/NameValueCodec.java",
+            "g12/codec/ProblemCodec.java",
+            "g12/codec/ValueThingCodec.java",
+            "g12/metadata/AbstractBaseDescriptor.java",
+            "g12/metadata/BaseValueDescriptor.java",
+            "g12/metadata/GeneratedInterfaceRepository.java",
+            "g12/metadata/HandleDescriptor.java",
+            "g12/metadata/NameValueDescriptor.java",
+            "g12/metadata/ProblemDescriptor.java",
+            "g12/metadata/ValueThingDescriptor.java"),
+        sourcePaths(descriptorSources));
+    String descriptorText =
+        descriptorSources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat);
+    assertNoForbiddenGeneratedSourceTokens(descriptorText);
+    assertContains(descriptorText, "IdlTypeKind.NATIVE");
+    assertContains(descriptorText, "IdlTypeKind.VALUE_BOX");
+    assertContains(descriptorText, "IdlTypeKind.VALUETYPE");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:example.com/G12/Handle:1.0\")");
+    assertContains(descriptorText, "RepositoryId.parse(\"IDL:example.com/G12/ValueThing:1.0\")");
+    assertContains(descriptorText, "new IdlFieldDescriptor(\"value\"");
+    assertContains(descriptorText, "new IdlFieldDescriptor(\"id\"");
+    assertContains(descriptorText, "new IdlFieldDescriptor(\"names\"");
+    assertContains(descriptorText, "public static final IdlOperationDescriptor CREATE");
+    assertContains(descriptorText, "public static final IdlOperationDescriptor TOUCH");
+    compile(compileSources);
+  }
+
   private IdlSemanticModel semanticModel(String sourceName, String source) {
     IdlParseResult parseResult = parser.parse(sourceName, source);
     assertFalse(parseResult.hasErrors(), () -> parseResult.diagnostics().toString());
@@ -396,6 +438,27 @@ final class JavaDescriptorSourceGeneratorTest {
             void submit(in Names names, out Choice result, inout Count count) raises (Problem);
             void collect(out sequence<string<32>> values);
           };
+        };
+        """;
+  }
+
+  private static String g12RicherIdl() {
+    return """
+        #pragma prefix "example.com"
+        module G12 {
+          native Handle;
+          exception Problem {};
+          abstract interface AbstractBase {};
+          valuetype NameValue string<32>;
+          abstract valuetype BaseValue {};
+          valuetype ValueThing : BaseValue supports AbstractBase {
+            public long id;
+            private sequence<string, 8> names;
+            factory create(in long id) raises (Problem);
+            void touch(in Handle handle);
+          };
+          typeprefix BaseValue "example.com/G12";
+          typeprefix ValueThing "example.com/G12";
         };
         """;
   }

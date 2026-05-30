@@ -122,10 +122,10 @@ references, array/sequence/string bounds, and `raises(...)` targets remain
 declaration-order constrained in this slice.
 
 The semantic model is deliberately not a compiler back end. It records
-repository ID strings needed by later mapping tasks, but Java mapping, generated
-source, generated codecs, TypeCode, Any, CDR, GIOP/IIOP, ORB runtime behavior,
-reflection, dynamic classpath scanning, and Native Image metadata generation
-remain assigned to later roadmap tasks.
+repository ID strings used by later mapping tasks. Java source generation,
+generated descriptors, TypeCode metadata, Any, CDR, GIOP/IIOP, ORB runtime
+behavior, reflection, dynamic classpath scanning, and Native Image metadata
+generation remain separate pipeline stages with their own roadmap gates.
 
 ## Validation CLI Boundary
 
@@ -172,6 +172,16 @@ continues to map through this IDL-to-Java model and compile through the existing
 source renderer. RMI-specific tie and binding-descriptor surfaces remain
 generated in `corba-rmi-iiop`, not by the generic IDL compiler pipeline.
 
+G12-040 extends the generic IDL-to-Java model for the richer post-1.0 compiler
+corpus. Native declarations map to opaque compile-safe Java reference classes.
+Value boxes map to single-field value classes. Full valuetypes map to
+compile-safe value classes with state fields, static factory placeholders, and
+operation placeholders. Legacy mode continues to emit helper and holder surfaces,
+abstract stubs, and abstract POA placeholders; modern mode emits only the modern
+compile-safe type surface. The generated source remains free of `org.omg.*`,
+reflection, dynamic class loading, bytecode generation, Java serialization, and
+runtime ORB/POA/IIOP dependencies.
+
 ## Descriptor And Codec Boundary
 
 G6-220 adds a source-generation-only descriptor pass after Java mapping. It
@@ -188,3 +198,11 @@ codecs compile-safe for alias, sequence, array, and union references within the
 current `corba-typecode` API limits. The pass does not add CLI generation
 commands, ORB invocation behavior, GIOP/IIOP transport, runtime registries,
 reflection metadata, runtime skeletons, or real POA artifacts.
+
+G12-040 carries semantic repository IDs into generated descriptor source and
+extends descriptor/TypeCode metadata for typedefs, unions, native declarations,
+value boxes, and valuetypes. Native declarations are represented as reference
+metadata without aggregate members. Value boxes and valuetypes use deterministic
+field and operation descriptors. Wire-level TypeCode encodings for the new kinds
+remain explicitly deferred and fail with stable unsupported-mapping errors until
+later interop tasks add peer-facing behavior.
