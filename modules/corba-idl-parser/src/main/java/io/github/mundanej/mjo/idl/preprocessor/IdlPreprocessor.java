@@ -91,14 +91,18 @@ public final class IdlPreprocessor {
       includeStack.addLast(source.sourceName());
       SourceView sourceView = lexSource(normalized);
       ConditionalState conditionals = new ConditionalState();
+      ActiveLineMarkers lineMarkers = new ActiveLineMarkers(source.sourceName());
 
       for (LineView line : sourceView.lines()) {
+        LineView emittedLine = line.remap(lineMarkers);
         if (line.isDirective()) {
-          processDirective(line, conditionals, includeStack, includeDepth);
+          processDirective(
+              line, emittedLine, conditionals, includeStack, includeDepth, lineMarkers);
         } else if (conditionals.isActive()) {
-          outputTokens.addAll(expandTokens(line.emittedTokens(), new HashSet<>()));
-          lexerDiagnosticsFor(line).forEach(this::addDiagnostic);
+          outputTokens.addAll(expandTokens(emittedLine.emittedTokens(), new HashSet<>()));
+          lexerDiagnosticsFor(emittedLine).forEach(this::addDiagnostic);
         }
+        lineMarkers.finishLine();
       }
 
       for (ConditionalFrame frame : conditionals.openFrames()) {
@@ -167,36 +171,51 @@ public final class IdlPreprocessor {
     }
 
     private void processDirective(
-        LineView line,
+        LineView lexedLine,
+        LineView emittedLine,
         ConditionalState conditionals,
         ArrayDeque<String> includeStack,
-        int includeDepth) {
-      String directive = line.directiveName().orElse("");
+        int includeDepth,
+        ActiveLineMarkers lineMarkers) {
+      if (LineMarkerDirective.looksLikeLineMarker(lexedLine)) {
+        Optional<LineMarkerDirective> lineMarker = LineMarkerDirective.parse(lexedLine.lineText());
+        if (conditionals.isActive() && lineMarker.isEmpty()) {
+          emitDiagnostic(
+              IdlPreprocessorDiagnosticCodes.MALFORMED_LINE_MARKER,
+              "Malformed IDL line marker directive",
+              emittedLine.directiveSpan());
+        } else if (conditionals.isActive()) {
+          lineMarkers.apply(lineMarker.orElseThrow());
+        }
+        return;
+      }
+
+      String directive = lexedLine.directiveName().orElse("");
       switch (directive) {
         case "include" -> {
           if (conditionals.isActive()) {
-            processInclude(line, includeStack, includeDepth);
+            processInclude(emittedLine, includeStack, includeDepth);
           }
         }
         case "define" -> {
           if (conditionals.isActive()) {
-            processDefine(line);
+            processDefine(emittedLine);
           }
         }
         case "undef" -> {
           if (conditionals.isActive()) {
-            processUndef(line);
+            processUndef(emittedLine);
           }
         }
-        case "ifdef" -> processIfdef(line, conditionals, false);
-        case "ifndef" -> processIfdef(line, conditionals, true);
-        case "if" -> processIf(line, conditionals);
-        case "elif" -> processElif(line, conditionals);
-        case "else" -> processElse(line, conditionals);
-        case "endif" -> processEndif(line, conditionals);
+        case "ifdef" -> processIfdef(emittedLine, conditionals, false);
+        case "ifndef" -> processIfdef(emittedLine, conditionals, true);
+        case "if" -> processIf(emittedLine, conditionals);
+        case "elif" -> processElif(emittedLine, conditionals);
+        case "else" -> processElse(emittedLine, conditionals);
+        case "endif" -> processEndif(emittedLine, conditionals);
         case "pragma" -> {
           if (conditionals.isActive()) {
-            outputTokens.addAll(line.emittedTokens());
+            outputTokens.addAll(emittedLine.emittedTokens());
           }
         }
         default -> {
@@ -204,7 +223,7 @@ public final class IdlPreprocessor {
             emitDiagnostic(
                 IdlPreprocessorDiagnosticCodes.UNSUPPORTED_DIRECTIVE,
                 "Unsupported IDL preprocessor directive: " + directive,
-                line.directiveSpan());
+                emittedLine.directiveSpan());
           }
         }
       }
@@ -287,6 +306,7 @@ public final class IdlPreprocessor {
       }
 
       String name = macroName(tokens.get(2).emitted()).orElseThrow();
+
       int bodyStart = 3;
       List<String> parameters = List.of();
       boolean functionLike = false;
@@ -294,6 +314,13 @@ public final class IdlPreprocessor {
         if (tokens.get(2).lexed().span().end().offset() + 1
             == tokens.get(3).lexed().span().start().offset()) {
           functionLike = true;
+          if (hasVariadicParameterMarker(line, name)) {
+            emitDiagnostic(
+                IdlPreprocessorDiagnosticCodes.UNSUPPORTED_MACRO_OPERATOR,
+                "Variadic IDL macros are not supported in this slice",
+                line.directiveSpan());
+            return;
+          }
           ParsedParameters parsed = parseParameters(tokens, 4, line.directiveSpan());
           if (!parsed.valid()) {
             return;
@@ -305,6 +332,13 @@ public final class IdlPreprocessor {
 
       List<IdlToken> replacement =
           tokens.subList(bodyStart, tokens.size()).stream().map(TokenEntry::emitted).toList();
+      if (replacement.stream().anyMatch(Engine::isVariadicReplacementToken)) {
+        emitDiagnostic(
+            IdlPreprocessorDiagnosticCodes.UNSUPPORTED_MACRO_OPERATOR,
+            "Variadic IDL macros are not supported in this slice",
+            line.directiveSpan());
+        return;
+      }
       if (replacement.stream()
           .anyMatch(
               token ->
@@ -323,6 +357,34 @@ public final class IdlPreprocessor {
             tokens.get(2).emitted().span());
       }
       macros.put(name, new Macro(name, parameters, replacement, functionLike));
+    }
+
+    private static boolean hasVariadicParameterMarker(LineView line, String name) {
+      String text = line.lineText();
+      int directiveStart = skipWhitespace(text, 0);
+      if (directiveStart >= text.length() || text.charAt(directiveStart) != '#') {
+        return false;
+      }
+      int index = skipWhitespace(text, directiveStart + 1);
+      index += "define".length();
+      index = skipWhitespace(text, index);
+      if (!text.startsWith(name, index)) {
+        return false;
+      }
+      index += name.length();
+      if (index >= text.length() || text.charAt(index) != '(') {
+        return false;
+      }
+      int close = text.indexOf(')', index + 1);
+      if (close < 0) {
+        return false;
+      }
+      String parameterText = text.substring(index + 1, close);
+      return parameterText.contains("...") || parameterText.contains("__VA_ARGS__");
+    }
+
+    private static boolean isVariadicReplacementToken(IdlToken token) {
+      return macroName(token).map("__VA_ARGS__"::equals).orElse(false);
     }
 
     private ParsedParameters parseParameters(
@@ -679,6 +741,23 @@ public final class IdlPreprocessor {
       SourcePosition position = new SourcePosition(sourceName, 1, 1, 0);
       return new SourceSpan(position, position);
     }
+
+    private LineView remap(ActiveLineMarkers lineMarkers) {
+      List<TokenEntry> remappedTokens =
+          tokens.stream()
+              .map(
+                  entry ->
+                      new TokenEntry(
+                          entry.lexed(),
+                          lineMarkers.remap(entry.emitted(), lineNumber),
+                          entry.line()))
+              .toList();
+      List<Diagnostic> remappedDiagnostics =
+          lexerDiagnostics.stream()
+              .map(diagnostic -> lineMarkers.remap(diagnostic, lineNumber))
+              .toList();
+      return new LineView(lineNumber, lineText, remappedTokens, remappedDiagnostics);
+    }
   }
 
   private record TokenEntry(IdlToken lexed, IdlToken emitted, int line) {}
@@ -720,6 +799,127 @@ public final class IdlPreprocessor {
             new IncludeDirective(text.substring(index + 1, close), IdlIncludeKind.SYSTEM));
       }
       return Optional.empty();
+    }
+  }
+
+  private record LineMarkerDirective(int lineNumber, String sourceName) {
+    private static boolean looksLikeLineMarker(LineView line) {
+      String text = line.lineText();
+      int index = skipWhitespace(text, 0);
+      if (index >= text.length() || text.charAt(index) != '#') {
+        return false;
+      }
+      index = skipWhitespace(text, index + 1);
+      if (text.startsWith("line", index)) {
+        int afterName = index + "line".length();
+        return afterName == text.length() || Character.isWhitespace(text.charAt(afterName));
+      }
+      return index < text.length() && Character.isDigit(text.charAt(index));
+    }
+
+    private static Optional<LineMarkerDirective> parse(String text) {
+      int index = skipWhitespace(text, 0);
+      if (index >= text.length() || text.charAt(index) != '#') {
+        return Optional.empty();
+      }
+      index = skipWhitespace(text, index + 1);
+      if (text.startsWith("line", index)) {
+        int afterName = index + "line".length();
+        if (afterName < text.length() && !Character.isWhitespace(text.charAt(afterName))) {
+          return Optional.empty();
+        }
+        index = skipWhitespace(text, afterName);
+      }
+      int lineStart = index;
+      while (index < text.length() && Character.isDigit(text.charAt(index))) {
+        index++;
+      }
+      if (lineStart == index) {
+        return Optional.empty();
+      }
+      int lineNumber;
+      try {
+        lineNumber = Integer.parseInt(text.substring(lineStart, index));
+      } catch (NumberFormatException exception) {
+        return Optional.empty();
+      }
+      if (lineNumber < 1) {
+        return Optional.empty();
+      }
+
+      index = skipWhitespace(text, index);
+      if (index == text.length()) {
+        return Optional.of(new LineMarkerDirective(lineNumber, ""));
+      }
+      if (text.charAt(index) != '"') {
+        return Optional.empty();
+      }
+      int close = text.indexOf('"', index + 1);
+      if (close <= index + 1) {
+        return Optional.empty();
+      }
+      if (!text.substring(close + 1).isBlank()) {
+        return Optional.empty();
+      }
+      return Optional.of(new LineMarkerDirective(lineNumber, text.substring(index + 1, close)));
+    }
+  }
+
+  private static final class ActiveLineMarkers {
+    private String sourceName;
+    private int lineNumber = 1;
+    private boolean identity = true;
+    private boolean appliedOnCurrentLine;
+
+    private ActiveLineMarkers(String defaultSourceName) {
+      this.sourceName = requireNonBlank(defaultSourceName, "defaultSourceName");
+    }
+
+    private void apply(LineMarkerDirective directive) {
+      identity = false;
+      appliedOnCurrentLine = true;
+      if (!directive.sourceName().isBlank()) {
+        sourceName = directive.sourceName();
+      }
+      lineNumber = directive.lineNumber();
+    }
+
+    private void finishLine() {
+      if (appliedOnCurrentLine) {
+        appliedOnCurrentLine = false;
+        return;
+      }
+      if (!identity) {
+        lineNumber++;
+      }
+    }
+
+    private IdlToken remap(IdlToken token, int physicalLine) {
+      if (identity) {
+        return token;
+      }
+      return new IdlToken(token.kind(), token.lexeme(), remap(token.span(), physicalLine));
+    }
+
+    private Diagnostic remap(Diagnostic diagnostic, int physicalLine) {
+      if (identity || diagnostic.span().isEmpty()) {
+        return diagnostic;
+      }
+      SourceSpan span = diagnostic.span().orElseThrow();
+      return Diagnostic.withSpan(
+          diagnostic.code(),
+          diagnostic.severity(),
+          diagnostic.message(),
+          remap(span, physicalLine));
+    }
+
+    private SourceSpan remap(SourceSpan span, int physicalLine) {
+      return new SourceSpan(remap(span.start(), physicalLine), remap(span.end(), physicalLine));
+    }
+
+    private SourcePosition remap(SourcePosition position, int physicalLine) {
+      int logicalLine = lineNumber + Math.max(0, position.line() - physicalLine);
+      return new SourcePosition(sourceName, logicalLine, position.column(), position.offset());
     }
   }
 
@@ -1043,12 +1243,9 @@ public final class IdlPreprocessor {
       }
       SourcePosition eofPosition = new SourcePosition(source.sourceName(), line, column, offset);
       String normalizedText = text.toString();
+      List<String> lineTexts = splitLineTexts(normalizedText);
       return new NormalizedSource(
-          source.sourceName(),
-          normalizedText,
-          positions,
-          eofPosition,
-          splitLineTexts(normalizedText));
+          source.sourceName(), normalizedText, positions, eofPosition, lineTexts);
     }
 
     private SourcePosition map(long offset) {

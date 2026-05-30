@@ -126,6 +126,23 @@ final class IdljCliTest {
   }
 
   @Test
+  void reportsDiagnosticsAtLineMarkerRemappedSourceLocations() throws Exception {
+    Path source =
+        write(
+            "line-marker.idl",
+            """
+            #line 88 "original.idl"
+            module Bad { struct Point { long x; short X; }; };
+            """);
+
+    CliRun result = run("validate", source.toString());
+
+    assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
+    assertEquals("", result.stdout());
+    assertTrue(result.stderr().contains("original.idl:88:37: ERROR IDL-0400"), result.stderr());
+  }
+
+  @Test
   void preservesFileAndDiagnosticEncounterOrder() throws Exception {
     Path parserError = write("a-parser.idl", "native Handle;\n");
     Path semanticError =

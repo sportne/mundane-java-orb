@@ -52,5 +52,8 @@ public final class IdlPreprocessorDiagnosticCodes {
   /** Preprocessor diagnostics exceeded the configured bound. */
   public static final DiagnosticCode DIAGNOSTIC_LIMIT_EXCEEDED = new DiagnosticCode("IDL-0214");
 
+  /** Line marker directive is malformed. */
+  public static final DiagnosticCode MALFORMED_LINE_MARKER = new DiagnosticCode("IDL-0215");
+
   private IdlPreprocessorDiagnosticCodes() {}
 }

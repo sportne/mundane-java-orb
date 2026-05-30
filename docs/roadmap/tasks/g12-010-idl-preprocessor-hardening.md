@@ -1,7 +1,7 @@
 # G12-010 IDL Preprocessor Hardening
 
 Task ID: G12-010-IDL-PREPROCESSOR-HARDENING
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-IDL-001, REQ-IDL-003, REQ-IDLJ-001, REQ-SEC-003, REQ-NATIVE-005
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008, ADR-0010
@@ -14,4 +14,5 @@ Tests to add/update: Preprocessor unit tests, validate-CLI fixture tests, hostil
 Documentation to update: IDL compiler architecture, IDL 4.2 conformance matrix, roadmap index, README ready-task status, this task, and G12-020 status when complete.
 Commands to run: ./gradlew :modules:corba-idl-parser:test :modules:corba-idlj-cli:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: The validate-only CLI reports stable source locations and diagnostic codes for nested include and macro cases; hostile preprocessing inputs fail without unbounded recursion or allocation; unsupported preprocessor constructs are explicitly diagnosed; G12-020 is promoted to ready-for-implementation.
+Completion evidence: Completed on 2026-05-30. The IDL preprocessor now recognizes `#line` and C-style `# <line> "source"` line markers for deterministic following-token source remapping, reports malformed active line markers with `IDL-0215`, keeps identity source spans unchanged when no marker exists, preserves include-guarded nested include behavior, and reports variadic macro spellings as explicit unsupported macro operators. Focused parser and CLI tests passed with line-marker, include-guard, variadic macro, and CLI diagnostic coverage.
 Rollback notes: Revert IDL parser/CLI/testkit fixture changes and documentation updates together.

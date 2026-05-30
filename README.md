@@ -117,7 +117,7 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-010-IDL-PREPROCESSOR-HARDENING` is the next non-human-gated roadmap task
+- `G12-020-IDL-GRAMMAR-VALUETYPE-PRAGMAS` is the next non-human-gated roadmap task
   ready for implementation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
@@ -196,7 +196,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g12-010-idl-preprocessor-hardening.md` is the next
+`docs/roadmap/tasks/g12-020-idl-grammar-valuetype-pragmas.md` is the next
 non-human-gated task ready for implementation. Later G12 compiler, broad IDL
 feature interop, and durable runtime identity tasks remain blocked until their
 predecessors complete. Remaining human gates, including optional CORBA service

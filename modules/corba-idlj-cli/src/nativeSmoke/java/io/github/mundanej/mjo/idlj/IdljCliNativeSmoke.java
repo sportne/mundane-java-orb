@@ -16,6 +16,7 @@ public final class IdljCliNativeSmoke {
     Path directory = Files.createTempDirectory("idlj-native-smoke");
     Path valid = directory.resolve("valid.idl");
     Path invalid = directory.resolve("invalid.idl");
+    Path lineMarker = directory.resolve("line-marker.idl");
     Files.writeString(
         valid,
         "module NativeSmoke { interface Service { void ping(in long value); }; };\n",
@@ -23,6 +24,13 @@ public final class IdljCliNativeSmoke {
     Files.writeString(
         invalid,
         "module NativeSmoke { struct Point { long x; short X; }; };\n",
+        StandardCharsets.UTF_8);
+    Files.writeString(
+        lineMarker,
+        """
+        #line 12 "native-original.idl"
+        module NativeSmoke { struct Point { long x; short X; }; };
+        """,
         StandardCharsets.UTF_8);
 
     Run validRun = run("validate", "--quiet", valid.toString());
@@ -34,6 +42,13 @@ public final class IdljCliNativeSmoke {
     requireEquals(IdljExitCodes.VALIDATION_FAILED, invalidRun.exitCode(), "invalid exit code");
     require(invalidRun.stdout().isEmpty(), "invalid stdout");
     require(invalidRun.stderr().contains("ERROR IDL-0400"), "invalid diagnostic");
+
+    Run lineMarkerRun = run("validate", lineMarker.toString());
+    requireEquals(
+        IdljExitCodes.VALIDATION_FAILED, lineMarkerRun.exitCode(), "line marker exit code");
+    require(
+        lineMarkerRun.stderr().contains("native-original.idl:12:45: ERROR IDL-0400"),
+        "line marker diagnostic: " + lineMarkerRun.stderr());
   }
 
   private static Run run(String... args) {

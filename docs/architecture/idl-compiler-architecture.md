@@ -44,6 +44,8 @@ the approved first slice:
   expansion;
 - `#ifdef`, `#ifndef`, selected `#if`/`#elif` expressions, `#else`, and
   `#endif`;
+- `#line` and C-style `# <line> "source"` line markers that remap following
+  token source spans without changing emitted token text;
 - `#pragma` token pass-through without semantic interpretation.
 
 Include resolution is read-only and root-bounded. The path resolver rejects
@@ -52,11 +54,14 @@ paths that escape configured roots. Included-source tokens keep spans for the
 included source. Macro replacement tokens use the invocation span, while macro
 argument tokens preserve the argument token spans.
 
-Full ISO C++ 2003 preprocessor compatibility is deferred. Variadic macros,
-token pasting, stringification, arithmetic preprocessor expressions, predefined
-macro sets, and full macro-rescan corner cases must produce explicit
-diagnostics or remain assigned to future conformance-hardening work until they
-are implemented.
+G12-010 hardens the preprocessor source-map boundary: identity spans remain
+unchanged when no line markers are present, valid line markers remap following
+diagnostics, malformed active line markers emit stable diagnostics, and guarded
+includes keep deterministic source spans. Full ISO C++ 2003 preprocessor
+compatibility is deferred. Variadic macros, token pasting, stringification,
+arithmetic preprocessor expressions, predefined macro sets, and full
+macro-rescan corner cases must produce explicit diagnostics or remain assigned
+to future conformance-hardening work until they are implemented.
 
 ## Semantic Model Boundary
 

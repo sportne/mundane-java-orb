@@ -1,7 +1,7 @@
 # G12-020 IDL Grammar, Valuetype, And Pragma Hardening
 
 Task ID: G12-020-IDL-GRAMMAR-VALUETYPE-PRAGMAS
-Status: blocked
+Status: ready-for-implementation
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-IDL-001, REQ-IDL-002, REQ-IDL-003, REQ-IDLJ-001, REQ-SEC-003
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008

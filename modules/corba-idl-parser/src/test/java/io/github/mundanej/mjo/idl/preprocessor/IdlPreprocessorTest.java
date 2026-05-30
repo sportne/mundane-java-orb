@@ -147,6 +147,92 @@ final class IdlPreprocessorTest {
   }
 
   @Test
+  void lineMarkersRemapFollowingTokenSpansAndReportMalformedMarkers() {
+    IdlPreprocessResult result =
+        new IdlPreprocessor()
+            .preprocess(
+                new IdlSource(
+                    "generated.idl",
+                    """
+                    #line 200 "original.idl"
+                    interface Remapped;
+                    # 17 "other.idl"
+                    interface Other;
+                    #line bad
+                    """));
+
+    List<IdlToken> tokens = nonEofTokens(result);
+    IdlToken remappedInterface = tokens.getFirst();
+    assertEquals("interface", remappedInterface.lexeme());
+    assertEquals("original.idl", remappedInterface.span().start().sourceName());
+    assertEquals(200, remappedInterface.span().start().line());
+    assertEquals(1, remappedInterface.span().start().column());
+
+    IdlToken otherInterface =
+        tokens.stream().filter(token -> token.lexeme().equals("Other")).findFirst().orElseThrow();
+    assertEquals("other.idl", otherInterface.span().start().sourceName());
+    assertEquals(17, otherInterface.span().start().line());
+    assertEquals(11, otherInterface.span().start().column());
+    assertEquals(
+        List.of(IdlPreprocessorDiagnosticCodes.MALFORMED_LINE_MARKER), diagnosticCodes(result));
+  }
+
+  @Test
+  void inactiveLineMarkersDoNotRemapLaterActiveTokens() {
+    IdlPreprocessResult result =
+        new IdlPreprocessor()
+            .preprocess(
+                new IdlSource(
+                    "inactive-line-marker.idl",
+                    """
+                    #if 0
+                    #line 500 "inactive.idl"
+                    #endif
+                    interface Active;
+                    """));
+
+    IdlToken active = nonEofTokens(result).getFirst();
+    assertEquals("interface", active.lexeme());
+    assertEquals("inactive-line-marker.idl", active.span().start().sourceName());
+    assertEquals(4, active.span().start().line());
+    assertFalse(result.hasErrors());
+  }
+
+  @Test
+  void includeGuardsSuppressRepeatedIncludesWhilePreservingSourceSpans() throws IOException {
+    Path guarded = tempDir.resolve("guarded.idl");
+    Files.writeString(
+        guarded,
+        """
+        #ifndef GUARDED_IDL
+        #define GUARDED_IDL
+        #line 40 "declared.idl"
+        interface Guarded;
+        #endif
+        """);
+
+    IdlPreprocessResult result =
+        new IdlPreprocessor(PathIdlIncludeResolver.of(tempDir))
+            .preprocess(
+                new IdlSource(
+                    "root.idl",
+                    """
+                    #include "guarded.idl"
+                    #include "guarded.idl"
+                    """));
+
+    assertEquals(List.of("interface", "Guarded", ";"), nonEofLexemes(result));
+    assertEquals(
+        List.of(
+            guarded.toAbsolutePath().normalize().toString(),
+            guarded.toAbsolutePath().normalize().toString()),
+        result.includedSourceNames());
+    assertEquals("declared.idl", nonEofTokens(result).getFirst().span().start().sourceName());
+    assertEquals(40, nonEofTokens(result).getFirst().span().start().line());
+    assertFalse(result.hasErrors());
+  }
+
+  @Test
   void expandsObjectAndSimpleFunctionLikeMacrosAndHonorsUndef() {
     IdlPreprocessResult result =
         new IdlPreprocessor()
@@ -209,6 +295,26 @@ final class IdlPreprocessorTest {
     assertEquals(
         List.of(IdlPreprocessorDiagnosticCodes.MACRO_EXPANSION_LIMIT_EXCEEDED),
         diagnosticCodes(limited));
+
+    IdlPreprocessResult variadic =
+        new IdlPreprocessor()
+            .preprocess(new IdlSource("variadic.idl", "#define EACH(first, ...) first\n"));
+    assertEquals(
+        List.of(IdlPreprocessorDiagnosticCodes.UNSUPPORTED_MACRO_OPERATOR),
+        diagnosticCodes(variadic));
+
+    IdlPreprocessResult literalEllipsis =
+        new IdlPreprocessor()
+            .preprocess(
+                new IdlSource(
+                    "literal-ellipsis.idl",
+                    """
+                    #define TEXT "..."
+                    #define NAME "__VA_ARGS__"
+                    TEXT NAME
+                    """));
+    assertEquals(List.of("\"...\"", "\"__VA_ARGS__\""), nonEofLexemes(literalEllipsis));
+    assertFalse(literalEllipsis.hasErrors());
   }
 
   @Test
@@ -330,6 +436,7 @@ final class IdlPreprocessorTest {
                     #if defined(
                     #else
                     #else
+                    #line bad
                     #endif
                     """));
 
@@ -340,7 +447,8 @@ final class IdlPreprocessorTest {
             IdlPreprocessorDiagnosticCodes.MALFORMED_MACRO,
             IdlPreprocessorDiagnosticCodes.MALFORMED_MACRO,
             IdlPreprocessorDiagnosticCodes.UNSUPPORTED_CONDITIONAL_EXPRESSION,
-            IdlPreprocessorDiagnosticCodes.MALFORMED_CONDITIONAL),
+            IdlPreprocessorDiagnosticCodes.MALFORMED_CONDITIONAL,
+            IdlPreprocessorDiagnosticCodes.MALFORMED_LINE_MARKER),
         diagnosticCodes(result));
   }
 
