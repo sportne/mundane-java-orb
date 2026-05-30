@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
+This repository is in **post-1.0.0 G13 durable runtime hardening state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -144,6 +144,10 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
 - the G12 post-1.0 roadmap starts with IDL compiler hardening, then broad IDL
   feature corpus interop, then live peer scenarios for those richer fixtures,
   before later durable runtime identity design work;
+- the G13 durable runtime hardening roadmap starts with local cross-process
+  durable IOR and persistent Naming restart evidence before operational Naming
+  store hardening, `MJNS` versioning policy, durable POA rehydration design, or
+  live peer persistence claims;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -207,7 +211,10 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-No non-human-gated roadmap task is currently ready for implementation. Remaining
-human gates, including optional CORBA service approval, stay tracked as
-`human-gate-blocked` roadmap tasks until maintainers record the relevant
-decisions.
+The next non-human-gated roadmap task ready for implementation is:
+
+- `docs/roadmap/tasks/g13-010-cross-process-durable-restart-evidence.md`
+
+Remaining human gates, including optional CORBA service approval and future live
+peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap
+tasks until maintainers record the relevant decisions.

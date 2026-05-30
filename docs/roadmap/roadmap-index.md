@@ -164,3 +164,12 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g12-120-persistent-poa-object-keys.md` - complete
 - `tasks/g12-130-persistent-ior-roundtrip.md` - complete
 - `tasks/g12-140-naming-persistence-implementation.md` - complete
+
+## G13 Durable Runtime Hardening
+
+- `tasks/g13-000-durable-runtime-hardening-task-set.md` - complete
+- `tasks/g13-010-cross-process-durable-restart-evidence.md` - ready-for-implementation
+- `tasks/g13-020-naming-store-operational-hardening.md` - blocked
+- `tasks/g13-030-mjns-store-versioning-policy.md` - blocked
+- `tasks/g13-040-durable-poa-rehydration-design-gate.md` - blocked
+- `tasks/g13-050-live-peer-durable-ior-naming-design.md` - blocked

@@ -1,0 +1,17 @@
+# G13-010 Cross-Process Durable Restart Evidence
+
+Task ID: G13-010-CROSS-PROCESS-DURABLE-RESTART-EVIDENCE
+Status: ready-for-implementation
+Gate: G13 durable runtime hardening
+Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-NAM-001, REQ-INTEROP-009, REQ-NATIVE-002, REQ-SEC-006
+ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014
+Specification references: CORBA-IF-ORB, CORBA-IF-POA, CORBA-IF-OBJECT-REF, CORBA-IOP-IOR, CORBA-IOP-IIOP, NAM-13-SERVICE, NAM-13-URLS
+Target module: modules/corba-iiop, modules/corba-naming-server, modules/corba-orb-core, modules/corba-poa, modules/corba-interop-testkit, modules/corba-native-image
+Allowed files: modules/corba-iiop/src/**, modules/corba-naming-server/src/**, modules/corba-orb-core/src/**, modules/corba-poa/src/**, modules/corba-interop-testkit/src/**, modules/corba-native-image/src/**, docs/architecture/runtime-architecture.md, docs/architecture/services-design.md, docs/architecture/cdr-giop-iiop.md, docs/conformance/corba-3.4-matrix.md, docs/conformance/naming-service-matrix.md, docs/verification/interop-matrix.md, docs/verification/native-image-matrix.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g13-010-cross-process-durable-restart-evidence.md, docs/roadmap/tasks/g13-020-naming-store-operational-hardening.md, docs/roadmap/tasks/g13-040-durable-poa-rehydration-design-gate.md, README.md
+Forbidden files: live peer execution scripts, committed live interop reports, peer artifacts, interop cache files, generated artifacts, optional service implementation, Java serialization metadata, reflection metadata, runtime bytecode generation, dynamic proxies, `Unsafe`, `sun.*`, `jdk.internal.*`
+Expected behavior: Task type: implementation. Add local cross-process restart evidence for durable IOR and persistent Naming behavior using test-only forked JVM launchers; prove that old stringified IOR and corbaname values still work after the first server process exits and a second server process recreates the same durable ORB id, endpoint, POA path, object id, and Naming store.
+Tests to add/update: Add process-level tests for persistent IOR dispatch after restart, persistent Naming/corbaname resolution after restart, failed restart diagnostics for wrong ORB id or missing durable binding, and JVM parity for any Native Image smoke entrypoint touched by the task.
+Documentation to update: Runtime architecture, services design, CDR/GIOP/IIOP architecture, CORBA and Naming conformance matrices, interop matrix, Native Image matrix, roadmap index, README ready-task status, this task, and G13-020 status when complete.
+Commands to run: ./gradlew :modules:corba-iiop:test :modules:corba-naming-server:test :modules:corba-orb-core:test :modules:corba-poa:test :modules:corba-interop-testkit:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
+Acceptance criteria: Cross-process tests run through local JVM processes rather than same-process object recreation; persistent IOR and persistent Naming restart evidence is deterministic; no production `ProcessBuilder` usage is added; any project-owned restart defect is fixed within the allowed modules or split into a follow-on task before completion; G13-020 is promoted to ready-for-implementation.
+Rollback notes: Revert cross-process launcher tests, any narrow restart fixes, Native Image updates, documentation updates, and G13 status promotions together.
