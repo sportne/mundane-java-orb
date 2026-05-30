@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **1.0.0 GitHub Release asset preparation state**:
+This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -117,7 +117,8 @@ This repository is in **1.0.0 GitHub Release asset preparation state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- there is no non-human-gated roadmap task currently ready for implementation;
+- `G12-010-IDL-PREPROCESSOR-HARDENING` is the next non-human-gated roadmap task
+  ready for implementation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
@@ -129,6 +130,9 @@ This repository is in **1.0.0 GitHub Release asset preparation state**:
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
+- the G12 post-1.0 roadmap starts with IDL compiler hardening, then broad IDL
+  feature corpus interop, then live peer scenarios for those richer fixtures,
+  before later durable runtime identity design work;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -192,9 +196,9 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-There is no non-human-gated roadmap task currently ready for implementation.
-`docs/roadmap/tasks/g10-120-pre-1-0-full-interop-execution.md`, its child
-tasks, and `docs/roadmap/tasks/g11-010-github-release-assets.md` are complete.
-Remaining human gates, including optional CORBA service approval, stay tracked
-as `human-gate-blocked` roadmap tasks until maintainers record the relevant
-decisions.
+`docs/roadmap/tasks/g12-010-idl-preprocessor-hardening.md` is the next
+non-human-gated task ready for implementation. Later G12 compiler, broad IDL
+feature interop, and durable runtime identity tasks remain blocked until their
+predecessors complete. Remaining human gates, including optional CORBA service
+approval, stay tracked as `human-gate-blocked` roadmap tasks until maintainers
+record the relevant decisions.

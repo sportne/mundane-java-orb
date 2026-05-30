@@ -149,3 +149,14 @@ values, task-type markers, and the rule that at least one task is active as
 ## G11 1.0.0 Release Publication
 
 - `tasks/g11-010-github-release-assets.md` - complete
+
+## G12 Post-1.0 Compiler and Interop Hardening
+
+- `tasks/g12-000-post-1-0-compiler-interop-task-set.md` - complete
+- `tasks/g12-010-idl-preprocessor-hardening.md` - ready-for-implementation
+- `tasks/g12-020-idl-grammar-valuetype-pragmas.md` - blocked
+- `tasks/g12-030-idl-semantic-type-system-closure.md` - blocked
+- `tasks/g12-040-idl-to-java-mapping-hardening.md` - blocked
+- `tasks/g12-050-wide-idl-feature-interop-corpus.md` - blocked
+- `tasks/g12-060-peer-idl-feature-interop-matrix.md` - blocked
+- `tasks/g12-100-durable-orb-poa-identity-design-gate.md` - blocked
