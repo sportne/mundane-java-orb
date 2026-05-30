@@ -13,11 +13,12 @@ import io.github.mundanej.mjo.giop.GiopUserExceptionBody;
 import io.github.mundanej.mjo.interceptors.PortableInterceptorRegistry;
 import io.github.mundanej.mjo.interceptors.ServerRequestContext;
 import io.github.mundanej.mjo.ior.IiopProfile;
+import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.TaggedProfile;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalInvocationUserException;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +30,11 @@ import org.omg.CORBA.SystemException;
 public final class IiopOrbServerHandler implements IiopRequestHandler {
 
   private final LocalOrb orb;
-  private final Map<String, Binding> bindings;
+  private final Map<ObjectKey, Binding> bindings;
   private final PortableInterceptorRegistry interceptors;
 
   private IiopOrbServerHandler(
-      LocalOrb orb, Map<String, Binding> bindings, PortableInterceptorRegistry interceptors) {
+      LocalOrb orb, Map<ObjectKey, Binding> bindings, PortableInterceptorRegistry interceptors) {
     this.orb = Objects.requireNonNull(orb, "orb");
     this.bindings = Map.copyOf(Objects.requireNonNull(bindings, "bindings"));
     this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
@@ -187,7 +188,15 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
   }
 
   private Binding bindingFor(byte[] objectKey) {
-    Binding binding = bindings.get(new String(objectKey, StandardCharsets.US_ASCII));
+    if (DurableObjectKey.hasDurablePrefix(objectKey)) {
+      try {
+        DurableObjectKey.decode(objectKey);
+      } catch (IllegalArgumentException exception) {
+        throw new org.omg.CORBA.BAD_PARAM(
+            "Malformed durable IIOP object key", exception, 0, CompletionStatus.COMPLETED_NO);
+      }
+    }
+    Binding binding = bindings.get(new ObjectKey(objectKey));
     if (binding == null) {
       throw new org.omg.CORBA.OBJECT_NOT_EXIST(
           "Unknown IIOP object key", 0, CompletionStatus.COMPLETED_NO);
@@ -237,7 +246,7 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
   public static final class Builder {
 
     private final LocalOrb orb;
-    private final Map<String, Binding> bindings = new LinkedHashMap<>();
+    private final Map<ObjectKey, Binding> bindings = new LinkedHashMap<>();
     private PortableInterceptorRegistry interceptors = PortableInterceptorRegistry.empty();
 
     private Builder(LocalOrb orb) {
@@ -248,12 +257,13 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
     public Builder bind(
         LocalObjectReference<?> reference, List<IiopOperationBinding> operationBindings) {
       Objects.requireNonNull(reference, "reference");
-      String objectId = reference.objectId();
-      if (bindings.containsKey(objectId)) {
+      ObjectKey objectKey = new ObjectKey(IiopObjectReference.objectKeyFor(reference));
+      if (bindings.containsKey(objectKey)) {
         throw new IiopException(
-            IiopDiagnosticCodes.UNSUPPORTED_MESSAGE, "duplicate IIOP object binding: " + objectId);
+            IiopDiagnosticCodes.UNSUPPORTED_MESSAGE,
+            "duplicate IIOP object binding: " + objectKey.toHex());
       }
-      bindings.put(objectId, new Binding(reference, operationBindings));
+      bindings.put(objectKey, new Binding(reference, operationBindings));
       return this;
     }
 

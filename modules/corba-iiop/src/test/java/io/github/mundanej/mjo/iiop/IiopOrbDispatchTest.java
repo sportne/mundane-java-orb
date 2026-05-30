@@ -24,11 +24,15 @@ import io.github.mundanej.mjo.interceptors.PortableServerRequestInterceptor;
 import io.github.mundanej.mjo.interceptors.ServerRequestContext;
 import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.ior.IorCodeSetComponent;
+import io.github.mundanej.mjo.ior.StringifiedIor;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.modern.LocalInvocationRequest;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
+import io.github.mundanej.mjo.orb.OrbIdentity;
 import io.github.mundanej.mjo.poa.Poa;
+import io.github.mundanej.mjo.poa.PoaPolicySet;
 import io.github.mundanej.mjo.poa.PoaServantDispatcher;
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
@@ -227,6 +231,105 @@ final class IiopOrbDispatchTest {
   }
 
   @Test
+  void persistentTargetAddressesPreserveDurableObjectKeys() {
+    LocalOrb orb = LocalOrb.create(OrbIdentity.durable("target-orb"));
+    Poa poa = Poa.createRoot(orb, persistentUserIdPolicy());
+    LocalObjectReference<Greeter> localReference =
+        poa.activateServantWithId(
+            "alpha",
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            new GreeterServant(),
+            new GreeterDispatcher());
+    IiopOrbServerHandler handler =
+        IiopOrbServerHandler.builder(orb)
+            .bind(localReference, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .build();
+
+    try (IiopServer server =
+            IiopServer.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), handler);
+        IiopClient client = IiopClient.connect(server.endpoint(), IiopOptions.defaults())) {
+      IiopObjectReference networkReference =
+          IiopObjectReference.fromLocal(server.endpoint(), localReference);
+      TaggedProfile profile = networkReference.ior().profiles().get(0);
+      byte[] durableKey = localReference.durableObjectKey().orElseThrow().encode();
+
+      assertArrayEquals(durableKey, networkReference.objectKey());
+      assertEquals(
+          "Hello Key",
+          decodedStringReply(
+              client.invoke(request(51, GiopTargetAddress.keyAddr(durableKey), "Key"))));
+      assertEquals(
+          "Hello Profile",
+          decodedStringReply(
+              client.invoke(request(52, GiopTargetAddress.profileAddr(profile), "Profile"))));
+      assertEquals(
+          "Hello Reference",
+          decodedStringReply(
+              client.invoke(
+                  request(
+                      53,
+                      GiopTargetAddress.referenceAddr(0, networkReference.ior()),
+                      "Reference"))));
+    }
+  }
+
+  @Test
+  void persistentStringifiedIorRoutesAfterRestartSimulation() {
+    IiopEndpoint endpoint;
+    String stringifiedIor;
+    DurableObjectKey durableKey;
+    LocalOrb firstOrb = LocalOrb.create(OrbIdentity.durable("restart-iiop-orb"));
+    Poa firstPoa = Poa.createRoot(firstOrb, persistentUserIdPolicy());
+    LocalObjectReference<Greeter> firstReference =
+        firstPoa.activateServantWithId(
+            "alpha",
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            new GreeterServant(),
+            new GreeterDispatcher());
+    IiopOrbServerHandler firstHandler =
+        IiopOrbServerHandler.builder(firstOrb)
+            .bind(firstReference, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .build();
+
+    try (IiopServer firstServer =
+        IiopServer.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), firstHandler)) {
+      IiopObjectReference firstNetworkReference =
+          IiopObjectReference.fromLocal(firstServer.endpoint(), firstReference);
+      endpoint = firstServer.endpoint();
+      stringifiedIor = StringifiedIor.format(firstNetworkReference.ior());
+      durableKey = firstReference.durableObjectKey().orElseThrow();
+
+      assertArrayEquals(durableKey.encode(), firstNetworkReference.objectKey());
+    }
+
+    LocalOrb secondOrb = LocalOrb.create(OrbIdentity.durable("restart-iiop-orb"));
+    Poa secondPoa = Poa.createRoot(secondOrb, persistentUserIdPolicy());
+    LocalObjectReference<Greeter> secondReference =
+        secondPoa.activateServantWithId(
+            "alpha",
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            new GreeterServant(),
+            new GreeterDispatcher());
+    IiopOrbServerHandler secondHandler =
+        IiopOrbServerHandler.builder(secondOrb)
+            .bind(secondReference, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .build();
+
+    try (IiopServer secondServer =
+        IiopServer.bind(endpoint, IiopOptions.defaults(), secondHandler)) {
+      assertEquals(endpoint, secondServer.endpoint());
+      IiopObjectReference parsedReference =
+          IiopObjectReference.fromIor(StringifiedIor.parse(stringifiedIor));
+      try (IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
+        assertEquals("Hello Ada", client.invoke(GREET, STRING_CODEC, List.of("Ada")));
+      }
+    }
+  }
+
+  @Test
   void unknownObjectKeyAndInvalidTargetAddressProduceSystemExceptionReplies() {
     LocalOrb orb = LocalOrb.create();
     Poa poa = Poa.createRoot(orb);
@@ -247,6 +350,15 @@ final class IiopOrbDispatchTest {
       assertEquals(
           "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
           GiopSystemExceptionBody.fromBytes(CdrByteOrder.BIG_ENDIAN, unknownKey.body())
+              .repositoryId());
+
+      GiopReply malformedDurableKey =
+          client.invoke(
+              request(77, GiopTargetAddress.keyAddr(new byte[] {'M', 'J', 'O', 'K', 1}), "Ada"));
+      assertEquals(GiopReplyStatus.SYSTEM_EXCEPTION, malformedDurableKey.replyStatus());
+      assertEquals(
+          "IDL:omg.org/CORBA/BAD_PARAM:1.0",
+          GiopSystemExceptionBody.fromBytes(CdrByteOrder.BIG_ENDIAN, malformedDurableKey.body())
               .repositoryId());
 
       GiopReply invalidReference =
@@ -701,6 +813,17 @@ final class IiopOrbDispatchTest {
   private static List<TaggedProfile> networkProfiles(
       IiopServer server, LocalObjectReference<Greeter> localReference) {
     return IiopObjectReference.fromLocal(server.endpoint(), localReference).ior().profiles();
+  }
+
+  private static PoaPolicySet persistentUserIdPolicy() {
+    return new PoaPolicySet(
+        PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+        PoaPolicySet.LifespanPolicy.PERSISTENT,
+        PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+        PoaPolicySet.IdAssignmentPolicy.USER_ID,
+        PoaPolicySet.ServantRetentionPolicy.RETAIN,
+        PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
+        PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
   }
 
   private static String decodedStringReply(GiopReply reply) {

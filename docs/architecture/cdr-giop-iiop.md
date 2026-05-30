@@ -141,6 +141,17 @@ IORs. The key bytes are opaque to the IOR layer but have a bounded `MJOK`
 version 1 structure owned by ORB/POA runtime identity code: configured ORB id,
 stable POA path components, object id bytes, and one-octet flags.
 
-Malformed key versions, oversized path segments, path traversal, and stale ORB
-or POA identities are hostile inputs. Persistent IOR parsing must reject those
-cases before allocation or dispatch and must keep diagnostics deterministic.
+G12-130 implements the local loopback persistent IOR slice. When a
+`LocalObjectReference` carries durable POA key metadata, `IiopObjectReference`
+emits the encoded `MJOK` bytes as the IIOP profile object key; transient local
+references continue to use the existing ASCII object-id key. The IOR and
+stringified IOR layers still treat object keys as opaque octets, so binary and
+`IOR:` forms preserve durable keys without depending on ORB-core classes.
+
+The IIOP server dispatch map is keyed by opaque `ObjectKey` values rather than
+ASCII strings. KeyAddr, ProfileAddr, and ReferenceAddr all route through the
+same byte-preserving lookup path, which allows a stringified persistent IOR to
+survive a local ORB/POA/server restart when the caller recreates the same
+durable ORB id, POA path, object id, and endpoint. Malformed durable-key
+prefixes are rejected before dispatch with deterministic system-exception
+replies; stale or unbound durable keys remain `OBJECT_NOT_EXIST`.

@@ -79,6 +79,24 @@ final class IorWireTest {
   }
 
   @Test
+  void stringifiedIorPreservesOpaqueDurableObjectKeyOctets() {
+    byte[] durableKeyLikeBytes =
+        bytes(
+            'M', 'J', 'O', 'K', 1, 0, 0, 3, 'o', 'r', 'b', 0, 1, 0, 7, 'R', 'o', 'o', 't', 'P', 'O',
+            'A', 0, 5, 'a', 'l', 'p', 'h', 'a');
+    IiopProfile profile =
+        new IiopProfile(
+            IiopVersion.V1_2, "127.0.0.1", 2809, new ObjectKey(durableKeyLikeBytes), List.of());
+    Ior ior = new Ior("IDL:hello/Greeter:1.0", List.of(TaggedProfile.internetIop(profile)));
+
+    Ior parsed = StringifiedIor.parse(StringifiedIor.format(ior));
+
+    assertArrayEquals(
+        durableKeyLikeBytes,
+        parsed.profiles().getFirst().internetIopProfile().orElseThrow().objectKey().octets());
+  }
+
+  @Test
   void standardCodeSetAndSslComponentsRoundTrip() {
     IorCodeSetComponent codeSets =
         new IorCodeSetComponent(

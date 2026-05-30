@@ -211,6 +211,21 @@ The selected G12 peer scenario is not a valuetype marshaling claim. The
 `g12-wide-unsupported-custom-value` fixtures stay local-only until later tasks
 approve value marshaling behavior and peer-specific fixture adapters.
 
+## G12-130 persistent IOR local lane
+
+G12-130 adds deterministic local evidence for persistent IOR preservation.
+Durable POA references emit opaque `MJOK` object-key octets into IIOP profiles,
+and binary IORs, stringified IORs, KeyAddr, ProfileAddr, and ReferenceAddr
+target addressing preserve those bytes instead of reinterpreting them as text.
+
+The local loopback restart scenario recreates the same durable ORB identity,
+POA path, object id, servant binding, and endpoint, then dispatches through the
+previously stringified IOR. Malformed durable-key prefixes fail with structured
+diagnostics before invocation, while valid but unbound durable keys remain
+unknown-object failures. The structured report evidence is local-only under the
+`g12-persistent-ior-roundtrip` scenario; G12-130 does not promote a new live
+peer scenario or commit raw report outputs.
+
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.

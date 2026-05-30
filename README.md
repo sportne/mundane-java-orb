@@ -42,8 +42,8 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
 - the selected broad IDL core fixture is declared as an approved peer scenario
   with capability-filtered live-report harness coverage under approved roadmap
   tasks;
-- durable ORB/POA identity is accepted as a staged design, with implementation
-  split into explicit follow-on roadmap tasks;
+- durable ORB/POA identity, persistent POA object keys, and persistent IOR
+  loopback round trips are implemented as staged G12 runtime identity slices;
 - CDR primitive and length-bearing value read/write behavior has started under
   approved roadmap tasks;
 - IOR, IIOP profile body, stringified IOR, `corbaloc`, and `corbaname` value
@@ -127,8 +127,8 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-130-PERSISTENT-IOR-ROUNDTRIP` is the next non-human-gated roadmap task
-  ready for implementation after persistent POA object keys;
+- `G12-140-NAMING-PERSISTENCE-IMPLEMENTATION` is the next non-human-gated
+  roadmap task ready for implementation after persistent IOR round trips;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
@@ -206,9 +206,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-`docs/roadmap/tasks/g12-120-persistent-poa-object-keys.md` is the next
-non-human-gated task ready for implementation. Persistent IOR and Naming
-persistence tasks remain blocked until their predecessors complete. Remaining
-human gates, including optional CORBA service approval, stay tracked as
+`docs/roadmap/tasks/g12-140-naming-persistence-implementation.md` is the next
+non-human-gated task ready for implementation. Remaining human gates, including
+optional CORBA service approval, stay tracked as
 `human-gate-blocked` roadmap tasks until maintainers record the relevant
 decisions.

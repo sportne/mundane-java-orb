@@ -1,5 +1,7 @@
 package io.github.mundanej.mjo.nativeimage.smoke;
 
+import io.github.mundanej.mjo.iiop.IiopEndpoint;
+import io.github.mundanej.mjo.iiop.IiopObjectReference;
 import io.github.mundanej.mjo.ior.CorbalocAddress;
 import io.github.mundanej.mjo.ior.CorbalocUrl;
 import io.github.mundanej.mjo.ior.CorbanameUrl;
@@ -10,7 +12,11 @@ import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.StringifiedIor;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.orb.DurableObjectKey;
+import io.github.mundanej.mjo.orb.LocalObjectReference;
+import io.github.mundanej.mjo.orb.LocalOrb;
 import io.github.mundanej.mjo.orb.OrbIdentity;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 /** Native Image smoke entry point for IOR and object URL diagnostics. */
@@ -46,5 +52,30 @@ public final class IorDiagnosticsNativeSmoke {
     DurableObjectKey decoded = DurableObjectKey.decode(key.encode());
     SmokeAssertions.requireEquals(identity.requireDurableOrbId(), decoded.orbId(), "orb id");
     SmokeAssertions.requireEquals("/RootPOA/apps", decoded.poaPathString(), "POA path");
+
+    LocalOrb orb = LocalOrb.create(identity);
+    DurableObjectKey referenceKey =
+        DurableObjectKey.fromPoaPath(
+            identity.requireDurableOrbId(),
+            "/RootPOA/native",
+            "native".getBytes(StandardCharsets.US_ASCII),
+            0);
+    LocalObjectReference<SmokeDescriptorFixtures.Greeter> localReference =
+        orb.bindWithDurableObjectKey(
+            SmokeDescriptorFixtures.Greeter.class,
+            SmokeDescriptorFixtures.GREETER,
+            "native",
+            referenceKey,
+            request -> "unused");
+    IiopObjectReference networkReference =
+        IiopObjectReference.fromLocal(IiopEndpoint.loopback(2809), localReference);
+    IiopObjectReference parsedReference =
+        IiopObjectReference.fromIor(
+            StringifiedIor.parse(StringifiedIor.format(networkReference.ior())));
+    SmokeAssertions.require(
+        Arrays.equals(referenceKey.encode(), networkReference.objectKey()), "durable IIOP key");
+    SmokeAssertions.require(
+        Arrays.equals(networkReference.objectKey(), parsedReference.objectKey()),
+        "durable IOR round trip");
   }
 }

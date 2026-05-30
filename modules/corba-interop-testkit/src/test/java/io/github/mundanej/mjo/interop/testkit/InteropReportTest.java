@@ -22,6 +22,36 @@ final class InteropReportTest {
   }
 
   @Test
+  void persistentIorRoundTripScenarioReportPreservesStructuredEvidence() {
+    InteropReport report =
+        new InteropReport(
+            "local-loopback",
+            "1.0.0",
+            "g12-persistent-ior-roundtrip",
+            "interop/idl/g12-wide/CoreTypes.idl",
+            "our-jvm-jdk21",
+            "our-jvm-jdk21",
+            InteropRole.CLIENT,
+            "local-loopback",
+            "persistent-ior-roundtrip",
+            InteropReportStatus.PASSED,
+            InteropFailureClassification.EXPECTED_DEFERRAL,
+            0,
+            "build/interop/local/logs/g12-persistent-ior-roundtrip.stdout.log",
+            "build/interop/local/logs/g12-persistent-ior-roundtrip.stderr.log",
+            "build/interop/local/reports/g12-persistent-ior-roundtrip.json",
+            "2026-05-30T00:00:00Z",
+            "2026-05-30T00:00:01Z",
+            "durable object key preserved through binary and stringified IOR forms");
+
+    InteropReport parsed = InteropReport.fromJson(report.toJson());
+
+    assertEquals(report, parsed);
+    assertEquals("g12-persistent-ior-roundtrip", parsed.scenario());
+    assertTrue(parsed.notes().contains("durable object key preserved"));
+  }
+
+  @Test
   void rejectsMissingRequiredReportFields() {
     InteropReport report = sampleReport("");
     String missingPeer = report.toJson().replace("  \"peer\": \"jacorb\",\n", "");

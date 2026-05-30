@@ -157,9 +157,16 @@ handler. `corba-orb-core` and `corba-poa` continue to own object identity,
 lifecycle checks, servant activation, and generated-style dispatch. The bridge
 supports deterministic object-key lookup, GIOP 1.2 target-address variants,
 request-id correlation through existing `IiopClient`/`IiopServer`, declared user
-exception replies by repository ID, and system exception reply bodies. Persistent
-POA references remain deterministically deferred until durable POA/ORB identity
-and restart rules are approved.
+exception replies by repository ID, and system exception reply bodies.
+
+G12-130 extends the bridge for persistent local references. If a local reference
+carries `DurableObjectKey` metadata, `IiopObjectReference` emits those encoded
+key octets into the IIOP profile and stringified IOR forms.
+`IiopOrbServerHandler` routes by opaque `ObjectKey`, so binary durable keys work
+through KeyAddr, ProfileAddr, and ReferenceAddr. Restart-safe dispatch is still
+caller-configured: the process must recreate the same durable ORB id, POA path,
+object id, servant binding, and endpoint before an old stringified IOR can route
+locally.
 
 This path does not add CORBA Security Service policy, RMI-IIOP value semantics,
 live peer harness execution, reflection dispatch, dynamic proxies, runtime
@@ -213,5 +220,10 @@ G12-120 implements persistent POA object keys for retained local activations.
 `USER_ID` and deterministic per-POA `SYSTEM_ID` activations attach
 `DurableObjectKey` metadata to `LocalObjectReference`. Persistent key lookup is
 local and diagnostic-only for now: it validates the configured ORB id, POA path,
-ASCII object id, and active object map entry before dispatch. Persistent IOR
-routing and Naming persistence remain staged follow-on work.
+ASCII object id, and active object map entry before dispatch.
+
+G12-130 preserves durable keys through local IOR creation, binary and
+stringified IOR parsing, GIOP target-address extraction, and loopback IIOP
+server dispatch. Malformed durable-key prefixes fail before invocation; stale
+durable keys fail as unknown object references. Naming persistence remains the
+next staged follow-on work.

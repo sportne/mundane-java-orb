@@ -30,7 +30,7 @@ public final class IiopObjectReference {
   public static IiopObjectReference fromLocal(
       IiopEndpoint endpoint, LocalObjectReference<?> reference) {
     Objects.requireNonNull(reference, "reference");
-    byte[] objectKey = objectKeyFor(reference.objectId());
+    byte[] objectKey = objectKeyFor(reference);
     IiopProfile profile =
         new IiopProfile(
             IiopVersion.V1_2,
@@ -100,5 +100,13 @@ public final class IiopObjectReference {
           IiopDiagnosticCodes.UNSUPPORTED_MESSAGE, "object id must be US-ASCII");
     }
     return objectId.getBytes(StandardCharsets.US_ASCII);
+  }
+
+  static byte[] objectKeyFor(LocalObjectReference<?> reference) {
+    Objects.requireNonNull(reference, "reference");
+    return reference
+        .durableObjectKey()
+        .map(key -> key.encode())
+        .orElseGet(() -> objectKeyFor(reference.objectId()));
   }
 }
