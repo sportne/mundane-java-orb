@@ -51,7 +51,8 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
     approved G7 RMI-IIOP slice.
   - `interopClient` composes the approved local client-side interop smoke
     entrypoints, including IDL validation, generated client invocation, IOR
-    diagnostics, structured report parsing, and RMI-IIOP loopback behavior.
+    diagnostics, structured report parsing, G12 broad IDL validation, and
+    RMI-IIOP loopback behavior.
   - `interopServer` composes the approved local server-side interop smoke
     entrypoints, including generated server dispatch, local naming,
     structured report parsing, and RMI-IIOP loopback behavior.
@@ -183,3 +184,13 @@ native client or server binaries are absent. No reflection metadata, dynamic
 proxy metadata, Java serialization metadata, classpath scanning,
 service-loader discovery, runtime bytecode generation, process execution in
 production sources, internal JDK APIs, or `Unsafe` are introduced.
+
+## G12-050 broad IDL Native Image evidence
+
+G12-050 extends the validation smoke path used by the aggregate interop client
+and server binaries with a compact G12 broad-IDL fixture containing native
+declarations, value boxes, abstract valuetypes, valuetype inheritance, supported
+interfaces, factories, and repository-prefix metadata. The interop report CLI
+also records deterministic Native Image missing-prerequisite reports for
+`g12-wide-valuetypes` through the existing `native-lane-report` command. The
+accepted Native Image metadata set remains empty.

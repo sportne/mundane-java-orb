@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 final class InteropReportTest {
@@ -134,6 +135,17 @@ final class InteropReportTest {
     assertEquals(
         new InteropScenario("rmi-iiop", "interop/idl/rmi-iiop/Calculator.idl"),
         InteropScenario.rmiIiop());
+    assertEquals(
+        List.of(
+            new InteropScenario("g12-wide-core-types", "interop/idl/g12-wide/CoreTypes.idl"),
+            new InteropScenario(
+                "g12-wide-repository-pragmas", "interop/idl/g12-wide/RepositoryPragmas.idl"),
+            new InteropScenario("g12-wide-valuetypes", "interop/idl/g12-wide/ValueTypes.idl")),
+        InteropFeatureCorpus.g12Wide());
+    assertEquals(
+        new InteropScenario(
+            "g12-wide-unsupported-custom-value", "interop/idl/g12-wide/UnsupportedCustomValue.idl"),
+        InteropFeatureCorpus.g12UnsupportedCustomValue());
     assertThrows(IllegalArgumentException.class, () -> new InteropRuntime(" "));
     assertThrows(NullPointerException.class, () -> new InteropDirection(null, server));
     assertThrows(IllegalArgumentException.class, () -> new InteropPeer("", "3.9"));

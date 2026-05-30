@@ -17,10 +17,28 @@ public final class IdljValidateNativeSmoke {
   public static void main(String[] args) throws Exception {
     Path directory = Files.createTempDirectory("g6-910-idlj");
     Path valid = directory.resolve("valid.idl");
+    Path g12Wide = directory.resolve("g12-wide.idl");
     Path invalid = directory.resolve("invalid.idl");
     Files.writeString(
         valid,
         "module NativeImage { interface Service { string greet(in string name); }; };\n",
+        StandardCharsets.UTF_8);
+    Files.writeString(
+        g12Wide,
+        """
+        #pragma prefix "example.org"
+        module NativeWide {
+          native Handle;
+          abstract interface Marker {};
+          valuetype Label string<32>;
+          abstract valuetype BaseValue {};
+          valuetype RichValue : BaseValue supports Marker {
+            public Label label;
+            public Handle handle;
+            factory create(in Label label);
+          };
+        };
+        """,
         StandardCharsets.UTF_8);
     Files.writeString(
         invalid,
@@ -31,6 +49,11 @@ public final class IdljValidateNativeSmoke {
     SmokeAssertions.requireEquals(IdljExitCodes.SUCCESS, validRun.exitCode(), "valid exit");
     SmokeAssertions.requireEquals("", validRun.stdout(), "valid stdout");
     SmokeAssertions.requireEquals("", validRun.stderr(), "valid stderr");
+
+    Run g12WideRun = run("validate", "--quiet", g12Wide.toString());
+    SmokeAssertions.requireEquals(IdljExitCodes.SUCCESS, g12WideRun.exitCode(), "G12 wide exit");
+    SmokeAssertions.requireEquals("", g12WideRun.stdout(), "G12 wide stdout");
+    SmokeAssertions.requireEquals("", g12WideRun.stderr(), "G12 wide stderr");
 
     Run invalidRun = run("validate", invalid.toString());
     SmokeAssertions.requireEquals(

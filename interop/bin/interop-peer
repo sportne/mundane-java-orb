@@ -20,6 +20,7 @@ Usage:
   interop-peer report [--dry-run] <peer>
   interop-peer run-scenario [--dry-run] [--require-live] <scenario> <peer|all>
   interop-peer run-direction-matrix [--dry-run] [--require-live] <scenario> <peer|all>
+  interop-peer local-lane-report [--dry-run] <scenario> <jvm|native> <client|server> [peer] [direction]
   interop-peer native-lane-report [--dry-run] <scenario> <client|server>
 
 G6-830/G7-090 run approved peer containers when external artifacts and images
@@ -449,6 +450,10 @@ scenario_idl() {
     basic-idl) printf 'interop/idl/basic/BasicTypes.idl\n' ;;
     hello) printf 'interop/idl/hello/hello.idl\n' ;;
     rmi-iiop) printf 'interop/idl/rmi-iiop/Calculator.idl\n' ;;
+    g12-wide-core-types) printf 'interop/idl/g12-wide/CoreTypes.idl\n' ;;
+    g12-wide-repository-pragmas) printf 'interop/idl/g12-wide/RepositoryPragmas.idl\n' ;;
+    g12-wide-valuetypes) printf 'interop/idl/g12-wide/ValueTypes.idl\n' ;;
+    g12-wide-unsupported-custom-value) printf 'interop/idl/g12-wide/UnsupportedCustomValue.idl\n' ;;
     *) printf 'interop/idl/%s.idl\n' "${scenario}" ;;
   esac
 }
@@ -1668,6 +1673,7 @@ main() {
     report) report_peer "$@" ;;
     run-scenario) run_scenario "$@" ;;
     run-direction-matrix) run_direction_matrix "$@" ;;
+    local-lane-report) local_lane_report "$@" ;;
     native-lane-report) native_lane_report "$@" ;;
     *) fail "unknown command '${command}'" ;;
   esac

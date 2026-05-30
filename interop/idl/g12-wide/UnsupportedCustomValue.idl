@@ -1,0 +1,5 @@
+module WideUnsupported {
+  custom valuetype CustomValue {
+    public long id;
+  };
+};

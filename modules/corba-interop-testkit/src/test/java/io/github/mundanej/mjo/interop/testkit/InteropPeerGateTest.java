@@ -62,6 +62,61 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void g12WideCorpusFixturesAreTrackedAndMappedToLocalScenarioIds() throws Exception {
+    for (InteropScenario scenario : InteropFeatureCorpus.g12Wide()) {
+      Path fixture = repoRoot().resolve(scenario.idlPath());
+      assertTrue(Files.isRegularFile(fixture), scenario.idlPath());
+      assertTrue(
+          Files.readString(fixture, StandardCharsets.UTF_8).contains("valuetype")
+              || Files.readString(fixture, StandardCharsets.UTF_8).contains("union"),
+          "broad corpus fixture should exercise richer IDL: " + fixture);
+    }
+    InteropScenario unsupported = InteropFeatureCorpus.g12UnsupportedCustomValue();
+    assertTrue(Files.isRegularFile(repoRoot().resolve(unsupported.idlPath())));
+
+    String harness = Files.readString(repoRoot().resolve("interop/bin/interop-peer"));
+    for (InteropScenario scenario : InteropFeatureCorpus.g12Wide()) {
+      assertTrue(harness.contains(scenario.name()), scenario.name());
+      assertTrue(harness.contains(scenario.idlPath()), scenario.idlPath());
+    }
+  }
+
+  @Test
+  void g12WideLocalJvmLaneWritesStructuredReportsForSelectedFixture() throws Exception {
+    Path root = temporaryDirectory.resolve("g12-wide-local-root");
+    Path fixture = root.resolve("interop/idl/g12-wide/ValueTypes.idl");
+    Files.createDirectories(Objects.requireNonNull(fixture.getParent()));
+    Files.copy(repoRoot().resolve("interop/idl/g12-wide/ValueTypes.idl"), fixture);
+
+    CommandResult result =
+        run(
+            command(
+                "local-lane-report",
+                "g12-wide-valuetypes",
+                "jvm",
+                "client",
+                "local",
+                "local-corpus"),
+            Map.of(
+                "INTEROP_ROOT",
+                root.toString(),
+                "MJO_JVM_CLIENT_COMMAND",
+                "test -f \"$MJO_INTEROP_IDL\""));
+
+    assertSuccess(result);
+    String report =
+        Files.readString(
+            root.resolve(
+                "build/interop/local/reports/"
+                    + "g12-wide-valuetypes-local-jvm-client-local-corpus.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"scenario\": \"g12-wide-valuetypes\""), report);
+    assertTrue(report.contains("\"idl\": \"interop/idl/g12-wide/ValueTypes.idl\""), report);
+    assertTrue(report.contains("\"status\": \"passed\""), report);
+    assertTrue(report.contains("\"classification\": \"expected-deferral\""), report);
+  }
+
+  @Test
   void javaPeerSmokeUsesStableEndpointAndCalculatorScenarioBehavior() throws Exception {
     String smoke =
         Files.readString(

@@ -37,6 +37,8 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
 - compile-safe richer IDL-to-Java mapping for native declarations, value boxes,
   valuetypes, richer descriptors, and TypeCode metadata has started under
   approved roadmap tasks;
+- broad local IDL feature corpus fixtures and deterministic local JVM/Native
+  Image interop reports have started under approved roadmap tasks;
 - CDR primitive and length-bearing value read/write behavior has started under
   approved roadmap tasks;
 - IOR, IIOP profile body, stringified IOR, `corbaloc`, and `corbaname` value
@@ -120,7 +122,7 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-050-WIDE-IDL-FEATURE-INTEROP-CORPUS` is the next non-human-gated roadmap task
+- `G12-060-PEER-IDL-FEATURE-INTEROP-MATRIX` is the next non-human-gated roadmap task
   ready for implementation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;

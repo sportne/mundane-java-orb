@@ -1,0 +1,20 @@
+#pragma prefix "example.net"
+
+module RepositoryFeatures {
+  native Handle;
+
+  abstract interface Marker {};
+
+  valuetype Label string<32>;
+
+  abstract valuetype BaseValue {};
+
+  valuetype RichValue : BaseValue supports Marker {
+    public Label label;
+    public Handle handle;
+    factory create(in Label label);
+  };
+
+  typeprefix BaseValue "example.net/RepositoryFeatures";
+  typeprefix RichValue "example.net/RepositoryFeatures";
+};

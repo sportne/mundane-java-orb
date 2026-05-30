@@ -477,6 +477,41 @@ final class JavaSourceGeneratorTest {
   }
 
   @Test
+  void g12WideInteropCorpusParsesMapsAndCompilesGeneratedSources() throws Exception {
+    JavaDescriptorSourceGenerator descriptorGenerator = new JavaDescriptorSourceGenerator();
+    Path corpus = findRepositoryRoot().resolve("interop/idl/g12-wide");
+    List<String> supportedFixtures =
+        List.of("CoreTypes.idl", "RepositoryPragmas.idl", "ValueTypes.idl");
+
+    for (String fixture : supportedFixtures) {
+      IdlSemanticModel semanticModel =
+          semanticModel(fixture, Files.readString(corpus.resolve(fixture), StandardCharsets.UTF_8));
+      List<GeneratedJavaSource> sources = new ArrayList<>();
+      sources.addAll(
+          generator.generate(mapper.map(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY)));
+      sources.addAll(
+          descriptorGenerator.generate(semanticModel, JavaMappingMode.LEGACY_COMPATIBILITY));
+
+      assertNoForbiddenGeneratedSourceTokens(
+          sources.stream().map(GeneratedJavaSource::sourceText).reduce("", String::concat));
+      compile(sources);
+    }
+
+    IdlSemanticModel unsupported =
+        semanticModel(
+            "UnsupportedCustomValue.idl",
+            Files.readString(corpus.resolve("UnsupportedCustomValue.idl"), StandardCharsets.UTF_8));
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> mapper.map(unsupported, JavaMappingMode.LEGACY_COMPATIBILITY));
+
+    assertEquals(
+        "Unsupported IDL-to-Java mapping: custom valuetype ::WideUnsupported::CustomValue",
+        exception.getMessage());
+  }
+
+  @Test
   void rejectsDuplicateGeneratedSourcePaths() {
     JavaMappingModel model =
         new JavaMappingModel(

@@ -165,6 +165,30 @@ lifecycle, health checks, cleanup, and clean-room failure classification before
 running JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, or ACE/TAO as
 black-box peers.
 
+## G12-050 broad IDL corpus lane
+
+G12-050 adds local-only broad IDL fixture scenarios under `interop/idl/g12-wide/`:
+
+- `g12-wide-core-types` maps to `CoreTypes.idl` and covers typedefs, bounded
+  sequences, enums, structs, unions, exceptions, attributes, holder-using
+  operation parameters, raises clauses, and context clauses.
+- `g12-wide-repository-pragmas` maps to `RepositoryPragmas.idl` and covers
+  repository prefix/typeprefix metadata, native declarations, value boxes,
+  abstract valuetype bases, supported interfaces, and factories.
+- `g12-wide-valuetypes` maps to `ValueTypes.idl` and covers native handles,
+  abstract interfaces with operations, valuetype inheritance, state fields,
+  factories, and supported interface operation placeholders.
+- `g12-wide-unsupported-custom-value` maps to `UnsupportedCustomValue.idl` and is
+  parser/semantic-valid but intentionally rejected by the IDL-to-Java mapping
+  until custom value marshaling is implemented.
+
+The G12-050 evidence is deterministic and local: `corba-codegen` tests parse,
+analyze, map, generate descriptors/sources, and compile the supported fixtures;
+`interop-peer local-lane-report` writes local JVM structured reports for selected
+fixtures; `native-lane-report` records Native Image missing-prerequisite reports
+for the same scenario names. These scenarios are not added to peer manifests in
+G12-050, so no live peer compatibility is claimed by this task.
+
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.

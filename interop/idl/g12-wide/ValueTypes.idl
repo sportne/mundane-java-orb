@@ -1,0 +1,21 @@
+#pragma prefix "example.org"
+
+module Values {
+  native NativeHandle;
+
+  abstract interface Inspectable {
+    void inspect();
+  };
+
+  valuetype Label string<64>;
+
+  abstract valuetype AbstractValue {};
+
+  valuetype Record : AbstractValue supports Inspectable {
+    public unsigned long id;
+    private sequence<Label, 8> labels;
+    public NativeHandle handle;
+    factory create(in unsigned long id);
+    void inspect();
+  };
+};

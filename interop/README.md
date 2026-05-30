@@ -28,6 +28,13 @@ validates approved cache entries, digest-pinned base images, Docker/Podman
 availability, prepared peer images, mounted scenario IDL, IOR/log/report
 directories, and deterministic failure classification before `G10-120` records
 full live evidence.
+
+G12-050 adds a project-owned broad IDL feature corpus under
+`interop/idl/g12-wide/`. The corpus is local-only in this task: parser,
+semantics, mapping, generated-source compilation, local JVM lane reports, and
+Native Image prerequisite reports are validated without adding live peer scenario
+claims or committing raw live evidence. G12-060 is responsible for selecting
+which of these fixtures become approved peer scenarios.
 Prepared peer images must provide executable `/interop/peer/client.sh`,
 `/interop/peer/server.sh`, `/interop/peer/naming.sh`, `/interop/peer/health.sh`,
 and `/interop/peer/report.sh` scripts, or equivalent `INTEROP_PEER_*_COMMAND`

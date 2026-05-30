@@ -32,6 +32,24 @@ final class NativeImageInteropReportTest {
   }
 
   @Test
+  void missingG12WideNativeClientBinaryProducesStructuredInfrastructureReport() throws Exception {
+    CommandResult result =
+        runInteropPeer(
+            "native-lane-report", "g12-wide-valuetypes", "client", Map.of("INTEROP_ROOT", root()));
+
+    Path report =
+        temporaryDirectory.resolve(
+            "build/interop/native/reports/g12-wide-valuetypes-native-client.json");
+    assertEquals(1, result.exitCode(), result.stderr());
+    assertTrue(Files.isRegularFile(report));
+    String json = Files.readString(report);
+    assertTrue(json.contains("\"scenario\": \"g12-wide-valuetypes\""));
+    assertTrue(json.contains("\"idl\": \"interop/idl/g12-wide/ValueTypes.idl\""));
+    assertTrue(json.contains("\"classification\": \"infrastructure-failure\""));
+    assertTrue(json.contains("G10-100 native client binary prerequisite missing"));
+  }
+
+  @Test
   void satisfiedNativeServerBinaryProducesStructuredPrerequisiteReport() throws Exception {
     Path binary = temporaryDirectory.resolve("server-smoke");
     Files.writeString(binary, "#!/usr/bin/env sh\nexit 0\n");
