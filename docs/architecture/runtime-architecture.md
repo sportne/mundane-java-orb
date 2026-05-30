@@ -183,3 +183,17 @@ loading. They can add or replace GIOP service contexts through bounded value
 objects, but they cannot install Security Service policy, change object adapter
 lookup semantics, invoke reflection dispatch, generate bytecode, or require
 Java serialization metadata.
+
+## Durable Identity Model
+
+ADR-0014 accepts durable ORB and POA identity as the restart-safe object
+reference direction for post-G12 runtime work. A durable ORB has an explicit
+configured `orbId`; persistent POAs have stable hierarchical paths under that
+ORB; and persistent object keys use a bounded, versioned project-owned encoding
+that carries `orbId`, POA path, object id bytes, and key flags.
+
+Transient and persistent references remain separate runtime concepts. The ORB
+must not silently promote process-local object ids into durable keys, and it
+must not create an implicit global persistence location. Follow-on tasks will
+add the value codecs, persistent POA activation behavior, persistent IOR
+round-trips, and Naming persistence in that order.

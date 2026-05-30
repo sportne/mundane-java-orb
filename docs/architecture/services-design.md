@@ -11,6 +11,13 @@ and test-fixture utilities after a service gate approves those surfaces. It must
 not duplicate ORB, POA, IIOP, CDR, interceptor, or generated-code behavior that
 belongs to the existing runtime and compiler modules.
 
+ADR-0014 accepts Naming persistence only after durable IORs are implemented.
+The persistent Naming store must hold bounded, versioned naming context and
+durable IOR data, not servant instances, process-local object references, Java
+serialized objects, or peer-derived artifacts. Store locations must be
+caller-configured and validated; the runtime must not silently create a global
+database.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

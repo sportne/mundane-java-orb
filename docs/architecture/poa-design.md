@@ -136,6 +136,20 @@ POA/ORB identity, restart rules, or persistent object-reference encoding.
 Network dispatch, peer interoperability, and `org.omg.PortableServer`
 compatibility types also remain outside the G6-630 local slice.
 
+### Durable Persistent POA Direction
+
+ADR-0014 accepts persistent POA support once the durable ORB identity foundation
+is implemented. A persistent POA path is the stable adapter identity beneath a
+configured `orbId`; persistent object ids remain opaque application or
+system-assigned byte sequences within that POA path. Persistent references must
+encode enough information to distinguish unknown, stale, malformed, and
+transient object keys after restart.
+
+Persistent POA implementation remains staged behind follow-on tasks. Until the
+durable key codec and persistent POA activation tasks complete, existing
+deterministic deferral for persistent references remains the correct runtime
+behavior.
+
 ### Network IIOP Dispatch Bridge
 
 G10-050 exposes activated local POA objects through bounded local IIOP by

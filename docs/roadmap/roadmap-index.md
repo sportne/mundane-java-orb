@@ -159,4 +159,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g12-040-idl-to-java-mapping-hardening.md` - complete
 - `tasks/g12-050-wide-idl-feature-interop-corpus.md` - complete
 - `tasks/g12-060-peer-idl-feature-interop-matrix.md` - complete
-- `tasks/g12-100-durable-orb-poa-identity-design-gate.md` - ready-for-implementation
+- `tasks/g12-100-durable-orb-poa-identity-design-gate.md` - complete
+- `tasks/g12-110-durable-orb-identity-foundation.md` - ready-for-implementation
+- `tasks/g12-120-persistent-poa-object-keys.md` - blocked
+- `tasks/g12-130-persistent-ior-roundtrip.md` - blocked
+- `tasks/g12-140-naming-persistence-implementation.md` - blocked

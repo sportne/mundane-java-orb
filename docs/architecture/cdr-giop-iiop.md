@@ -127,3 +127,15 @@ remains outside the IIOP transport slice. The boundary is:
 GiopRequest -> IiopClient -> TCP/TLS loopback -> IiopServer -> IiopRequestHandler -> GiopReply
 IiopOptions -> SSLContext -> SSLSocket/SSLServerSocket -> GIOP frame exchange
 ```
+
+## Persistent IOR Direction
+
+ADR-0014 accepts persistent IOR support as a staged follow-on to durable ORB
+and POA identity. Persistent IORs must carry bounded durable object keys through
+the existing IOR, GIOP target-address, and IIOP dispatch paths. The binary and
+stringified forms must preserve the key without relying on process-local
+registries.
+
+Malformed key versions, oversized path segments, path traversal, and stale ORB
+or POA identities are hostile inputs. Persistent IOR parsing must reject those
+cases before allocation or dispatch and must keep diagnostics deterministic.
