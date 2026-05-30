@@ -74,9 +74,10 @@ required_top_level = {
     "gate",
     "peerType",
     "requirementIds",
-    "roles",
-    "scenarioGroups",
-    "candidateOrigin",
+  "roles",
+  "scenarioGroups",
+    "scenarioCapabilities",
+  "candidateOrigin",
     "license",
     "approval",
     "cleanRoom",
@@ -112,6 +113,22 @@ required_container_commands = {
     "report",
 }
 
+known_directions = {"peer-server-to-local-client", "local-server-to-peer-client"}
+known_local_runtimes = {"jvm", "native"}
+known_classifications = {
+    "expected-deferral",
+    "object-reference-checked",
+    "server-ready",
+    "calculator-checked",
+    "infrastructure-failure",
+    "unsupported-scenario",
+    "missing-prerequisite",
+    "our-bug",
+    "peer-bug",
+    "spec-ambiguity",
+    "profile-mismatch",
+}
+
 failed = False
 for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
     with open(path, encoding="utf-8") as handle:
@@ -142,6 +159,56 @@ for path in sorted(glob.glob(os.path.join(sys.argv[1], "*", "peer.yaml"))):
         failed = True
         print(f"{path}: scenarioGroups must not be empty", file=sys.stderr)
         continue
+
+    scenario_groups = set(manifest.get("scenarioGroups", []))
+    capabilities = manifest.get("scenarioCapabilities", {})
+    if not isinstance(capabilities, dict) or not capabilities:
+        failed = True
+        print(f"{path}: scenarioCapabilities must not be empty", file=sys.stderr)
+        continue
+    missing_capabilities = sorted(scenario_groups - set(capabilities))
+    if missing_capabilities:
+        failed = True
+        print(
+            f"{path}: scenarioCapabilities must describe every scenarioGroup: {', '.join(missing_capabilities)}",
+            file=sys.stderr,
+        )
+    for scenario, metadata in sorted(capabilities.items()):
+        if scenario not in scenario_groups:
+            failed = True
+            print(
+                f"{path}: scenarioCapabilities.{scenario} must also appear in scenarioGroups",
+                file=sys.stderr,
+            )
+            continue
+        idl = metadata.get("idl")
+        if not idl or os.path.isabs(idl) or ".." in idl.split("/"):
+            failed = True
+            print(f"{path}: scenarioCapabilities.{scenario}.idl must be a contained relative path", file=sys.stderr)
+        if not metadata.get("support"):
+            failed = True
+            print(f"{path}: scenarioCapabilities.{scenario}.support is required", file=sys.stderr)
+        directions = set(metadata.get("directions", []))
+        if not directions or not directions <= known_directions:
+            failed = True
+            print(
+                f"{path}: scenarioCapabilities.{scenario}.directions must use known direction names",
+                file=sys.stderr,
+            )
+        local_runtimes = set(metadata.get("localRuntimes", []))
+        if not local_runtimes or not local_runtimes <= known_local_runtimes:
+            failed = True
+            print(
+                f"{path}: scenarioCapabilities.{scenario}.localRuntimes must use jvm/native",
+                file=sys.stderr,
+            )
+        classifications = set(metadata.get("expectedClassifications", []))
+        if not classifications or not classifications <= known_classifications:
+            failed = True
+            print(
+                f"{path}: scenarioCapabilities.{scenario}.expectedClassifications must use known report classifications",
+                file=sys.stderr,
+            )
 
     print(path)
 
@@ -468,12 +535,76 @@ import yaml
 with open(sys.argv[1], encoding="utf-8") as handle:
     manifest = yaml.safe_load(handle)
 
-if sys.argv[2] in manifest.get("scenarioGroups", []):
+if sys.argv[2] in manifest.get("scenarioCapabilities", {}):
     sys.exit(0)
 
 print(f"{manifest.get('name', sys.argv[1])}: scenario is not declared: {sys.argv[2]}", file=sys.stderr)
 sys.exit(1)
 PY
+}
+
+scenario_supported_quiet() {
+  local manifest="$1"
+  local scenario="$2"
+  python3 - "$manifest" "$scenario" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+
+sys.exit(0 if sys.argv[2] in manifest.get("scenarioCapabilities", {}) else 1)
+PY
+}
+
+scenario_capability_contains() {
+  local manifest="$1"
+  local scenario="$2"
+  local field="$3"
+  local value="$4"
+  python3 - "$manifest" "$scenario" "$field" "$value" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+
+metadata = manifest.get("scenarioCapabilities", {}).get(sys.argv[2], {})
+sys.exit(0 if sys.argv[4] in metadata.get(sys.argv[3], []) else 1)
+PY
+}
+
+scenario_capability_values() {
+  local manifest="$1"
+  local scenario="$2"
+  local field="$3"
+  python3 - "$manifest" "$scenario" "$field" <<'PY'
+import sys
+import yaml
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    manifest = yaml.safe_load(handle)
+
+for value in manifest.get("scenarioCapabilities", {}).get(sys.argv[2], {}).get(sys.argv[3], []):
+    print(value)
+PY
+}
+
+scenario_peers() {
+  local target="$1"
+  local scenario="$2"
+  if [[ "${target}" != "all" ]]; then
+    manifest_path "${target}" >/dev/null
+    printf '%s\n' "${target}"
+    return
+  fi
+  local manifest peer
+  for manifest in "${PEERS_DIR}"/*/peer.yaml; do
+    peer="$(basename "$(dirname "${manifest}")")"
+    if scenario_supported_quiet "${manifest}" "${scenario}"; then
+      printf '%s\n' "${peer}"
+    fi
+  done
 }
 
 peer_runtime_name() {
@@ -1549,14 +1680,9 @@ run_scenario() {
   [[ -n "${scenario}" && -n "${target}" ]] || fail "run-scenario requires a scenario and peer|all"
 
   local peers=()
-  if [[ "${target}" == "all" ]]; then
-    local manifest
-    for manifest in "${PEERS_DIR}"/*/peer.yaml; do
-      peers+=("$(basename "$(dirname "${manifest}")")")
-    done
-  else
-    manifest_path "${target}" >/dev/null
-    peers=("${target}")
+  mapfile -t peers < <(scenario_peers "${target}" "${scenario}")
+  if [[ "${#peers[@]}" -eq 0 ]]; then
+    fail "no approved peers declare scenario: ${scenario}"
   fi
 
   local failures=0
@@ -1591,14 +1717,9 @@ run_direction_matrix() {
   [[ -n "${scenario}" && -n "${target}" ]] || fail "run-direction-matrix requires a scenario and peer|all"
 
   local peers=()
-  if [[ "${target}" == "all" ]]; then
-    local manifest
-    for manifest in "${PEERS_DIR}"/*/peer.yaml; do
-      peers+=("$(basename "$(dirname "${manifest}")")")
-    done
-  else
-    manifest_path "${target}" >/dev/null
-    peers=("${target}")
+  mapfile -t peers < <(scenario_peers "${target}" "${scenario}")
+  if [[ "${#peers[@]}" -eq 0 ]]; then
+    fail "no approved peers declare scenario: ${scenario}"
   fi
 
   local failures=0
@@ -1609,45 +1730,65 @@ run_direction_matrix() {
 
   for peer in "${peers[@]}"; do
     if [[ "${dry_run}" == "true" ]]; then
-      echo "dry-run: would start ${peer} server for ${scenario}"
-      echo "dry-run: would run ${peer} health check for ${scenario}"
-      local_lane_report --dry-run "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client"
-      local_lane_report --dry-run "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client"
-      echo "dry-run: would stop ${peer} server for ${scenario}"
-      for runtime in jvm native; do
-        if [[ "${runtime}" == "jvm" ]]; then
-          echo "dry-run: would validate MJO_JVM_SERVER_COMMAND for ${scenario} server"
-        else
-          echo "dry-run: would validate MJO_NATIVE_SERVER_BINARY for ${scenario} server"
+      if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+          "peer-server-to-local-client"; then
+        echo "dry-run: would start ${peer} server for ${scenario}"
+        echo "dry-run: would run ${peer} health check for ${scenario}"
+        if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "localRuntimes" "jvm"; then
+          local_lane_report --dry-run "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client"
         fi
-        echo "dry-run: would start our ${runtime} server for ${scenario} and ${peer}"
-        echo "dry-run: would run ${peer} client against our ${runtime} server for ${scenario}"
-        echo "dry-run: would stop our ${runtime} server for ${scenario} and ${peer}"
-      done
+        if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "localRuntimes" "native"; then
+          local_lane_report --dry-run "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client"
+        fi
+        echo "dry-run: would stop ${peer} server for ${scenario}"
+      fi
+      if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+          "local-server-to-peer-client"; then
+        while IFS= read -r runtime; do
+          if [[ "${runtime}" == "jvm" ]]; then
+            echo "dry-run: would validate MJO_JVM_SERVER_COMMAND for ${scenario} server"
+          else
+            echo "dry-run: would validate MJO_NATIVE_SERVER_BINARY for ${scenario} server"
+          fi
+          echo "dry-run: would start our ${runtime} server for ${scenario} and ${peer}"
+          echo "dry-run: would run ${peer} client against our ${runtime} server for ${scenario}"
+          echo "dry-run: would stop our ${runtime} server for ${scenario} and ${peer}"
+        done < <(scenario_capability_values "$(manifest_path "${peer}")" "${scenario}" "localRuntimes")
+      fi
     else
       STARTED_SERVER_CONTAINER=""
       STARTED_SERVER_RUNTIME=""
-      if start_server_role "${peer}" "${scenario}" && wait_for_peer_health "${peer}" "${scenario}"; then
-        local_lane_report "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client" \
-          || failures=$((failures + 1))
-        local_lane_report "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client" \
-          || failures=$((failures + 1))
-      else
-        failures=$((failures + 1))
-      fi
-      cleanup_started_server
-
-      for runtime in jvm native; do
-        STARTED_LOCAL_SERVER_PID=""
-        if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
-          run_container_role "${peer}" "client" "${scenario}" "${runtime}-server-to-peer-client" \
-            "" "$(local_runtime_name "${runtime}")" \
-            || failures=$((failures + 1))
+      if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+          "peer-server-to-local-client"; then
+        if start_server_role "${peer}" "${scenario}" && wait_for_peer_health "${peer}" "${scenario}"; then
+          if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "localRuntimes" "jvm"; then
+            local_lane_report "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client" \
+              || failures=$((failures + 1))
+          fi
+          if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "localRuntimes" "native"; then
+            local_lane_report "${scenario}" "native" "client" "${peer}" "peer-server-to-local-client" \
+              || failures=$((failures + 1))
+          fi
         else
           failures=$((failures + 1))
         fi
-        cleanup_started_local_server
-      done
+      fi
+      cleanup_started_server
+
+      if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+          "local-server-to-peer-client"; then
+        while IFS= read -r runtime; do
+          STARTED_LOCAL_SERVER_PID=""
+          if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
+            run_container_role "${peer}" "client" "${scenario}" "${runtime}-server-to-peer-client" \
+              "" "$(local_runtime_name "${runtime}")" \
+              || failures=$((failures + 1))
+          else
+            failures=$((failures + 1))
+          fi
+          cleanup_started_local_server
+        done < <(scenario_capability_values "$(manifest_path "${peer}")" "${scenario}" "localRuntimes")
+      fi
     fi
   done
 

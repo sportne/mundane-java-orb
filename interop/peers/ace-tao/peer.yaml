@@ -23,6 +23,99 @@ scenarioGroups:
   - giop
   - iiop
   - rmi-iiop
+  - g12-wide-core-types
+scenarioCapabilities:
+  basic-idl:
+    idl: interop/idl/basic/BasicTypes.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
+  object-reference:
+    idl: interop/idl/object-reference.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
+  naming:
+    idl: interop/idl/naming.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
+  giop:
+    idl: interop/idl/giop.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
+  iiop:
+    idl: interop/idl/iiop.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
+  rmi-iiop:
+    idl: interop/idl/rmi-iiop/Calculator.idl
+    support: live-calculator-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - calculator-checked
+      - expected-deferral
+      - server-ready
+  g12-wide-core-types:
+    idl: interop/idl/g12-wide/CoreTypes.idl
+    support: live-mounted-idl-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - object-reference-checked
+      - server-ready
 candidateOrigin:
   kind: source-archive
   coordinate: "ACE+TAO-8.0.6"

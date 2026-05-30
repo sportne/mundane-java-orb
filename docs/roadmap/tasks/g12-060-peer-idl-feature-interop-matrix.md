@@ -1,7 +1,7 @@
 # G12-060 Peer IDL Feature Interop Matrix
 
 Task ID: G12-060-PEER-IDL-FEATURE-INTEROP-MATRIX
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-INTEROP-001, REQ-INTEROP-002, REQ-INTEROP-003, REQ-INTEROP-004, REQ-INTEROP-005, REQ-INTEROP-006, REQ-INTEROP-007, REQ-INTEROP-008, REQ-INTEROP-009, REQ-NATIVE-005, REQ-SEC-003
 ADR IDs: ADR-0001, ADR-0005, ADR-0006, ADR-0008, ADR-0010
@@ -15,3 +15,15 @@ Documentation to update: Interop matrix, reference behavior capture notes, IDL a
 Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-native-image:test; ./interop/bin/interop-peer validate-manifests; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Approved broad-feature peer scenarios either pass or produce maintainer-reviewable structured classifications; project-owned live peer defects are split into amended implementation tasks before production fixes; raw live evidence remains ignored; G12-100 is promoted to ready-for-implementation when the compiler/interop hardening lane is closed.
 Rollback notes: Revert peer harness, scenario metadata, report-summary, approval metadata, and documentation updates together.
+
+Completion evidence: G12-060 promotes `g12-wide-core-types` to the approved
+peer scenario metadata for JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK
+ORB, and ACE/TAO. The peer harness validates per-scenario capability metadata,
+filters `all` peer targets by declared scenario support, preserves explicit
+failure for requested unsupported peer/scenario pairs, and keeps missing live
+inputs as structured `infrastructure-failure` reports. Summary aggregation
+includes the selected G12 scenario reports without committing raw live evidence.
+The broader valuetype, repository pragma, and custom valuetype fixtures remain
+local-only until value marshaling and peer-specific fixture adapters are
+approved in later tasks. G12-100 is promoted for the durable identity design
+gate.

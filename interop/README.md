@@ -35,6 +35,15 @@ semantics, mapping, generated-source compilation, local JVM lane reports, and
 Native Image prerequisite reports are validated without adding live peer scenario
 claims or committing raw live evidence. G12-060 is responsible for selecting
 which of these fixtures become approved peer scenarios.
+
+G12-060 promotes `g12-wide-core-types` as the selected broad IDL peer scenario
+for the approved peers. The scenario is capability-filtered through peer
+manifest metadata and remains a mounted-IDL/object-reference smoke lane: richer
+valuetype, repository pragma, and custom valuetype fixtures stay local-only
+until peer-specific value marshaling adapters are approved. Live execution still
+requires the approved external cache, digest-pinned base images, Docker/Podman,
+and ignored local report outputs.
+
 Prepared peer images must provide executable `/interop/peer/client.sh`,
 `/interop/peer/server.sh`, `/interop/peer/naming.sh`, `/interop/peer/health.sh`,
 and `/interop/peer/report.sh` scripts, or equivalent `INTEROP_PEER_*_COMMAND`

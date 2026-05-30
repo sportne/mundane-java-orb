@@ -189,6 +189,28 @@ fixtures; `native-lane-report` records Native Image missing-prerequisite reports
 for the same scenario names. These scenarios are not added to peer manifests in
 G12-050, so no live peer compatibility is claimed by this task.
 
+## G12-060 broad IDL peer scenario
+
+G12-060 promotes `g12-wide-core-types` to the approved peer manifest scenario
+set for JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO.
+Each peer manifest records `scenarioCapabilities` metadata for the selected
+fixture: the IDL path, mounted-IDL/object-reference smoke support level, the
+peer-server/local-client and local-server/peer-client directions, JVM and Native
+Image local runtimes, and expected structured classifications.
+
+The harness filters `all` peer targets by declared scenario support and still
+rejects an explicitly requested peer/scenario pair when that peer does not
+declare the scenario. Missing cache, base image, runtime, peer image, local JVM
+command, or Native Image binary inputs remain structured `infrastructure-failure`
+reports. Summary aggregation includes G12 reports but raw live reports, logs,
+IORs, peer artifacts, Docker layers, and native binaries remain ignored local
+outputs and must not be committed.
+
+The selected G12 peer scenario is not a valuetype marshaling claim. The
+`g12-wide-repository-pragmas`, `g12-wide-valuetypes`, and
+`g12-wide-unsupported-custom-value` fixtures stay local-only until later tasks
+approve value marshaling behavior and peer-specific fixture adapters.
+
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.

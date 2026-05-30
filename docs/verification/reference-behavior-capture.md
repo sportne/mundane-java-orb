@@ -114,9 +114,17 @@ skipped classification remains. The committed evidence is this summary only;
 raw live reports, logs, IORs, peer artifacts, Docker layers, and native binaries
 remain ignored local output.
 
+G12-060 adds the selected `g12-wide-core-types` broad-IDL fixture to approved
+peer scenario metadata. Reference capture for this fixture uses the existing
+black-box peer container harness, mounted source-controlled IDL, capability
+filtering, structured missing-prerequisite reports, and summary aggregation.
+The committed evidence remains metadata and deterministic report-schema tests;
+raw G12 live outputs are ignored local artifacts.
+
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,
-`infrastructure-failure`, `unsupported-scenario`, or `expected-deferral`.
+`infrastructure-failure`, `missing-prerequisite`, `unsupported-scenario`, or
+`expected-deferral`.
 
 ## Clean-room rule
 

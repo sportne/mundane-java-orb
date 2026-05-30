@@ -23,6 +23,86 @@ scenarioGroups:
   - giop
   - iiop
   - rmi-iiop
+  - g12-wide-core-types
+scenarioCapabilities:
+  basic-idl:
+    idl: interop/idl/basic/BasicTypes.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+  object-reference:
+    idl: interop/idl/object-reference.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+  naming:
+    idl: interop/idl/naming.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+  giop:
+    idl: interop/idl/giop.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+  iiop:
+    idl: interop/idl/iiop.idl
+    support: live-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+  rmi-iiop:
+    idl: interop/idl/rmi-iiop/Calculator.idl
+    support: live-calculator-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - calculator-checked
+      - expected-deferral
+  g12-wide-core-types:
+    idl: interop/idl/g12-wide/CoreTypes.idl
+    support: live-mounted-idl-object-reference-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
 candidateOrigin:
   kind: maven
   coordinate: "org.jboss.openjdk-orb:openjdk-orb:10.1.1.Final"

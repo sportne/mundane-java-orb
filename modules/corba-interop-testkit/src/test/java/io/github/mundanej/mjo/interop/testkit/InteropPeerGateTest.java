@@ -82,6 +82,142 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void actualPeerManifestsDeclareG12WideCoreScenarioCapabilities() throws Exception {
+    for (String peer : REAL_PEERS) {
+      String manifest =
+          Files.readString(repoRoot().resolve("interop/peers/" + peer + "/peer.yaml"));
+
+      assertTrue(manifest.contains("  - g12-wide-core-types"), manifest);
+      assertTrue(manifest.contains("scenarioCapabilities:"), manifest);
+      assertTrue(manifest.contains("g12-wide-core-types:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/g12-wide/CoreTypes.idl"), manifest);
+      assertTrue(manifest.contains("support: live-mounted-idl-object-reference-smoke"), manifest);
+      assertTrue(manifest.contains("peer-server-to-local-client"), manifest);
+      assertTrue(manifest.contains("local-server-to-peer-client"), manifest);
+    }
+  }
+
+  @Test
+  void g12WideCoreScenarioMissingCacheWritesStructuredPeerReport() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("launch", FIXTURE_PEER, "server", "g12-wide-core-types"),
+            fixture.environment());
+
+    assertFailure(result, "g12-wide-core-types-server.json");
+    String report =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/g12-wide-core-types-server.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"scenario\": \"g12-wide-core-types\""), report);
+    assertTrue(report.contains("\"idl\": \"interop/idl/g12-wide/CoreTypes.idl\""), report);
+    assertTrue(report.contains("\"classification\": \"infrastructure-failure\""), report);
+  }
+
+  @Test
+  void runScenarioAllFiltersPeersByDeclaredG12Capability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path otherPeer = fixture.root().resolve("interop/peers/other-peer");
+    Files.createDirectories(otherPeer);
+    Files.writeString(
+        otherPeer.resolve("peer.yaml"),
+        removeG12CoreCapability(
+            peerManifest(FixtureOptions.valid()).replace("fixture-peer", "other-peer")),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--dry-run", "g12-wide-core-types", "all"),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run scenario g12-wide-core-types role server for fixture-peer"),
+        result.output());
+    assertFalse(result.output().contains("for other-peer"), result.output());
+  }
+
+  @Test
+  void manifestValidationRequiresCapabilityMetadataForEveryScenarioGroup() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path manifest = fixture.root().resolve("interop/peers/fixture-peer/peer.yaml");
+    Files.writeString(
+        manifest,
+        removeG12CoreCapability(Files.readString(manifest, StandardCharsets.UTF_8)),
+        StandardCharsets.UTF_8);
+
+    CommandResult result = run(command("validate-manifests"), fixture.environment());
+
+    assertFailure(
+        result, "scenarioCapabilities must describe every scenarioGroup: g12-wide-core-types");
+  }
+
+  @Test
+  void directionMatrixDryRunHonorsDeclaredG12CapabilityDirectionsAndRuntimes() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path manifest = fixture.root().resolve("interop/peers/fixture-peer/peer.yaml");
+    Files.writeString(
+        manifest,
+        replaceG12CoreCapability(
+            Files.readString(manifest, StandardCharsets.UTF_8),
+            """
+              g12-wide-core-types:
+                idl: interop/idl/g12-wide/CoreTypes.idl
+                support: live-mounted-idl-object-reference-smoke
+                directions:
+                  - peer-server-to-local-client
+                localRuntimes:
+                  - jvm
+                expectedClassifications:
+                  - expected-deferral
+            """),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "g12-wide-core-types", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server"), result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertFalse(result.output().contains("MJO_NATIVE_CLIENT_BINARY"), result.output());
+    assertFalse(result.output().contains("start our jvm server"), result.output());
+    assertFalse(result.output().contains("start our native server"), result.output());
+  }
+
+  @Test
+  void g12WideCoreScenarioReportsAreIncludedInSummaryAggregation() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Map<String, String> environment =
+        fixture.environmentWithCache(
+            Map.of(
+                "CONTAINER_RUNTIME",
+                "/bin/true",
+                "INTEROP_JAVA_BASE_IMAGE",
+                DIGEST_PINNED_BASE_IMAGE));
+    run(command("launch", FIXTURE_PEER, "server", "g12-wide-core-types"), environment);
+
+    CommandResult result = run(command("report", FIXTURE_PEER), environment);
+
+    assertSuccess(result);
+    String summary =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/summary.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(summary.contains("\"g12-wide-core-types\": 1"), summary);
+    assertTrue(summary.contains("g12-wide-core-types-server.json"), summary);
+  }
+
+  @Test
   void g12WideLocalJvmLaneWritesStructuredReportsForSelectedFixture() throws Exception {
     Path root = temporaryDirectory.resolve("g12-wide-local-root");
     Path fixture = root.resolve("interop/idl/g12-wide/ValueTypes.idl");
@@ -242,6 +378,7 @@ final class InteropPeerGateTest {
                 """
                   - basic-idl
                   - rmi-iiop
+                  - g12-wide-core-types
                 """,
                 ""),
         StandardCharsets.UTF_8);
@@ -1172,6 +1309,42 @@ final class InteropPeerGateTest {
                 scenarioGroups:
                   - basic-idl
                   - rmi-iiop
+                  - g12-wide-core-types
+                scenarioCapabilities:
+                  basic-idl:
+                    idl: interop/idl/basic/BasicTypes.idl
+                    support: live-object-reference-smoke
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - expected-deferral
+                  rmi-iiop:
+                    idl: interop/idl/rmi-iiop/Calculator.idl
+                    support: live-calculator-smoke
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - calculator-checked
+                      - expected-deferral
+                  g12-wide-core-types:
+                    idl: interop/idl/g12-wide/CoreTypes.idl
+                    support: live-mounted-idl-object-reference-smoke
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - expected-deferral
                 candidateOrigin:
                   kind: maven
                   coordinate: "example:fixture:1.0"
@@ -1222,6 +1395,19 @@ final class InteropPeerGateTest {
                   structuredReports: "build/interop/fixture/reports"
                 """
         .replace("__VENDORED_PEER_ARTIFACTS__", Boolean.toString(options.vendoredPeerArtifacts()));
+  }
+
+  private static String removeG12CoreCapability(String manifest) {
+    return replaceG12CoreCapability(manifest, "");
+  }
+
+  private static String replaceG12CoreCapability(String manifest, String replacement) {
+    int start = manifest.indexOf("  g12-wide-core-types:\n");
+    int end = manifest.indexOf("candidateOrigin:", start);
+    if (start < 0 || end < 0) {
+      throw new IllegalArgumentException("G12 core capability block not found");
+    }
+    return manifest.substring(0, start) + replacement + manifest.substring(end);
   }
 
   private static String approval(FixtureOptions options) throws NoSuchAlgorithmException {

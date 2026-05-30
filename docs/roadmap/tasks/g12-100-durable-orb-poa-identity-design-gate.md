@@ -1,7 +1,7 @@
 # G12-100 Durable ORB And POA Identity Design Gate
 
 Task ID: G12-100-DURABLE-ORB-POA-IDENTITY-DESIGN-GATE
-Status: blocked
+Status: ready-for-implementation
 Gate: G12 post-1.0 runtime identity design
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-NAM-001, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0010

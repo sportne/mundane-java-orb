@@ -26,7 +26,7 @@ JSON
 }
 
 case "${scenario}" in
-  basic-idl|object-reference|giop|iiop|naming|rmi-iiop|health|report|manual)
+  basic-idl|object-reference|giop|iiop|naming|rmi-iiop|g12-wide-core-types|health|report|manual)
     ;;
   *)
     write_peer_report "failed" "unsupported-scenario" \
