@@ -1,7 +1,7 @@
 # G12-140 Naming Persistence Implementation
 
 Task ID: G12-140-NAMING-PERSISTENCE-IMPLEMENTATION
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 runtime identity implementation
 Requirement IDs: REQ-NAM-001, REQ-IOR-002, REQ-ORB-001, REQ-SEC-006, REQ-NATIVE-002, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014
@@ -14,4 +14,12 @@ Tests to add/update: Naming restart simulation tests, store corruption and path 
 Documentation to update: Services design, runtime architecture, Naming and CORBA conformance matrices, Native Image matrix, roadmap index, README ready-task status, and this task.
 Commands to run: ./gradlew :modules:corba-naming-server:test :modules:corba-naming-api:test :modules:corba-ior:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Naming persistence stores only durable IOR/context data, survives restart with deterministic resolution, rejects malformed stores safely, and remains Native Image friendly without reflection or serialization metadata.
+Evidence: Added explicit `NamingPersistenceOptions`, a bounded versioned `MJNS`
+store, durable `MJOK` Naming context object keys, persistent
+`NetworkNamingService` startup, restart-safe durable object/context resolution,
+persistent `corbaname` resolution, deterministic rejection of corrupted stores,
+oversized stores, path traversal store paths, transient IORs, and malformed
+durable object keys, plus Native Image smoke coverage for configured
+persistence.
+Validation: `./gradlew :modules:corba-naming-server:test :modules:corba-naming-api:test :modules:corba-ior:test :modules:corba-native-image:test --console=plain`; SDKMAN GraalVM `./gradlew :modules:corba-native-image:nativeImageBinariesSmoke --console=plain`; full G12-140 gates rerun before commit.
 Rollback notes: Revert Naming persistence runtime, store codecs, Native Image, and documentation updates together.

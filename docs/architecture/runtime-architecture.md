@@ -83,8 +83,10 @@ LocalNamingService.install
 ```
 
 This path is an in-memory local JVM slice. It does not contact remote IIOP
-addresses, open a Naming Service transport endpoint, persist naming databases,
-discover services dynamically, or expose legacy CosNaming compatibility APIs.
+addresses, discover services dynamically, or expose legacy CosNaming
+compatibility APIs. G10-060 adds the bounded loopback IIOP Naming endpoint and
+remote `corbaloc`/`corbaname` resolution. G12-140 adds caller-configured network
+Naming persistence for durable IORs and Naming contexts.
 
 This path does not open sockets, construct GIOP messages, use IIOP transport,
 invoke POA policy behavior, create dynamic proxies, generate runtime bytecode,
@@ -225,5 +227,12 @@ ASCII object id, and active object map entry before dispatch.
 G12-130 preserves durable keys through local IOR creation, binary and
 stringified IOR parsing, GIOP target-address extraction, and loopback IIOP
 server dispatch. Malformed durable-key prefixes fail before invocation; stale
-durable keys fail as unknown object references. Naming persistence remains the
-next staged follow-on work.
+durable keys fail as unknown object references.
+
+G12-140 completes the staged durable identity implementation by adding explicit
+Naming persistence. `NetworkNamingService.bind(..., NamingPersistenceOptions)`
+uses a caller-provided durable ORB identity and store path, emits durable
+Naming-context object keys, persists only stringified durable IOR/context data
+in a bounded `MJNS` file, and rewrites that file atomically after successful
+mutating Naming operations. The runtime still does not persist servants,
+process-local object references, Java-serialized objects, or peer artifacts.

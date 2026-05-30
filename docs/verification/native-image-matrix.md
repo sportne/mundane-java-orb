@@ -40,8 +40,9 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
     `LocalOrb`;
   - `generatedServer` exercises generated-style servant/dispatcher invocation
     through `LocalOrb`;
-  - `namingServer` installs local `NameService`, binds and resolves names, and
-    resolves `corbaname:rir:`;
+  - `namingServer` installs local `NameService`, binds and resolves names,
+    resolves `corbaname:rir:`, and runs configured durable network Naming
+    persistence through a restart-style local store check;
   - `iorDiagnostics` parses deterministic `corbaloc`, `corbaname`, and
     stringified IOR/profile values;
   - `interopReport` serializes and parses structured G6 interop reports.
@@ -194,3 +195,15 @@ interfaces, factories, and repository-prefix metadata. The interop report CLI
 also records deterministic Native Image missing-prerequisite reports for
 `g12-wide-valuetypes` through the existing `native-lane-report` command. The
 accepted Native Image metadata set remains empty.
+
+## G12-140 Naming persistence Native Image evidence
+
+G12-140 extends the `namingServer` smoke entrypoint with caller-configured
+durable network Naming persistence. The smoke creates `NamingPersistenceOptions`
+with a durable `OrbIdentity`, writes a bounded `MJNS` store to a temporary
+directory, binds a durable IOR, restarts the local Naming endpoint with the same
+store and endpoint, and resolves the value through `corbaname`. The path uses
+ordinary file I/O, bounded codecs, and explicit constructors only; it introduces
+no reflection metadata, dynamic proxies, Java serialization metadata,
+service-loader discovery, runtime bytecode generation, internal JDK APIs, or
+`Unsafe`.

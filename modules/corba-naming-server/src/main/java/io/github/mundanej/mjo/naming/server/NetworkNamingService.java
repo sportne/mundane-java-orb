@@ -25,12 +25,15 @@ import io.github.mundanej.mjo.naming.NameComponent;
 import io.github.mundanej.mjo.naming.NamingDiagnosticCodes;
 import io.github.mundanej.mjo.naming.NamingException;
 import io.github.mundanej.mjo.naming.NamingName;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.SystemException;
 
@@ -55,7 +58,26 @@ public final class NetworkNamingService implements AutoCloseable {
   public static NetworkNamingService bind(IiopEndpoint endpoint, IiopOptions options) {
     Handler handler = new Handler();
     IiopServer server = IiopServer.bind(endpoint, options, handler);
-    handler.endpoint(server.endpoint());
+    try {
+      handler.endpoint(server.endpoint());
+    } catch (RuntimeException exception) {
+      server.close();
+      throw exception;
+    }
+    return new NetworkNamingService(server, handler);
+  }
+
+  /** Starts a durable network Naming Service with caller-configured persistence. */
+  public static NetworkNamingService bind(
+      IiopEndpoint endpoint, IiopOptions options, NamingPersistenceOptions persistenceOptions) {
+    Handler handler = new Handler(persistenceOptions);
+    IiopServer server = IiopServer.bind(endpoint, options, handler);
+    try {
+      handler.endpoint(server.endpoint());
+    } catch (RuntimeException exception) {
+      server.close();
+      throw exception;
+    }
     return new NetworkNamingService(server, handler);
   }
 
@@ -66,7 +88,7 @@ public final class NetworkNamingService implements AutoCloseable {
 
   /** Returns the root NamingContext IOR. */
   public Ior ior() {
-    return handler.ior(NAME_SERVICE_KEY);
+    return handler.ior(handler.rootObjectKey());
   }
 
   /** Returns a corbaloc URL for the root NamingContext. */
@@ -76,7 +98,7 @@ public final class NetworkNamingService implements AutoCloseable {
         + ":"
         + endpoint().port()
         + "/"
-        + NAME_SERVICE_KEY;
+        + percentEncode(handler.rootObjectKey().octets());
   }
 
   @Override
@@ -86,16 +108,53 @@ public final class NetworkNamingService implements AutoCloseable {
 
   private static final class Handler implements io.github.mundanej.mjo.iiop.IiopRequestHandler {
 
-    private final Map<String, ContextState> contexts = new LinkedHashMap<>();
+    private final Map<ObjectKey, ContextState> contexts = new LinkedHashMap<>();
     private IiopEndpoint endpoint;
     private int nextContextId = 1;
+    private final NamingPersistenceOptions persistenceOptions;
+    private final NamingPersistenceStore persistenceStore;
+    private ObjectKey rootKey;
 
     private Handler() {
-      contexts.put(NAME_SERVICE_KEY, new ContextState());
+      this.persistenceOptions = null;
+      this.persistenceStore = null;
+      this.rootKey = asciiObjectKey(NAME_SERVICE_KEY);
+      contexts.put(rootKey, new ContextState());
+    }
+
+    private Handler(NamingPersistenceOptions persistenceOptions) {
+      this.persistenceOptions = Objects.requireNonNull(persistenceOptions, "persistenceOptions");
+      this.persistenceStore = new NamingPersistenceStore(persistenceOptions);
+      this.rootKey = durableContextObjectKey(NAME_SERVICE_KEY);
+      NamingPersistenceStore.StoredState stored = persistenceStore.load();
+      this.nextContextId = stored.nextContextId();
+      if (stored.contexts().isEmpty()) {
+        contexts.put(rootKey, new ContextState());
+      } else {
+        for (NamingPersistenceStore.StoredContext storedContext : stored.contexts()) {
+          ObjectKey key = objectKey(storedContext.ior());
+          if (contexts.put(
+                  key, new ContextState(storedContext.destroyed(), storedContext.bindings()))
+              != null) {
+            throw new NamingException(
+                NamingDiagnosticCodes.INVALID_NAME,
+                "Naming persistence store contains duplicate contexts");
+          }
+        }
+        if (!contexts.containsKey(rootKey)) {
+          throw new NamingException(
+              NamingDiagnosticCodes.INVALID_NAME,
+              "Naming persistence store does not contain the root context");
+        }
+        validateStoredContextTargets();
+      }
     }
 
     private synchronized void endpoint(IiopEndpoint endpoint) {
       this.endpoint = Objects.requireNonNull(endpoint, "endpoint");
+      if (persistenceStore != null && !persistenceStore.exists()) {
+        persist();
+      }
     }
 
     @Override
@@ -126,24 +185,45 @@ public final class NetworkNamingService implements AutoCloseable {
       return switch (operation) {
         case "bind" -> {
           BindingRequest request = BindingRequest.read(body);
-          bind(context, request.name(), RemoteNamingBindingTarget.object(request.ior()), false);
-          yield empty();
+          yield mutate(
+              () -> {
+                bind(
+                    context,
+                    request.name(),
+                    RemoteNamingBindingTarget.object(request.ior()),
+                    false);
+                return empty();
+              });
         }
         case "rebind" -> {
           BindingRequest request = BindingRequest.read(body);
-          bind(context, request.name(), RemoteNamingBindingTarget.object(request.ior()), true);
-          yield empty();
+          yield mutate(
+              () -> {
+                bind(
+                    context, request.name(), RemoteNamingBindingTarget.object(request.ior()), true);
+                return empty();
+              });
         }
         case "resolve" -> writeTarget(resolve(context, readName(body)));
         case "unbind" -> {
-          unbind(context, readName(body));
-          yield empty();
+          NamingName name = readName(body);
+          yield mutate(
+              () -> {
+                unbind(context, name);
+                return empty();
+              });
         }
-        case "bind_new_context" -> writeTarget(bindNewContext(context, readName(body)));
+        case "bind_new_context" -> {
+          NamingName name = readName(body);
+          yield mutate(() -> writeTarget(bindNewContext(context, name)));
+        }
         case "list" -> writeBindings(context.list(readCount(body)));
         case "destroy" -> {
-          context.destroy();
-          yield empty();
+          yield mutate(
+              () -> {
+                context.destroy();
+                return empty();
+              });
         }
         default ->
             throw new org.omg.CORBA.BAD_OPERATION(
@@ -152,16 +232,21 @@ public final class NetworkNamingService implements AutoCloseable {
     }
 
     private RemoteNamingBindingTarget bindNewContext(ContextState context, NamingName name) {
-      String key = NAME_SERVICE_KEY + "/context-" + nextContextId++;
+      String contextId = "context-" + nextContextId;
+      ObjectKey key = contextObjectKey(contextId);
       ContextState child = new ContextState();
       RemoteNamingBindingTarget target = RemoteNamingBindingTarget.context(ior(key));
       bind(context, name, target, false);
       contexts.put(key, child);
+      nextContextId++;
       return target;
     }
 
     private void bind(
         ContextState context, NamingName name, RemoteNamingBindingTarget target, boolean replace) {
+      if (persistenceStore != null) {
+        persistenceStore.requireDurableIor(target.ior(), "Naming binding target");
+      }
       ResolvedParent parent = parent(context, name);
       parent.context().bind(parent.leaf(), target, replace);
     }
@@ -197,10 +282,7 @@ public final class NetworkNamingService implements AutoCloseable {
         throw new NamingException(
             NamingDiagnosticCodes.NOT_CONTEXT, "name component is not a context");
       }
-      String key =
-          new String(
-              IiopObjectReference.fromIor(target.ior()).objectKey(), StandardCharsets.US_ASCII);
-      ContextState context = contexts.get(key);
+      ContextState context = contexts.get(objectKey(target.ior()));
       if (context == null || context.destroyed()) {
         throw new NamingException(
             NamingDiagnosticCodes.NOT_FOUND, "naming context target is not available");
@@ -209,7 +291,7 @@ public final class NetworkNamingService implements AutoCloseable {
     }
 
     private ContextState context(byte[] objectKey) {
-      ContextState context = contexts.get(new String(objectKey, StandardCharsets.US_ASCII));
+      ContextState context = contexts.get(new ObjectKey(objectKey));
       if (context == null || context.destroyed()) {
         throw new org.omg.CORBA.OBJECT_NOT_EXIST(
             "Unknown Naming Service object key", 0, CompletionStatus.COMPLETED_NO);
@@ -263,16 +345,103 @@ public final class NetworkNamingService implements AutoCloseable {
       return iiopProfile.objectKey().octets();
     }
 
-    private Ior ior(String objectKey) {
+    private Ior ior(ObjectKey objectKey) {
       IiopEndpoint currentEndpoint = Objects.requireNonNull(endpoint, "endpoint");
       IiopProfile profile =
           new IiopProfile(
               IiopVersion.V1_2,
               currentEndpoint.host(),
               currentEndpoint.port(),
-              new ObjectKey(objectKey.getBytes(StandardCharsets.US_ASCII)),
+              objectKey,
               List.of());
       return new Ior(NAMING_CONTEXT_REPOSITORY_ID, List.of(TaggedProfile.internetIop(profile)));
+    }
+
+    private ObjectKey rootObjectKey() {
+      return rootKey;
+    }
+
+    private ObjectKey contextObjectKey(String contextId) {
+      return persistenceOptions == null
+          ? asciiObjectKey(NAME_SERVICE_KEY + "/" + contextId)
+          : durableContextObjectKey(contextId);
+    }
+
+    private ObjectKey durableContextObjectKey(String contextId) {
+      String orbId = persistenceOptions.orbIdentity().requireDurableOrbId();
+      DurableObjectKey key =
+          new DurableObjectKey(
+              orbId,
+              List.of("RootPOA", "NameService"),
+              contextId.getBytes(StandardCharsets.US_ASCII),
+              0);
+      return new ObjectKey(key.encode());
+    }
+
+    private void persist() {
+      if (persistenceStore != null) {
+        persistenceStore.save(snapshot());
+      }
+    }
+
+    private byte[] mutate(Supplier<byte[]> operation) {
+      if (persistenceStore == null) {
+        return operation.get();
+      }
+      NamingPersistenceStore.StoredState before = snapshot();
+      try {
+        byte[] result = operation.get();
+        persist();
+        return result;
+      } catch (RuntimeException exception) {
+        restore(before);
+        throw exception;
+      }
+    }
+
+    private NamingPersistenceStore.StoredState snapshot() {
+      List<NamingPersistenceStore.StoredContext> storedContexts =
+          contexts.entrySet().stream()
+              .sorted(Comparator.comparing(entry -> entry.getKey().toHex()))
+              .map(
+                  entry ->
+                      new NamingPersistenceStore.StoredContext(
+                          ior(entry.getKey()),
+                          entry.getValue().destroyed(),
+                          entry.getValue().storedBindings()))
+              .toList();
+      return new NamingPersistenceStore.StoredState(nextContextId, storedContexts);
+    }
+
+    private void restore(NamingPersistenceStore.StoredState state) {
+      contexts.clear();
+      nextContextId = state.nextContextId();
+      for (NamingPersistenceStore.StoredContext storedContext : state.contexts()) {
+        contexts.put(
+            objectKey(storedContext.ior()),
+            new ContextState(storedContext.destroyed(), storedContext.bindings()));
+      }
+    }
+
+    private void validateStoredContextTargets() {
+      for (ContextState context : contexts.values()) {
+        for (NamingPersistenceStore.StoredBinding binding : context.storedBindings()) {
+          if (binding.target().kind() == RemoteNamingBindingTarget.Kind.CONTEXT
+              && !contexts.containsKey(objectKey(binding.target().ior()))) {
+            throw new NamingException(
+                NamingDiagnosticCodes.INVALID_NAME,
+                "Naming persistence store references a missing context");
+          }
+        }
+      }
+    }
+
+    private static ObjectKey asciiObjectKey(String value) {
+      return new ObjectKey(value.getBytes(StandardCharsets.US_ASCII));
+    }
+
+    private static ObjectKey objectKey(Ior ior) {
+      return new ObjectKey(IiopObjectReference.fromIor(ior).objectKey());
     }
   }
 
@@ -458,6 +627,20 @@ public final class NetworkNamingService implements AutoCloseable {
     private final Map<NameComponent, RemoteNamingBindingTarget> bindings = new LinkedHashMap<>();
     private boolean destroyed;
 
+    private ContextState() {}
+
+    private ContextState(
+        boolean destroyed, List<NamingPersistenceStore.StoredBinding> storedBindings) {
+      this.destroyed = destroyed;
+      for (NamingPersistenceStore.StoredBinding binding : storedBindings) {
+        if (bindings.put(binding.name(), binding.target()) != null) {
+          throw new NamingException(
+              NamingDiagnosticCodes.INVALID_NAME,
+              "Naming persistence store contains duplicate bindings");
+        }
+      }
+    }
+
     private void bind(NameComponent leaf, RemoteNamingBindingTarget target, boolean replace) {
       requireUsable();
       if (!replace && bindings.containsKey(leaf)) {
@@ -505,11 +688,39 @@ public final class NetworkNamingService implements AutoCloseable {
       return destroyed;
     }
 
+    private List<NamingPersistenceStore.StoredBinding> storedBindings() {
+      return bindings.entrySet().stream()
+          .map(entry -> new NamingPersistenceStore.StoredBinding(entry.getKey(), entry.getValue()))
+          .toList();
+    }
+
     private void requireUsable() {
       if (destroyed) {
         throw new NamingException(
             NamingDiagnosticCodes.DESTROYED, "naming context has been destroyed");
       }
     }
+  }
+
+  private static String percentEncode(byte[] octets) {
+    StringBuilder result = new StringBuilder(octets.length);
+    for (byte octet : octets) {
+      int value = octet & 0xFF;
+      boolean unreserved =
+          (value >= 'a' && value <= 'z')
+              || (value >= 'A' && value <= 'Z')
+              || (value >= '0' && value <= '9')
+              || value == '.'
+              || value == '_'
+              || value == '-';
+      if (unreserved) {
+        result.append((char) value);
+      } else {
+        result.append('%');
+        result.append(Character.toUpperCase(Character.forDigit((value >>> 4) & 0xF, 16)));
+        result.append(Character.toUpperCase(Character.forDigit(value & 0xF, 16)));
+      }
+    }
+    return result.toString();
   }
 }

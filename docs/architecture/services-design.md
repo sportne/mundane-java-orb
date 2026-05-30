@@ -18,6 +18,18 @@ serialized objects, or peer-derived artifacts. Store locations must be
 caller-configured and validated; the runtime must not silently create a global
 database.
 
+G12-140 implements that persistence as an explicit `NetworkNamingService`
+startup option. Callers provide a durable `OrbIdentity`, a single store file
+path, and bounded store limits through `NamingPersistenceOptions`; existing
+in-memory startup remains unchanged. Persistent Naming contexts use durable
+`MJOK` object keys and the store file uses `MJNS` version 1 records for context
+IORs, name entries, target kinds, and stringified durable target IORs. The
+server rewrites the whole store atomically through a sibling temporary file
+after successful bind, rebind, unbind, bind-new-context, and destroy
+operations. It rejects corrupted or oversized stores, traversal-containing store
+paths, transient IORs, malformed durable object keys, and wrong-ORB durable
+targets before committing state.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

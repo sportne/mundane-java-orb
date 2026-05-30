@@ -163,4 +163,4 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g12-110-durable-orb-identity-foundation.md` - complete
 - `tasks/g12-120-persistent-poa-object-keys.md` - complete
 - `tasks/g12-130-persistent-ior-roundtrip.md` - complete
-- `tasks/g12-140-naming-persistence-implementation.md` - ready-for-implementation
+- `tasks/g12-140-naming-persistence-implementation.md` - complete
