@@ -1,7 +1,7 @@
 # G12-020 IDL Grammar, Valuetype, And Pragma Hardening
 
 Task ID: G12-020-IDL-GRAMMAR-VALUETYPE-PRAGMAS
-Status: ready-for-implementation
+Status: complete
 Gate: G12 post-1.0 compiler and interop hardening
 Requirement IDs: REQ-IDL-001, REQ-IDL-002, REQ-IDL-003, REQ-IDLJ-001, REQ-SEC-003
 ADR IDs: ADR-0001, ADR-0005, ADR-0007, ADR-0008
@@ -15,3 +15,5 @@ Documentation to update: IDL compiler architecture, IDL 4.2 conformance matrix, 
 Commands to run: ./gradlew :modules:corba-idl-ast:test :modules:corba-idl-parser:test :modules:corba-idl-semantics:test :modules:corba-idlj-cli:test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: The validate-only CLI accepts the approved richer IDL grammar corpus with stable semantic models and rejects unsupported or malformed variants with stable diagnostics; G12-030 is promoted to ready-for-implementation.
 Rollback notes: Revert IDL AST/parser/semantic/CLI fixture changes and documentation updates together.
+
+Completion evidence: Implemented on 2026-05-30 with AST/parser/semantic/CLI coverage for valuetype declarations, value boxes, abstract/local interfaces, native declarations, repository-affecting pragmas, operation context clauses, and richer validate-only fixtures.

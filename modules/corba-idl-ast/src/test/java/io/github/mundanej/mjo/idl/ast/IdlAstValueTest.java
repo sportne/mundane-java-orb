@@ -166,6 +166,57 @@ final class IdlAstValueTest {
   }
 
   @Test
+  void recordsG12GrammarValueNodes() {
+    SourceSpan span = span();
+    IdlConstantExpression eight = new IdlConstantExpression(List.of("8"), span);
+    IdlTypeReference string = new IdlTypeReference("string", span);
+    IdlTypeReference boundedString = IdlTypeReference.boundedString("string", eight, span);
+    IdlDeclarator id = new IdlDeclarator("id", span);
+    IdlValueField publicField =
+        new IdlValueField(
+            IdlValueVisibility.PUBLIC, new IdlTypeReference("long", span), List.of(id), span);
+    IdlValueFactory factory =
+        new IdlValueFactory(
+            "create",
+            List.of(new IdlParameter(IdlParameterDirection.IN, string, "name", span)),
+            List.of("Problem"),
+            span);
+    IdlOperation operation =
+        new IdlOperation(
+            false,
+            new IdlTypeReference("void", span),
+            "touch",
+            List.of(),
+            List.of(),
+            List.of("\"tenant\""),
+            span);
+    IdlValueType valueType =
+        new IdlValueType(
+            false,
+            false,
+            "Holder",
+            List.of("BaseValue"),
+            List.of("AbstractBase"),
+            List.of(publicField, factory, operation),
+            span);
+
+    assertEquals(
+        IdlInterfaceKind.ABSTRACT,
+        new IdlInterfaceForward(IdlInterfaceKind.ABSTRACT, "I", span).kind());
+    assertEquals("Handle", new IdlNative("Handle", span).name());
+    assertEquals("prefix", new IdlPragma("prefix", List.of("\"example\""), span).name());
+    assertEquals("NameValue", new IdlValueBox("NameValue", boundedString, span).name());
+    assertEquals("ForwardValue", new IdlValueTypeForward(false, "ForwardValue", span).name());
+    assertEquals(List.of("BaseValue"), valueType.baseValueTypes());
+    assertEquals(List.of("AbstractBase"), valueType.supportedInterfaces());
+    assertEquals(List.of(publicField, factory, operation), valueType.members());
+    assertEquals(List.of("\"tenant\""), operation.contexts());
+    assertThrows(UnsupportedOperationException.class, () -> valueType.members().clear());
+    assertThrows(UnsupportedOperationException.class, () -> publicField.declarators().clear());
+    assertThrows(UnsupportedOperationException.class, () -> factory.parameters().clear());
+  }
+
+  @Test
   void rejectsInvalidG10GrammarValueNodes() {
     SourceSpan span = span();
     IdlConstantExpression one = new IdlConstantExpression(List.of("1"), span);

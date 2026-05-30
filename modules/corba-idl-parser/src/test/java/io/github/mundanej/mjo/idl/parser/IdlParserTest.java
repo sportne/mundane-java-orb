@@ -15,13 +15,20 @@ import io.github.mundanej.mjo.idl.ast.IdlExceptionDeclaration;
 import io.github.mundanej.mjo.idl.ast.IdlField;
 import io.github.mundanej.mjo.idl.ast.IdlInterface;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
+import io.github.mundanej.mjo.idl.ast.IdlInterfaceKind;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
+import io.github.mundanej.mjo.idl.ast.IdlNative;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameterDirection;
+import io.github.mundanej.mjo.idl.ast.IdlPragma;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
 import io.github.mundanej.mjo.idl.ast.IdlTranslationUnit;
 import io.github.mundanej.mjo.idl.ast.IdlTypedef;
 import io.github.mundanej.mjo.idl.ast.IdlUnion;
+import io.github.mundanej.mjo.idl.ast.IdlValueBox;
+import io.github.mundanej.mjo.idl.ast.IdlValueFactory;
+import io.github.mundanej.mjo.idl.ast.IdlValueField;
+import io.github.mundanej.mjo.idl.ast.IdlValueType;
 import io.github.mundanej.mjo.idl.lexer.IdlDiagnosticCodes;
 import io.github.mundanej.mjo.idl.lexer.IdlToken;
 import io.github.mundanej.mjo.idl.preprocessor.IdlPreprocessResult;
@@ -196,7 +203,7 @@ final class IdlParserTest {
   @Test
   void reportsUnsupportedDeclarationsTypesDeclaratorsAndPragmas() {
     IdlParseResult unsupportedDeclarations =
-        parser.parse("unsupported.idl", "native Handle; component C; valuetype Value;");
+        parser.parse("unsupported.idl", "component C; eventtype E; porttype P;");
 
     assertTrue(unsupportedDeclarations.hasErrors());
     assertEquals(
@@ -215,9 +222,89 @@ final class IdlParserTest {
         parser.parse("bad-array.idl", "struct Bad { long values[]; };");
     assertEquals(
         List.of(IdlParserDiagnosticCodes.UNEXPECTED_TOKEN), diagnosticCodes(unsupportedDeclarator));
+  }
 
-    IdlParseResult pragma = parser.parse("pragma.idl", "#pragma prefix \"example\"\n");
-    assertEquals(List.of(IdlParserDiagnosticCodes.UNSUPPORTED_CONSTRUCT), diagnosticCodes(pragma));
+  @Test
+  void parsesG12ValuetypesNativePragmasAndContexts() {
+    IdlParseResult result =
+        parser.parse(
+            "g12.idl",
+            """
+            #pragma prefix "example.com"
+            module G12 {
+              native Handle;
+              typeid Handle "IDL:example.com/G12/Handle:1.0";
+              typeprefix Holder "example.com/G12";
+              abstract interface AbstractBase;
+              local interface LocalControl { void ping() context ("tenant", "trace"); };
+              valuetype NameValue string<32>;
+              valuetype ForwardValue;
+              valuetype Holder : ForwardValue supports AbstractBase {
+                public long id;
+                private sequence<string, 8> names;
+                factory create(in long id) raises (Problem);
+                void touch(in Handle handle);
+              };
+              exception Problem {};
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlTranslationUnit unit = result.translationUnit().orElseThrow();
+    assertTrue(unit.declarations().getFirst() instanceof IdlPragma);
+    IdlModule module = (IdlModule) unit.declarations().get(1);
+    assertTrue(module.declarations().get(0) instanceof IdlNative);
+    assertTrue(module.declarations().get(1) instanceof IdlPragma);
+
+    IdlInterfaceForward abstractBase = (IdlInterfaceForward) module.declarations().get(3);
+    assertEquals(IdlInterfaceKind.ABSTRACT, abstractBase.kind());
+    IdlInterface local = (IdlInterface) module.declarations().get(4);
+    assertEquals(IdlInterfaceKind.LOCAL, local.kind());
+    IdlOperation ping = (IdlOperation) local.members().getFirst();
+    assertEquals(List.of("\"tenant\"", "\"trace\""), ping.contexts());
+
+    IdlValueBox valueBox = (IdlValueBox) module.declarations().get(5);
+    assertEquals("NameValue", valueBox.name());
+    assertEquals("string<32>", valueBox.boxedType().name());
+    IdlValueType valueType = (IdlValueType) module.declarations().get(7);
+    assertEquals(List.of("ForwardValue"), valueType.baseValueTypes());
+    assertEquals(List.of("AbstractBase"), valueType.supportedInterfaces());
+    assertTrue(valueType.members().getFirst() instanceof IdlValueField);
+    assertTrue(valueType.members().get(2) instanceof IdlValueFactory);
+  }
+
+  @Test
+  void parsesRepositoryPragmasWithNormalizedScopedTargets() {
+    IdlParseResult result =
+        parser.parse(
+            "repository-pragmas.idl",
+            """
+            #pragma ID Demo::Thing "IDL:example.com/Demo/Thing:1.0"
+            #pragma version ::Demo::Thing 1.2
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlTranslationUnit unit = result.translationUnit().orElseThrow();
+    IdlPragma id = (IdlPragma) unit.declarations().getFirst();
+    IdlPragma version = (IdlPragma) unit.declarations().get(1);
+    assertEquals("ID", id.name());
+    assertEquals(List.of("Demo::Thing", "\"IDL:example.com/Demo/Thing:1.0\""), id.arguments());
+    assertEquals("version", version.name());
+    assertEquals(List.of("::Demo::Thing", "1.2"), version.arguments());
+  }
+
+  @Test
+  void reportsMalformedG12CompoundDeclarations() {
+    IdlParseResult factoryOut =
+        parser.parse("bad-factory.idl", "valuetype V { factory create(out long id); };\n");
+    assertEquals(List.of(IdlParserDiagnosticCodes.UNEXPECTED_TOKEN), diagnosticCodes(factoryOut));
+
+    IdlParseResult badContext =
+        parser.parse("bad-context.idl", "interface I { void op() context (tenant); };\n");
+    assertEquals(List.of(IdlParserDiagnosticCodes.UNEXPECTED_TOKEN), diagnosticCodes(badContext));
+
+    IdlParseResult badPragma = parser.parse("bad-pragma.idl", "#pragma ID Demo::Thing\n");
+    assertEquals(List.of(IdlParserDiagnosticCodes.UNEXPECTED_EOF), diagnosticCodes(badPragma));
   }
 
   @Test
@@ -357,6 +444,9 @@ final class IdlParserTest {
     String[] hostileInputs = {
       "module Broken { interface I { void op(in long value); };",
       "interface Bad { void op(in sequence<long value); };",
+      "valuetype Bad { factory create(out long id); };",
+      "#pragma ID Demo::Thing\n",
+      "interface Bad { void op() context (tenant); };",
       "struct Bad { long values[]; };",
       "#if 2\ninterface Bad;\n#endif\n",
       "$ $ $ $"

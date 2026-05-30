@@ -16,6 +16,7 @@ import io.github.mundanej.mjo.idl.ast.IdlInterface;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceForward;
 import io.github.mundanej.mjo.idl.ast.IdlInterfaceMember;
 import io.github.mundanej.mjo.idl.ast.IdlModule;
+import io.github.mundanej.mjo.idl.ast.IdlNative;
 import io.github.mundanej.mjo.idl.ast.IdlOperation;
 import io.github.mundanej.mjo.idl.ast.IdlParameter;
 import io.github.mundanej.mjo.idl.ast.IdlStruct;
@@ -26,6 +27,12 @@ import io.github.mundanej.mjo.idl.ast.IdlTypedef;
 import io.github.mundanej.mjo.idl.ast.IdlUnion;
 import io.github.mundanej.mjo.idl.ast.IdlUnionCase;
 import io.github.mundanej.mjo.idl.ast.IdlUnionLabel;
+import io.github.mundanej.mjo.idl.ast.IdlValueBox;
+import io.github.mundanej.mjo.idl.ast.IdlValueFactory;
+import io.github.mundanej.mjo.idl.ast.IdlValueField;
+import io.github.mundanej.mjo.idl.ast.IdlValueMember;
+import io.github.mundanej.mjo.idl.ast.IdlValueType;
+import io.github.mundanej.mjo.idl.ast.IdlValueTypeForward;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -117,6 +124,14 @@ public final class IdlSemanticAnalyzer {
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlInterface, MutableSymbol> interfaceSymbols =
         new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueTypeForward, MutableSymbol> valueForwardSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueType, Scope> valueTypeScopes = new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueType, MutableSymbol> valueTypeSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueBox, MutableSymbol> valueBoxSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlNative, MutableSymbol> nativeSymbols = new IdentityHashMap<>();
     private final IdentityHashMap<IdlTypedef, List<MutableSymbol>> typedefSymbols =
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlConstant, MutableSymbol> constantSymbols =
@@ -131,6 +146,10 @@ public final class IdlSemanticAnalyzer {
     private final IdentityHashMap<IdlAttribute, List<MutableSymbol>> attributeSymbols =
         new IdentityHashMap<>();
     private final IdentityHashMap<IdlEnum, List<MutableSymbol>> enumeratorSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueField, List<MutableSymbol>> valueFieldSymbols =
+        new IdentityHashMap<>();
+    private final IdentityHashMap<IdlValueFactory, MutableSymbol> valueFactorySymbols =
         new IdentityHashMap<>();
     private final Map<MutableSymbol, List<MutableSymbol>> interfaceBaseGraph = new HashMap<>();
     private final List<MutableSymbol> interfaceBaseValidationOrder = new ArrayList<>();
@@ -195,6 +214,95 @@ public final class IdlSemanticAnalyzer {
         if (symbol != null) {
           interfaceForwardSymbols.put(forward, symbol);
         }
+      } else if (declaration instanceof IdlNative nativeDeclaration) {
+        MutableSymbol symbol =
+            define(
+                scope,
+                IdlSymbolKind.NATIVE,
+                nativeDeclaration.name(),
+                Optional.empty(),
+                nativeDeclaration.span());
+        if (symbol != null) {
+          nativeSymbols.put(nativeDeclaration, symbol);
+        }
+      } else if (declaration instanceof IdlValueBox valueBox) {
+        MutableSymbol symbol =
+            define(
+                scope,
+                IdlSymbolKind.VALUE_BOX,
+                valueBox.name(),
+                Optional.of(valueBox.boxedType().name()),
+                valueBox.span());
+        if (symbol != null) {
+          valueBoxSymbols.put(valueBox, symbol);
+        }
+      } else if (declaration instanceof IdlValueType valueType) {
+        collectValueType(valueType, scope);
+      } else if (declaration instanceof IdlValueTypeForward forward) {
+        MutableSymbol symbol = defineValueType(scope, forward.name(), forward.span(), true);
+        if (symbol != null) {
+          valueForwardSymbols.put(forward, symbol);
+        }
+      }
+    }
+
+    private void collectValueType(IdlValueType valueType, Scope scope) {
+      MutableSymbol symbol = defineValueType(scope, valueType.name(), valueType.span(), false);
+      if (symbol == null) {
+        return;
+      }
+      Scope valueScope = new Scope(scope, symbol.qualifiedName);
+      symbol.childScope = valueScope;
+      valueTypeSymbols.put(valueType, symbol);
+      valueTypeScopes.put(valueType, valueScope);
+      for (IdlValueMember member : valueType.members()) {
+        collectValueMember(member, valueScope);
+      }
+    }
+
+    private void collectValueMember(IdlValueMember member, Scope scope) {
+      if (member instanceof IdlValueField field) {
+        List<MutableSymbol> symbolsForField = new ArrayList<>();
+        for (IdlDeclarator declarator : field.declarators()) {
+          MutableSymbol symbol =
+              define(
+                  scope,
+                  IdlSymbolKind.VALUE_FIELD,
+                  declarator.name(),
+                  Optional.of(field.type().name()),
+                  declarator.span());
+          if (symbol != null) {
+            symbolsForField.add(symbol);
+          }
+        }
+        valueFieldSymbols.put(field, symbolsForField);
+      } else if (member instanceof IdlValueFactory factory) {
+        MutableSymbol symbol =
+            define(
+                scope,
+                IdlSymbolKind.VALUE_FACTORY,
+                factory.name(),
+                Optional.empty(),
+                factory.span());
+        if (symbol != null) {
+          valueFactorySymbols.put(factory, symbol);
+          Scope factoryScope = new Scope(scope, symbol.qualifiedName);
+          symbol.childScope = factoryScope;
+          for (IdlParameter parameter : factory.parameters()) {
+            MutableSymbol parameterSymbol =
+                define(
+                    factoryScope,
+                    IdlSymbolKind.PARAMETER,
+                    parameter.name(),
+                    Optional.of(parameter.type().name()),
+                    parameter.span());
+            if (parameterSymbol != null) {
+              parameterSymbols.put(parameter, parameterSymbol);
+            }
+          }
+        }
+      } else if (member instanceof IdlInterfaceMember interfaceMember) {
+        collectInterfaceMember(interfaceMember, scope);
       }
     }
 
@@ -408,6 +516,28 @@ public final class IdlSemanticAnalyzer {
       return null;
     }
 
+    private MutableSymbol defineValueType(
+        Scope scope, String name, SourceSpan span, boolean forwardDeclaration) {
+      String key = key(name);
+      MutableSymbol existing = scope.symbolsByLowerName.get(key);
+      if (existing == null) {
+        return define(scope, IdlSymbolKind.VALUETYPE, name, Optional.empty(), span);
+      }
+      if (!existing.name.equals(name)) {
+        emit(
+            IdlSemanticDiagnosticCodes.DUPLICATE_NAME,
+            "Duplicate IDL name in scope: " + name,
+            span);
+        return null;
+      }
+      if (existing.kind == IdlSymbolKind.VALUETYPE
+          && (forwardDeclaration || existing.childScope == null)) {
+        return existing;
+      }
+      emit(IdlSemanticDiagnosticCodes.DUPLICATE_NAME, "Duplicate IDL name in scope: " + name, span);
+      return null;
+    }
+
     private void validateDeclarations(
         List<IdlDeclaration> declarations,
         Scope scope,
@@ -444,6 +574,89 @@ public final class IdlSemanticAnalyzer {
             validateInterfaceMember(member, interfaceScope, availableValues);
           }
         }
+      } else if (declaration instanceof IdlValueBox valueBox) {
+        validateValueBox(valueBox, scope, availableValues);
+      } else if (declaration instanceof IdlValueType valueType) {
+        validateValueType(valueType, scope, availableValues);
+      }
+    }
+
+    private void validateValueBox(
+        IdlValueBox valueBox, Scope scope, Map<String, MutableSymbol> availableValues) {
+      ResolvedType boxedType = resolveType(valueBox.boxedType(), scope, false, availableValues);
+      MutableSymbol symbol = valueBoxSymbols.get(valueBox);
+      if (symbol != null && boxedType != null) {
+        symbol.resolvedTypeName = Optional.of(boxedType.name());
+      }
+    }
+
+    private void validateValueType(
+        IdlValueType valueType, Scope scope, Map<String, MutableSymbol> availableValues) {
+      Scope valueScope = valueTypeScopes.get(valueType);
+      if (valueScope == null) {
+        return;
+      }
+      for (String baseName : valueType.baseValueTypes()) {
+        Optional<MutableSymbol> resolved =
+            resolveName(
+                scope, baseName, valueType.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+        if (resolved.isPresent() && resolved.orElseThrow().kind != IdlSymbolKind.VALUETYPE) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Valuetype base must resolve to a valuetype: " + baseName,
+              valueType.span());
+        }
+      }
+      for (String supportedName : valueType.supportedInterfaces()) {
+        Optional<MutableSymbol> resolved =
+            resolveName(
+                scope, supportedName, valueType.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+        if (resolved.isPresent() && resolved.orElseThrow().kind != IdlSymbolKind.INTERFACE) {
+          emit(
+              IdlSemanticDiagnosticCodes.INVALID_INHERITANCE,
+              "Valuetype supports target must resolve to an interface: " + supportedName,
+              valueType.span());
+        }
+      }
+      for (IdlValueMember member : valueType.members()) {
+        validateValueMember(member, valueScope, availableValues);
+      }
+    }
+
+    private void validateValueMember(
+        IdlValueMember member, Scope valueScope, Map<String, MutableSymbol> availableValues) {
+      if (member instanceof IdlValueField field) {
+        ResolvedType resolvedType =
+            resolveType(field.type(), valueScope.parent, false, availableValues);
+        for (IdlDeclarator declarator : field.declarators()) {
+          validateDeclaratorDimensions(declarator, valueScope.parent, availableValues);
+        }
+        if (resolvedType != null) {
+          for (MutableSymbol symbol : valueFieldSymbols.getOrDefault(field, List.of())) {
+            symbol.resolvedTypeName = Optional.of(resolvedType.name());
+          }
+        }
+      } else if (member instanceof IdlValueFactory factory) {
+        validateValueFactory(factory, valueScope, availableValues);
+      } else if (member instanceof IdlInterfaceMember interfaceMember) {
+        validateInterfaceMember(interfaceMember, valueScope, availableValues);
+      }
+    }
+
+    private void validateValueFactory(
+        IdlValueFactory factory, Scope valueScope, Map<String, MutableSymbol> availableValues) {
+      Scope typeLookupScope = valueScope.parent;
+      for (IdlParameter parameter : factory.parameters()) {
+        ResolvedType parameterType =
+            resolveType(parameter.type(), typeLookupScope, false, availableValues);
+        MutableSymbol parameterSymbol = parameterSymbols.get(parameter);
+        if (parameterSymbol != null && parameterType != null) {
+          parameterSymbol.resolvedTypeName = Optional.of(parameterType.name());
+        }
+      }
+      MutableSymbol factorySymbol = valueFactorySymbols.get(factory);
+      for (String raisesName : factory.raises()) {
+        validateRaisesTarget(raisesName, factory.span(), factorySymbol, typeLookupScope);
       }
     }
 
@@ -720,15 +933,14 @@ public final class IdlSemanticAnalyzer {
         }
       }
       for (String raisesName : operation.raises()) {
-        validateRaisesTarget(raisesName, operation, operationSymbol, typeLookupScope);
+        validateRaisesTarget(raisesName, operation.span(), operationSymbol, typeLookupScope);
       }
     }
 
     private void validateRaisesTarget(
-        String raisesName, IdlOperation operation, MutableSymbol operationSymbol, Scope scope) {
+        String raisesName, SourceSpan span, MutableSymbol operationSymbol, Scope scope) {
       Optional<MutableSymbol> resolved =
-          resolveName(
-              scope, raisesName, operation.span(), IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
+          resolveName(scope, raisesName, span, IdlSemanticDiagnosticCodes.UNRESOLVED_NAME);
       if (resolved.isEmpty()) {
         return;
       }
@@ -739,7 +951,7 @@ public final class IdlSemanticAnalyzer {
         emit(
             IdlSemanticDiagnosticCodes.INVALID_RAISES_TARGET,
             "Raises target must be a previously declared exception: " + raisesName,
-            operation.span());
+            span);
       }
     }
 
@@ -946,9 +1158,12 @@ public final class IdlSemanticAnalyzer {
         case ENUM -> ResolvedTypeKind.ENUM;
         case EXCEPTION -> ResolvedTypeKind.EXCEPTION;
         case INTERFACE -> ResolvedTypeKind.INTERFACE;
+        case NATIVE -> ResolvedTypeKind.NATIVE;
         case STRUCT -> ResolvedTypeKind.STRUCT;
         case TYPEDEF -> ResolvedTypeKind.TYPEDEF;
         case UNION -> ResolvedTypeKind.UNION;
+        case VALUE_BOX -> ResolvedTypeKind.VALUE_BOX;
+        case VALUETYPE -> ResolvedTypeKind.VALUETYPE;
         default -> ResolvedTypeKind.INVALID;
       };
     }
@@ -1465,10 +1680,13 @@ public final class IdlSemanticAnalyzer {
     ENUM,
     EXCEPTION,
     INTERFACE,
+    NATIVE,
     SEQUENCE,
     STRUCT,
     TYPEDEF,
     UNION,
+    VALUE_BOX,
+    VALUETYPE,
     INVALID
   }
 

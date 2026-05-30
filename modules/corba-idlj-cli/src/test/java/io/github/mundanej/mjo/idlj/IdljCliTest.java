@@ -61,13 +61,13 @@ final class IdljCliTest {
 
   @Test
   void returnsValidationFailureForParserDiagnostics() throws Exception {
-    Path source = write("parser-error.idl", "native Handle;\n");
+    Path source = write("parser-error.idl", "component Handle;\n");
 
     CliRun result = run("validate", source.toString());
 
     assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
     assertEquals("", result.stdout());
-    assertTrue(result.stderr().contains("ERROR IDL-0302: unsupported declaration: native"));
+    assertTrue(result.stderr().contains("ERROR IDL-0302: unsupported declaration: component"));
     assertTrue(result.stderr().startsWith(source + ":1:1: "));
   }
 
@@ -144,7 +144,7 @@ final class IdljCliTest {
 
   @Test
   void preservesFileAndDiagnosticEncounterOrder() throws Exception {
-    Path parserError = write("a-parser.idl", "native Handle;\n");
+    Path parserError = write("a-parser.idl", "component Handle;\n");
     Path semanticError =
         write("b-semantic.idl", "module Bad { struct Point { long x; short X; }; };\n");
 
@@ -184,6 +184,45 @@ final class IdljCliTest {
             """);
 
     assertQuietSuccess(run("validate", "--quiet", source.toString()));
+  }
+
+  @Test
+  void validatesG12GrammarHardeningCorpusWithoutGeneration() throws Exception {
+    Path source =
+        write(
+            "g12.idl",
+            """
+            #pragma prefix "example.com"
+            module G12 {
+              native Handle;
+              exception Problem {};
+              abstract interface AbstractBase;
+              local interface LocalControl { void ping() context ("tenant", "trace"); };
+              valuetype NameValue string<32>;
+              valuetype ForwardValue;
+              valuetype Holder : ForwardValue supports AbstractBase {
+                public long id;
+                private sequence<string, 8> names;
+                factory create(in long id) raises (Problem);
+                void touch(in Handle handle);
+              };
+              typeid Holder "IDL:example.com/G12/Holder:1.0";
+              typeprefix Holder "example.com/G12";
+            };
+            """);
+
+    assertQuietSuccess(run("validate", "--quiet", source.toString()));
+  }
+
+  @Test
+  void rejectsMalformedG12GrammarFixtureWithoutGeneration() throws Exception {
+    Path source = write("bad-g12.idl", "valuetype Bad { factory create(out long id); };\n");
+
+    CliRun result = run("validate", "--quiet", source.toString());
+
+    assertEquals(IdljExitCodes.VALIDATION_FAILED, result.exitCode());
+    assertEquals("", result.stdout());
+    assertTrue(result.stderr().contains("ERROR IDL-0300: Expected in factory parameter direction"));
   }
 
   @Test

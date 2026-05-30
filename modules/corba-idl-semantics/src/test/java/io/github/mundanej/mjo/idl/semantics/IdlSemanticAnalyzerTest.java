@@ -203,6 +203,54 @@ final class IdlSemanticAnalyzerTest {
   }
 
   @Test
+  void analyzesG12ValuetypeNativeAndRepositoryConstructs() {
+    IdlSemanticResult result =
+        analyze(
+            """
+            #pragma prefix "example.com"
+            module G12 {
+              native Handle;
+              exception Problem {};
+              abstract interface AbstractBase;
+              local interface LocalControl { void ping() context ("tenant"); };
+              valuetype NameValue string<32>;
+              valuetype ForwardValue;
+              valuetype Holder : ForwardValue supports AbstractBase {
+                public long id;
+                private sequence<string, 8> names;
+                factory create(in long id) raises (Problem);
+                void touch(in Handle handle);
+              };
+              typeid Holder "IDL:example.com/G12/Holder:1.0";
+              typeprefix Holder "example.com/G12";
+            };
+            """);
+
+    assertFalse(result.hasErrors(), () -> result.diagnostics().toString());
+    IdlSemanticModel model = result.model().orElseThrow();
+    assertEquals(IdlSymbolKind.NATIVE, model.findSymbol("G12::Handle").orElseThrow().kind());
+    assertEquals(IdlSymbolKind.VALUE_BOX, model.findSymbol("G12::NameValue").orElseThrow().kind());
+    assertEquals(IdlSymbolKind.VALUETYPE, model.findSymbol("G12::Holder").orElseThrow().kind());
+    assertEquals(
+        "long", model.findSymbol("G12::Holder::id").orElseThrow().resolvedTypeName().orElseThrow());
+    assertEquals(
+        "sequence<string, 8>",
+        model.findSymbol("G12::Holder::names").orElseThrow().resolvedTypeName().orElseThrow());
+    assertEquals(
+        "::G12::Handle",
+        model
+            .findSymbol("G12::Holder::touch::handle")
+            .orElseThrow()
+            .resolvedTypeName()
+            .orElseThrow());
+    assertEquals(
+        IdlSymbolKind.VALUE_FACTORY, model.findSymbol("G12::Holder::create").orElseThrow().kind());
+    assertEquals(
+        "long",
+        model.findSymbol("G12::Holder::create::id").orElseThrow().resolvedTypeName().orElseThrow());
+  }
+
+  @Test
   void rejectsInvalidG10InheritanceBoundsAndUnionLabels() {
     IdlSemanticResult badBound =
         analyze("module Bad { typedef long Values[0]; interface I { void op(); }; };");
@@ -233,6 +281,12 @@ final class IdlSemanticAnalyzerTest {
     assertTrue(
         diagnosticCodes(duplicateUnionLabel)
             .contains(IdlSemanticDiagnosticCodes.INVALID_UNION_LABEL));
+
+    IdlSemanticResult duplicateFactoryParameter =
+        analyze("module Bad { valuetype V { factory create(in long id, in short ID); }; };");
+    assertEquals(
+        List.of(IdlSemanticDiagnosticCodes.DUPLICATE_NAME),
+        diagnosticCodes(duplicateFactoryParameter));
   }
 
   @Test

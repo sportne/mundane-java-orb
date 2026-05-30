@@ -63,6 +63,23 @@ arithmetic preprocessor expressions, predefined macro sets, and full
 macro-rescan corner cases must produce explicit diagnostics or remain assigned
 to future conformance-hardening work until they are implemented.
 
+## Parser And AST Boundary
+
+The parser owns grammar recognition for the approved front-end subset and emits
+immutable AST value nodes without evaluating semantic legality. G12-020 extends
+that grammar surface for post-1.0 compiler hardening:
+
+- abstract and local interface declarations and forwards;
+- native declarations;
+- valuetype forwards, full valuetypes, public/private state members, factories,
+  supported interfaces, valuetype inheritance syntax, and value boxes;
+- repository-affecting `#pragma`, `typeid`, and `typeprefix` forms;
+- operation `context(...)` clauses;
+- deterministic recovery diagnostics for unsupported compound declarations.
+
+The AST records these constructs so later semantic, mapping, TypeCode, and
+interop tasks can distinguish them without reparsing source text.
+
 ## Semantic Model Boundary
 
 The semantic analyzer owns the first syntax-to-symbol pass after parsing. It
@@ -86,6 +103,13 @@ front end for the non-optional pre-1.0 interop IDL corpus:
   diagnostics;
 - union discriminator, case/default label, duplicate-label, and member-type
   validation.
+
+G12-020 adds syntax-level semantic model entries for native types, valuetypes,
+value boxes, valuetype state fields, and valuetype factories. This pass resolves
+their directly referenced types and supported interfaces so validate-only
+fixtures can flow through the CLI. Deeper repository ID effects, full
+valuetype-inheritance legality, operation context semantics, recursive type
+legality, and numeric range closure remain assigned to G12-030.
 
 The analyzer uses two-pass collection for type names so fields, attributes,
 operation returns, parameters, typedefs, unions, and recursive type references

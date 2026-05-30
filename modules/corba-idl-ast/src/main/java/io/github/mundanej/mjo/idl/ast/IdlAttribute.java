@@ -10,7 +10,7 @@ import java.util.Objects;
  * <p>The public constructor keeps the earlier simple-name surface. Parser paths that need
  * fixed-array declarators use {@link #withDeclarators}.
  */
-public final class IdlAttribute implements IdlInterfaceMember {
+public final class IdlAttribute implements IdlInterfaceMember, IdlValueMember {
 
   private final boolean readonly;
   private final IdlTypeReference type;

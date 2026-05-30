@@ -27,5 +27,15 @@ public enum IdlSymbolKind {
   /** IDL constant. */
   CONSTANT,
   /** IDL operation parameter. */
-  PARAMETER
+  PARAMETER,
+  /** IDL native type declaration. */
+  NATIVE,
+  /** IDL valuetype declaration. */
+  VALUETYPE,
+  /** IDL value box declaration. */
+  VALUE_BOX,
+  /** IDL valuetype factory. */
+  VALUE_FACTORY,
+  /** IDL valuetype state member. */
+  VALUE_FIELD
 }

@@ -117,7 +117,7 @@ This repository is in **post-1.0.0 G12 compiler and interop hardening state**:
   CORBA ORB, and ACE/TAO for JVM and Native Image local lanes;
 - `corba.version` is set to `1.0.0`, and the release workflow packages the
   locally staged Maven repository as GitHub Release assets only;
-- `G12-020-IDL-GRAMMAR-VALUETYPE-PRAGMAS` is the next non-human-gated roadmap task
+- `G12-030-IDL-SEMANTIC-TYPE-SYSTEM-CLOSURE` is the next non-human-gated roadmap task
   ready for implementation;
 - RMI-IIOP peer interop scenario gates, structured report paths, and approved
   live peer direction-matrix evidence have completed under G10;
