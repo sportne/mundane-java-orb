@@ -1,6 +1,8 @@
 package io.github.mundanej.mjo.nativeimage.smoke;
 
+import io.github.mundanej.mjo.iiop.IiopDiagnosticCodes;
 import io.github.mundanej.mjo.iiop.IiopEndpoint;
+import io.github.mundanej.mjo.iiop.IiopException;
 import io.github.mundanej.mjo.iiop.IiopOptions;
 import io.github.mundanej.mjo.ior.CorbanameUrl;
 import io.github.mundanej.mjo.ior.IiopProfile;
@@ -49,6 +51,26 @@ public final class NamingServerNativeSmoke {
     SmokeAssertions.requireEquals(
         object.objectId(), target.objectReference().orElseThrow().objectId(), "resolved object");
 
+    runPersistentNamingRestartSmoke();
+  }
+
+  private static void runPersistentNamingRestartSmoke() throws Exception {
+    IiopException lastBindFailure = null;
+    for (int attempt = 0; attempt < 8; attempt++) {
+      try {
+        assertPersistentNamingRestartSmoke();
+        return;
+      } catch (IiopException exception) {
+        if (!isBindFailure(exception)) {
+          throw exception;
+        }
+        lastBindFailure = exception;
+      }
+    }
+    throw new IllegalStateException("restart port was reused before rebind", lastBindFailure);
+  }
+
+  private static void assertPersistentNamingRestartSmoke() throws Exception {
     OrbIdentity identity = OrbIdentity.durable("native-naming-orb");
     Path store = Files.createTempDirectory("mjo-naming-native").resolve("names.mjns");
     NamingPersistenceOptions persistence = NamingPersistenceOptions.of(identity, store);
@@ -79,6 +101,11 @@ public final class NamingServerNativeSmoke {
               .ior();
       SmokeAssertions.requireEquals(durableTarget, resolved, "durable persisted resolve");
     }
+  }
+
+  private static boolean isBindFailure(IiopException exception) {
+    return IiopDiagnosticCodes.CONNECTION_FAILURE.equals(exception.code())
+        && exception.getCause() instanceof java.net.BindException;
   }
 
   private static Ior durableTarget(OrbIdentity identity) {

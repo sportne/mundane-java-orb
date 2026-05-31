@@ -10,7 +10,9 @@ import io.github.mundanej.mjo.giop.GiopMessageType;
 import io.github.mundanej.mjo.giop.GiopRequest;
 import io.github.mundanej.mjo.giop.GiopTargetAddress;
 import io.github.mundanej.mjo.iiop.IiopClient;
+import io.github.mundanej.mjo.iiop.IiopDiagnosticCodes;
 import io.github.mundanej.mjo.iiop.IiopEndpoint;
+import io.github.mundanej.mjo.iiop.IiopException;
 import io.github.mundanej.mjo.iiop.IiopOptions;
 import io.github.mundanej.mjo.ior.CorbalocUrl;
 import io.github.mundanej.mjo.ior.CorbanameUrl;
@@ -197,9 +199,16 @@ final class NetworkNamingServiceTest {
   }
 
   @Test
-  void persistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution() {
+  void persistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution()
+      throws Exception {
+    runWithRestartPortRetry(
+        this::assertPersistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution);
+  }
+
+  private void assertPersistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution() {
     OrbIdentity identity = OrbIdentity.durable("naming-persistent-orb");
     Path store = tempDir.resolve("names.mjns");
+    deleteIfExists(store);
     NamingPersistenceOptions options = NamingPersistenceOptions.of(identity, store);
     Ior object = durableFixtureIor(identity, "service");
     IiopEndpoint endpoint;
@@ -236,7 +245,12 @@ final class NetworkNamingServiceTest {
 
   @Test
   void persistentNamingCorbanameResolvesAfterForkedJvmRestart() throws Exception {
+    runWithRestartPortRetry(this::assertPersistentNamingCorbanameResolvesAfterForkedJvmRestart);
+  }
+
+  private void assertPersistentNamingCorbanameResolvesAfterForkedJvmRestart() throws Exception {
     Path store = tempDir.resolve("process-names.mjns");
+    deleteIfExists(store);
     OrbIdentity identity = OrbIdentity.durable("g13-process-naming-orb");
     Ior object = durableFixtureIor(identity, "service");
     ProcessState first =
@@ -277,6 +291,43 @@ final class NetworkNamingServiceTest {
     }
     assertTrue(exited, "wrong-ORB Naming restart did not exit");
     assertTrue(wrongOrb.exitValue() != 0, "wrong-ORB Naming restart unexpectedly succeeded");
+  }
+
+  private static void runWithRestartPortRetry(RestartAssertion assertion) throws Exception {
+    Throwable lastBindFailure = null;
+    for (int attempt = 0; attempt < 8; attempt++) {
+      try {
+        assertion.run();
+        return;
+      } catch (IiopException exception) {
+        if (!isBindFailure(exception)) {
+          throw exception;
+        }
+        lastBindFailure = exception;
+      } catch (AssertionError error) {
+        if (!isChildBindFailure(error)) {
+          throw error;
+        }
+        lastBindFailure = error;
+      }
+    }
+    throw new AssertionError("restart port was reused before rebind", lastBindFailure);
+  }
+
+  private static boolean isBindFailure(IiopException exception) {
+    return IiopDiagnosticCodes.CONNECTION_FAILURE.equals(exception.code())
+        && exception.getCause() instanceof java.net.BindException;
+  }
+
+  private static boolean isChildBindFailure(AssertionError error) {
+    return error.getMessage() != null
+        && error.getMessage().contains("Could not bind IIOP endpoint");
+  }
+
+  @FunctionalInterface
+  private interface RestartAssertion {
+
+    void run() throws Exception;
   }
 
   @Test
@@ -672,6 +723,9 @@ final class NetworkNamingServiceTest {
       String orbId, Path store, int port, boolean initialize, Path readyFile) throws Exception {
     Path stopFile = readyFile.resolveSibling(readyFile.getFileName() + ".stop");
     Path logFile = readyFile.resolveSibling(readyFile.getFileName() + ".log");
+    Files.deleteIfExists(readyFile);
+    Files.deleteIfExists(stopFile);
+    Files.deleteIfExists(logFile);
     List<String> command =
         namingCommand(
             PersistentNamingRestartServer.class.getName(),
@@ -687,6 +741,14 @@ final class NetworkNamingServiceTest {
             .redirectOutput(logFile.toFile())
             .start();
     return ProcessState.await(process, readyFile, stopFile, logFile);
+  }
+
+  private static void deleteIfExists(Path path) {
+    try {
+      Files.deleteIfExists(path);
+    } catch (java.io.IOException exception) {
+      throw new AssertionError("failed to delete stale test file " + path, exception);
+    }
   }
 
   private Process startRejectedPersistentNaming(String orbId, Path store, int port, Path logFile)

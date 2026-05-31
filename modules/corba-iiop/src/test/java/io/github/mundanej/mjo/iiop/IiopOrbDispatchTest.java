@@ -285,7 +285,11 @@ final class IiopOrbDispatchTest {
   }
 
   @Test
-  void persistentStringifiedIorRoutesAfterRestartSimulation() {
+  void persistentStringifiedIorRoutesAfterRestartSimulation() throws Exception {
+    runWithRestartPortRetry(this::assertPersistentStringifiedIorRoutesAfterRestartSimulation);
+  }
+
+  private void assertPersistentStringifiedIorRoutesAfterRestartSimulation() {
     IiopEndpoint endpoint;
     String stringifiedIor;
     DurableObjectKey durableKey;
@@ -341,6 +345,10 @@ final class IiopOrbDispatchTest {
 
   @Test
   void persistentStringifiedIorRoutesAfterForkedJvmRestart() throws Exception {
+    runWithRestartPortRetry(this::assertPersistentStringifiedIorRoutesAfterForkedJvmRestart);
+  }
+
+  private void assertPersistentStringifiedIorRoutesAfterForkedJvmRestart() throws Exception {
     ProcessState first =
         startPersistentServer(
             "g13-process-ior-orb", 0, true, tempDir.resolve("first-ready.properties"));
@@ -389,6 +397,43 @@ final class IiopOrbDispatchTest {
               SystemException.class, () -> client.invoke(GREET, STRING_CODEC, List.of("Mallory")));
       assertEquals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0", exception.getMessage());
     }
+  }
+
+  private static void runWithRestartPortRetry(RestartAssertion assertion) throws Exception {
+    Throwable lastBindFailure = null;
+    for (int attempt = 0; attempt < 8; attempt++) {
+      try {
+        assertion.run();
+        return;
+      } catch (IiopException exception) {
+        if (!isBindFailure(exception)) {
+          throw exception;
+        }
+        lastBindFailure = exception;
+      } catch (AssertionError error) {
+        if (!isChildBindFailure(error)) {
+          throw error;
+        }
+        lastBindFailure = error;
+      }
+    }
+    throw new AssertionError("restart port was reused before rebind", lastBindFailure);
+  }
+
+  private static boolean isBindFailure(IiopException exception) {
+    return IiopDiagnosticCodes.CONNECTION_FAILURE.equals(exception.code())
+        && exception.getCause() instanceof java.net.BindException;
+  }
+
+  private static boolean isChildBindFailure(AssertionError error) {
+    return error.getMessage() != null
+        && error.getMessage().contains("Could not bind IIOP endpoint");
+  }
+
+  @FunctionalInterface
+  private interface RestartAssertion {
+
+    void run() throws Exception;
   }
 
   @Test
@@ -897,6 +942,9 @@ final class IiopOrbDispatchTest {
       String orbId, int port, boolean bindObject, Path readyFile) throws Exception {
     Path stopFile = readyFile.resolveSibling(readyFile.getFileName() + ".stop");
     Path logFile = readyFile.resolveSibling(readyFile.getFileName() + ".log");
+    Files.deleteIfExists(readyFile);
+    Files.deleteIfExists(stopFile);
+    Files.deleteIfExists(logFile);
     List<String> command =
         List.of(
             Path.of(System.getProperty("java.home"), "bin", "java").toString(),
