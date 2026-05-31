@@ -164,10 +164,13 @@ ADR-0015 approves POA-managed durable rehydration for follow-on implementation.
 The caller-managed G12/G13-010 restart model remains supported. G13-060 adds
 the first runtime primitive for the approved direction: callers explicitly
 register persistent POA paths they are willing to rehydrate, and the durable ORB
-clears that approval set on shutdown. The ORB must not invent global
-persistence or scan for adapters. Later tasks add the adapter activation
-factories for those paths, the servant managers or default servants required by
-policy, and all application state needed to recreate servants.
+clears that approval set on shutdown. G13-070 adds root-POA lookup for decoded
+durable keys. Lookup rejects wrong-ORB and unregistered paths before adapter
+activation, returns active persistent POAs directly, and activates registered
+missing child paths only through the caller's explicit `PoaAdapterActivator`.
+The ORB must not invent global persistence or scan for adapters. Later tasks add
+the servant managers or default servants required by policy and all application
+state needed to recreate servants.
 
 The durable lookup contract is deliberately ordered to avoid activation side
 effects for hostile input:
@@ -238,7 +241,10 @@ Java serialization marshaling.
 | `IiopOrbDispatchTest` | G10-050 implemented | Covers activated POA servant dispatch through loopback IIOP, target-address routing, unknown object keys, system exception replies, and declared user-exception replies. |
 
 G13-060 adds focused tests for the durable POA path registry and Native Image
-smoke coverage for the public registry entrypoints. Remaining G13 follow-on
-tasks must add focused tests for adapter activation lookup, servant-manager
+smoke coverage for the public registry entrypoints. G13-070 adds focused tests
+for active durable POA lookup, registered adapter activation, wrong-namespace
+and unregistered-path ordering, destroyed/inactive targets, activator failure
+mapping, and Native Image smoke coverage for registered activation factories.
+Remaining G13 follow-on tasks must add focused tests for servant-manager
 rehydration, hostile durable keys, loopback IIOP routing into durable lookup,
 and Native Image smoke coverage for the public rehydration entrypoints.

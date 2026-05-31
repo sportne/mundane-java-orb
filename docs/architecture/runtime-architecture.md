@@ -248,10 +248,12 @@ direction. The current caller-managed model remains valid: applications may
 still recreate POAs and activate servants explicitly before accepting requests.
 G13-060 adds the explicit durable POA path registry. Durable ORBs own the
 registry, persistent POAs expose narrow wrappers for registering their own
-paths, and shutdown clears the approved path set. The remaining follow-on model
-adds adapter activation lookup so a valid durable object key can locate or
-recreate an approved persistent POA path before normal POA request-processing
-policy is applied.
+paths, and shutdown clears the approved path set. G13-070 adds root-POA lookup
+for decoded durable keys: registry approval is checked before activation, active
+POAs are returned directly, and registered missing child paths can be recreated
+through the caller's explicit `PoaAdapterActivator`. The remaining follow-on
+model applies normal POA request-processing policy after the target POA is
+located.
 
 Rehydration remains a dispatch and activation contract, not persistence for
 servants or application state. Callers must configure the durable ORB identity,

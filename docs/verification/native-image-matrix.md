@@ -220,3 +220,14 @@ approval lookup, and shutdown rejection. The smoke uses explicit constructors
 and bounded durable-key APIs only; it introduces no reflection metadata, dynamic
 proxies, Java serialization metadata, service-loader discovery, runtime bytecode
 generation, internal JDK APIs, or `Unsafe`.
+
+## G13-070 durable POA activation Native Image evidence
+
+G13-070 extends the `generatedServer` smoke entrypoint with registered durable
+POA activation lookup. The smoke creates a durable ORB, registers a missing
+persistent child path, installs an explicit `PoaAdapterActivator`, resolves a
+decoded durable key through the root POA, and verifies unregistered paths fail
+without activation. The path remains explicit-constructor only and introduces no
+reflection metadata, dynamic proxies, Java serialization metadata,
+service-loader discovery, runtime bytecode generation, internal JDK APIs, or
+`Unsafe`.

@@ -173,8 +173,7 @@ public final class Poa {
     if (child != null || !activate || adapterActivator == null) {
       return child;
     }
-    Poa activated =
-        PoaExceptions.requireNonNull(adapterActivator.createChild(this, checkedName), "child");
+    Poa activated = activateChild(checkedName);
     if (!checkedName.equals(activated.name())) {
       throw PoaExceptions.badParam("AdapterActivator returned child with a different name");
     }
@@ -183,6 +182,17 @@ public final class Poa {
     }
     children.putIfAbsent(checkedName, activated);
     return children.get(checkedName);
+  }
+
+  private Poa activateChild(String childName) {
+    try {
+      return PoaExceptions.requireNonNull(adapterActivator.createChild(this, childName), "child");
+    } catch (org.omg.CORBA.SystemException exception) {
+      throw exception;
+    } catch (RuntimeException exception) {
+      throw PoaExceptions.badInvOrder(
+          "AdapterActivator failed for child " + childName + ": " + exception.getMessage());
+    }
   }
 
   /** Activates a servant with a system-assigned object id. */
@@ -336,6 +346,27 @@ public final class Poa {
       throw PoaExceptions.badParam("Durable object key metadata does not match active reference");
     }
     return reference;
+  }
+
+  /** Resolves an approved persistent POA path from a decoded durable object key. */
+  public synchronized Poa resolveDurablePoa(DurableObjectKey key, boolean activate) {
+    requireNotDestroyed();
+    if (parent != null) {
+      throw PoaExceptions.badParam("Durable POA lookup must start at the root POA");
+    }
+    DurableObjectKey checkedKey = PoaExceptions.requireNonNull(key, "key");
+    orb.durablePoaPaths().requireRegistered(checkedKey);
+    List<String> targetPath = checkedKey.poaPath();
+    if (!startsWithRootPath(targetPath)) {
+      throw PoaExceptions.objectNotExist(
+          "Durable POA path is outside this root POA: " + checkedKey.poaPathString());
+    }
+    Poa target = resolveRegisteredPath(targetPath, activate, checkedKey.poaPathString());
+    if (!target.isPersistent()) {
+      throw PoaExceptions.badParam("Durable POA lookup requires a persistent POA");
+    }
+    target.requireManagerNotInactiveForLookup();
+    return target;
   }
 
   private <T, S> LocalObjectReference<T> activateRetained(
@@ -595,6 +626,33 @@ public final class Poa {
       throw PoaExceptions.badParam("Servant-manager reference has no generated dispatcher");
     }
     return dispatcher;
+  }
+
+  private boolean startsWithRootPath(List<String> targetPath) {
+    if (targetPath.size() < pathComponents.size()) {
+      return false;
+    }
+    return pathComponents.equals(targetPath.subList(0, pathComponents.size()));
+  }
+
+  private Poa resolveRegisteredPath(List<String> targetPath, boolean activate, String displayPath) {
+    Poa current = this;
+    for (int index = pathComponents.size(); index < targetPath.size(); index++) {
+      current = current.findChild(targetPath.get(index), activate);
+      if (current == null) {
+        throw PoaExceptions.objectNotExist("Durable POA path is not active: " + displayPath);
+      }
+      if (current.isDestroyed()) {
+        throw PoaExceptions.objectNotExist("Durable POA path is destroyed: " + displayPath);
+      }
+    }
+    return current;
+  }
+
+  private void requireManagerNotInactiveForLookup() {
+    if (manager.state() == PoaManager.State.INACTIVE) {
+      throw PoaExceptions.badInvOrder("POA manager is inactive");
+    }
   }
 
   private record ActiveServant<S>(S servant, PoaServantDispatcher<? super S> dispatcher) {

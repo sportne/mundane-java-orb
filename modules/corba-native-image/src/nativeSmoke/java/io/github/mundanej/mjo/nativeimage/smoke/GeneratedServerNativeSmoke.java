@@ -5,10 +5,13 @@ import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
 import io.github.mundanej.mjo.orb.OrbIdentity;
+import io.github.mundanej.mjo.poa.Poa;
+import io.github.mundanej.mjo.poa.PoaPolicySet;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
+import org.omg.CORBA.OBJECT_NOT_EXIST;
 
 /** Native Image smoke entry point for generated-style server dispatch. */
 public final class GeneratedServerNativeSmoke {
@@ -59,9 +62,39 @@ public final class GeneratedServerNativeSmoke {
         BAD_INV_ORDER.class,
         () -> durableOrb.durablePoaPaths().contains(List.of("RootPOA", "native")),
         "durable POA path registry shutdown");
+
+    LocalOrb activationOrb = LocalOrb.create(OrbIdentity.durable("native-activation-orb"));
+    Poa root = Poa.createRoot(activationOrb);
+    activationOrb.durablePoaPaths().register(List.of("RootPOA", "activated"));
+    root.setAdapterActivator((parent, name) -> parent.createChild(name, persistentUserIdPolicy()));
+    Poa activated =
+        root.resolveDurablePoa(
+            DurableObjectKey.fromPoaPath(
+                "native-activation-orb", "/RootPOA/activated", ascii("native-object"), 0),
+            true);
+    SmokeAssertions.requireEquals("/RootPOA/activated", activated.path(), "durable POA lookup");
+    SmokeAssertions.requireThrows(
+        OBJECT_NOT_EXIST.class,
+        () ->
+            root.resolveDurablePoa(
+                DurableObjectKey.fromPoaPath(
+                    "native-activation-orb", "/RootPOA/missing", ascii("native-object"), 0),
+                true),
+        "unregistered durable POA lookup");
   }
 
   private static byte[] ascii(String value) {
     return value.getBytes(StandardCharsets.US_ASCII);
+  }
+
+  private static PoaPolicySet persistentUserIdPolicy() {
+    return new PoaPolicySet(
+        PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+        PoaPolicySet.LifespanPolicy.PERSISTENT,
+        PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+        PoaPolicySet.IdAssignmentPolicy.USER_ID,
+        PoaPolicySet.ServantRetentionPolicy.RETAIN,
+        PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
+        PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
   }
 }
