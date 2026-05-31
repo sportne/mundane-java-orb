@@ -27,6 +27,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-naming-server')
     nativeSmokeImplementation project(':modules:corba-orb-core')
     nativeSmokeImplementation project(':modules:corba-interop-testkit')
+    // Native smoke restart checks share bounded retry helpers with JVM tests.
+    nativeSmokeImplementation project(':modules:corba-testkit')
     // G7-100 adds a smoke entry point for the approved RMI-IIOP local wire slice.
     nativeSmokeImplementation project(':modules:corba-rmi-iiop')
     nativeSmokeImplementation project(':modules:corba-typecode')

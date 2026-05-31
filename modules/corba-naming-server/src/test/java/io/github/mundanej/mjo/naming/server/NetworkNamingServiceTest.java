@@ -28,6 +28,7 @@ import io.github.mundanej.mjo.naming.NamingException;
 import io.github.mundanej.mjo.naming.NamingName;
 import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.OrbIdentity;
+import io.github.mundanej.mjo.testkit.RestartBindRetry;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -201,8 +202,12 @@ final class NetworkNamingServiceTest {
   @Test
   void persistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution()
       throws Exception {
-    runWithRestartPortRetry(
-        this::assertPersistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution);
+    RestartBindRetry.run(
+        "restart port was reused before rebind",
+        8,
+        Duration.ofMillis(50),
+        this::assertPersistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution,
+        NetworkNamingServiceTest::isRestartBindFailure);
   }
 
   private void assertPersistentNamingSurvivesRestartWithDurableObjectIorsAndCorbanameResolution() {
@@ -245,7 +250,12 @@ final class NetworkNamingServiceTest {
 
   @Test
   void persistentNamingCorbanameResolvesAfterForkedJvmRestart() throws Exception {
-    runWithRestartPortRetry(this::assertPersistentNamingCorbanameResolvesAfterForkedJvmRestart);
+    RestartBindRetry.run(
+        "restart port was reused before rebind",
+        8,
+        Duration.ofMillis(50),
+        this::assertPersistentNamingCorbanameResolvesAfterForkedJvmRestart,
+        NetworkNamingServiceTest::isRestartBindFailure);
   }
 
   private void assertPersistentNamingCorbanameResolvesAfterForkedJvmRestart() throws Exception {
@@ -293,25 +303,9 @@ final class NetworkNamingServiceTest {
     assertTrue(wrongOrb.exitValue() != 0, "wrong-ORB Naming restart unexpectedly succeeded");
   }
 
-  private static void runWithRestartPortRetry(RestartAssertion assertion) throws Exception {
-    Throwable lastBindFailure = null;
-    for (int attempt = 0; attempt < 8; attempt++) {
-      try {
-        assertion.run();
-        return;
-      } catch (IiopException exception) {
-        if (!isBindFailure(exception)) {
-          throw exception;
-        }
-        lastBindFailure = exception;
-      } catch (AssertionError error) {
-        if (!isChildBindFailure(error)) {
-          throw error;
-        }
-        lastBindFailure = error;
-      }
-    }
-    throw new AssertionError("restart port was reused before rebind", lastBindFailure);
+  private static boolean isRestartBindFailure(Throwable failure) {
+    return (failure instanceof IiopException exception && isBindFailure(exception))
+        || (failure instanceof AssertionError error && isChildBindFailure(error));
   }
 
   private static boolean isBindFailure(IiopException exception) {
@@ -322,12 +316,6 @@ final class NetworkNamingServiceTest {
   private static boolean isChildBindFailure(AssertionError error) {
     return error.getMessage() != null
         && error.getMessage().contains("Could not bind IIOP endpoint");
-  }
-
-  @FunctionalInterface
-  private interface RestartAssertion {
-
-    void run() throws Exception;
   }
 
   @Test

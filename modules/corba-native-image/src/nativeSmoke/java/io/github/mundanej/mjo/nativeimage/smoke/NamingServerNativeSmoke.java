@@ -22,9 +22,11 @@ import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
 import io.github.mundanej.mjo.orb.OrbIdentity;
+import io.github.mundanej.mjo.testkit.RestartBindRetry;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 
 /** Native Image smoke entry point for the local Naming Service. */
@@ -55,19 +57,12 @@ public final class NamingServerNativeSmoke {
   }
 
   private static void runPersistentNamingRestartSmoke() throws Exception {
-    IiopException lastBindFailure = null;
-    for (int attempt = 0; attempt < 8; attempt++) {
-      try {
-        assertPersistentNamingRestartSmoke();
-        return;
-      } catch (IiopException exception) {
-        if (!isBindFailure(exception)) {
-          throw exception;
-        }
-        lastBindFailure = exception;
-      }
-    }
-    throw new IllegalStateException("restart port was reused before rebind", lastBindFailure);
+    RestartBindRetry.run(
+        "restart port was reused before rebind",
+        8,
+        Duration.ofMillis(50),
+        NamingServerNativeSmoke::assertPersistentNamingRestartSmoke,
+        NamingServerNativeSmoke::isBindFailure);
   }
 
   private static void assertPersistentNamingRestartSmoke() throws Exception {
@@ -103,24 +98,18 @@ public final class NamingServerNativeSmoke {
   }
 
   private static NetworkNamingService bindAfterRestart(
-      IiopEndpoint endpoint, NamingPersistenceOptions persistence) throws InterruptedException {
-    IiopException lastBindFailure = null;
-    for (int attempt = 0; attempt < 20; attempt++) {
-      try {
-        return NetworkNamingService.bind(endpoint, IiopOptions.defaults(), persistence);
-      } catch (IiopException exception) {
-        if (!isBindFailure(exception)) {
-          throw exception;
-        }
-        lastBindFailure = exception;
-        Thread.sleep(50L);
-      }
-    }
-    throw new IllegalStateException("restart port was not released before rebind", lastBindFailure);
+      IiopEndpoint endpoint, NamingPersistenceOptions persistence) throws Exception {
+    return RestartBindRetry.get(
+        "restart port was not released before rebind",
+        20,
+        Duration.ofMillis(50),
+        () -> NetworkNamingService.bind(endpoint, IiopOptions.defaults(), persistence),
+        NamingServerNativeSmoke::isBindFailure);
   }
 
-  private static boolean isBindFailure(IiopException exception) {
-    return IiopDiagnosticCodes.CONNECTION_FAILURE.equals(exception.code())
+  private static boolean isBindFailure(Throwable failure) {
+    return failure instanceof IiopException exception
+        && IiopDiagnosticCodes.CONNECTION_FAILURE.equals(exception.code())
         && exception.getCause() instanceof java.net.BindException;
   }
 

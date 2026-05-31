@@ -27,4 +27,7 @@ dependencies {
 
     // Network dispatch tests activate servants through the local POA.
     testImplementation project(':modules:corba-poa')
+
+    // Restart-oriented IIOP tests reuse bounded retry helpers from the shared testkit.
+    testImplementation project(':modules:corba-testkit')
 }

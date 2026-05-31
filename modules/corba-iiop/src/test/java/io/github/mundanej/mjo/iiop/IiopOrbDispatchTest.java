@@ -38,6 +38,7 @@ import io.github.mundanej.mjo.poa.Poa;
 import io.github.mundanej.mjo.poa.PoaPolicySet;
 import io.github.mundanej.mjo.poa.PoaServantDispatcher;
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
+import io.github.mundanej.mjo.testkit.RestartBindRetry;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import io.github.mundanej.mjo.typecode.IdlParameterDescriptor;
@@ -440,7 +441,12 @@ final class IiopOrbDispatchTest {
 
   @Test
   void persistentStringifiedIorRoutesAfterRestartSimulation() throws Exception {
-    runWithRestartPortRetry(this::assertPersistentStringifiedIorRoutesAfterRestartSimulation);
+    RestartBindRetry.run(
+        "restart port was reused before rebind",
+        8,
+        Duration.ofMillis(50),
+        this::assertPersistentStringifiedIorRoutesAfterRestartSimulation,
+        IiopOrbDispatchTest::isRestartBindFailure);
   }
 
   private void assertPersistentStringifiedIorRoutesAfterRestartSimulation() {
@@ -499,7 +505,12 @@ final class IiopOrbDispatchTest {
 
   @Test
   void persistentStringifiedIorRoutesAfterForkedJvmRestart() throws Exception {
-    runWithRestartPortRetry(this::assertPersistentStringifiedIorRoutesAfterForkedJvmRestart);
+    RestartBindRetry.run(
+        "restart port was reused before rebind",
+        8,
+        Duration.ofMillis(50),
+        this::assertPersistentStringifiedIorRoutesAfterForkedJvmRestart,
+        IiopOrbDispatchTest::isRestartBindFailure);
   }
 
   private void assertPersistentStringifiedIorRoutesAfterForkedJvmRestart() throws Exception {
@@ -553,25 +564,9 @@ final class IiopOrbDispatchTest {
     }
   }
 
-  private static void runWithRestartPortRetry(RestartAssertion assertion) throws Exception {
-    Throwable lastBindFailure = null;
-    for (int attempt = 0; attempt < 8; attempt++) {
-      try {
-        assertion.run();
-        return;
-      } catch (IiopException exception) {
-        if (!isBindFailure(exception)) {
-          throw exception;
-        }
-        lastBindFailure = exception;
-      } catch (AssertionError error) {
-        if (!isChildBindFailure(error)) {
-          throw error;
-        }
-        lastBindFailure = error;
-      }
-    }
-    throw new AssertionError("restart port was reused before rebind", lastBindFailure);
+  private static boolean isRestartBindFailure(Throwable failure) {
+    return (failure instanceof IiopException exception && isBindFailure(exception))
+        || (failure instanceof AssertionError error && isChildBindFailure(error));
   }
 
   private static boolean isBindFailure(IiopException exception) {
@@ -582,12 +577,6 @@ final class IiopOrbDispatchTest {
   private static boolean isChildBindFailure(AssertionError error) {
     return error.getMessage() != null
         && error.getMessage().contains("Could not bind IIOP endpoint");
-  }
-
-  @FunctionalInterface
-  private interface RestartAssertion {
-
-    void run() throws Exception;
   }
 
   @Test
