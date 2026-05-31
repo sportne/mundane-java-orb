@@ -1,10 +1,10 @@
 # G13-040 Durable POA Rehydration Design Gate
 
 Task ID: G13-040-DURABLE-POA-REHYDRATION-DESIGN-GATE
-Status: ready-for-implementation
+Status: complete
 Gate: G13 durable runtime hardening
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
-ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0010, ADR-0014
+ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0010, ADR-0014, ADR-0015
 Specification references: CORBA-IF-ORB, CORBA-IF-POA, CORBA-IF-OBJECT-REF, CORBA-IOP-IOR, CORBA-IOP-IIOP
 Target module: durable POA design documentation
 Allowed files: docs/adr/*.md, docs/architecture/runtime-architecture.md, docs/architecture/poa-design.md, docs/architecture/cdr-giop-iiop.md, docs/conformance/corba-3.4-matrix.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g13-040-durable-poa-rehydration-design-gate.md, docs/roadmap/tasks/g13-050-live-peer-durable-ior-naming-design.md, docs/roadmap/tasks/g13-*.md, README.md

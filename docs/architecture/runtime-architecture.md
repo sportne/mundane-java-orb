@@ -242,3 +242,27 @@ Naming-context object keys, persists only stringified durable IOR/context data
 in a bounded `MJNS` file, and rewrites that file atomically after successful
 mutating Naming operations. The runtime still does not persist servants,
 process-local object references, Java-serialized objects, or peer artifacts.
+
+ADR-0015 approves POA-managed durable rehydration as the next local runtime
+direction. The current caller-managed model remains valid: applications may
+still recreate POAs and activate servants explicitly before accepting requests.
+The approved follow-on model adds an explicit durable POA path registry and
+adapter activation lookup so a valid durable object key can locate or recreate
+an approved persistent POA path before normal POA request-processing policy is
+applied.
+
+Rehydration remains a dispatch and activation contract, not persistence for
+servants or application state. Callers must configure the durable ORB identity,
+endpoint policy, Naming store, approved POA paths, adapter activation factories,
+servant managers, and all backing state explicitly. The ORB/POA runtime owns
+bounded `MJOK` decoding, ORB id and path validation, POA registry lookup,
+servant-manager invocation according to POA policy, and deterministic
+system-exception mapping for malformed, wrong-ORB, unregistered-path,
+inactive-adapter, and stale-object cases.
+
+The IIOP layer continues to treat durable keys as opaque octets. It preserves
+KeyAddr, ProfileAddr, ReferenceAddr, binary IOR, and stringified IOR forms, then
+routes persistent keys to the ORB/POA durable-key lookup path instead of parsing
+`MJOK` itself. All rehydration implementation must remain closed-world friendly:
+no reflection metadata, dynamic proxies, classpath scanning, Java serialization,
+runtime bytecode generation, `Unsafe`, `sun.*`, or `jdk.internal.*`.

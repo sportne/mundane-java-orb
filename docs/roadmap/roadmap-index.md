@@ -171,5 +171,9 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g13-010-cross-process-durable-restart-evidence.md` - complete
 - `tasks/g13-020-naming-store-operational-hardening.md` - complete
 - `tasks/g13-030-mjns-store-versioning-policy.md` - complete
-- `tasks/g13-040-durable-poa-rehydration-design-gate.md` - ready-for-implementation
-- `tasks/g13-050-live-peer-durable-ior-naming-design.md` - blocked
+- `tasks/g13-040-durable-poa-rehydration-design-gate.md` - complete
+- `tasks/g13-050-live-peer-durable-ior-naming-design.md` - ready-for-implementation
+- `tasks/g13-060-poa-durable-path-registry.md` - human-gate-blocked
+- `tasks/g13-070-poa-adapter-activation-lookup.md` - human-gate-blocked
+- `tasks/g13-080-poa-servant-manager-rehydration.md` - human-gate-blocked
+- `tasks/g13-090-iiop-durable-key-poa-routing.md` - human-gate-blocked

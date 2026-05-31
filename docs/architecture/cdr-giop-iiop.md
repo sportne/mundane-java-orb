@@ -161,3 +161,11 @@ same-process object recreation. The old `IOR:` string continues to carry the
 original opaque object-key octets, and the restarted IIOP server routes them
 only when the durable ORB id, POA path, object id, endpoint, and active binding
 match the original server process.
+
+ADR-0015 keeps `MJOK` parsing out of the protocol layer for POA-managed durable
+rehydration. The IOR and IIOP code must continue to preserve object keys as
+opaque octets through KeyAddr, ProfileAddr, ReferenceAddr, binary IOR, and
+stringified IOR paths. When a persistent key reaches server dispatch, the
+bridge routes the opaque key to ORB/POA durable-key lookup; ORB/POA code owns
+version validation, ORB id checks, POA path registry lookup, adapter activation,
+servant-manager policy, and stale-object diagnostics.

@@ -213,7 +213,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g13-040-durable-poa-rehydration-design-gate.md`
+- `docs/roadmap/tasks/g13-050-live-peer-durable-ior-naming-design.md`
 
 Remaining human gates, including optional CORBA service approval and future live
 peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap

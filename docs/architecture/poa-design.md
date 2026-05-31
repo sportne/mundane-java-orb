@@ -160,6 +160,43 @@ with explicit CORBA system exceptions before dispatch. The POA still stores
 servants and active object map entries only in memory; G12-120 does not add
 persistent servant storage or claim persistent IOR round trips.
 
+ADR-0015 approves POA-managed durable rehydration for follow-on implementation.
+The caller-managed G12/G13-010 restart model remains supported, but the next
+runtime direction lets the POA runtime locate or activate an approved
+persistent POA path after a valid durable object key arrives. The ORB must not
+invent global persistence or scan for adapters. Callers register the persistent
+POA paths they are willing to rehydrate, the adapter activation factories for
+those paths, the servant managers or default servants required by policy, and
+all application state needed to recreate servants.
+
+The durable lookup contract is deliberately ordered to avoid activation side
+effects for hostile input:
+
+1. Decode the durable key within the `MJOK` bounds and version rules.
+2. Reject malformed keys, wrong ORB ids, path traversal, unsupported versions,
+   oversized fields, and transient keys before consulting adapter activation.
+3. Locate an active POA by durable path or ask an explicitly registered adapter
+   activation path to create it.
+4. Apply POA manager state and the POA's request-processing policy.
+5. Resolve the object id through active object map, default servant, or servant
+   manager according to the validated policy combination.
+
+`RETAIN` plus `USE_SERVANT_MANAGER` may use a `ServantActivator` to incarnate a
+validated durable object id and record it in the active object map.
+`USE_ACTIVE_OBJECT_MAP_ONLY` does not rehydrate servants; it requires an
+already active entry. `USE_DEFAULT_SERVANT` may receive validated durable object
+ids but still depends on a caller-supplied default servant. Persistent
+`NON_RETAIN` plus `USE_SERVANT_MANAGER` stays a follow-on decision inside the
+servant-manager implementation task because it requires precise
+`ServantLocator` preinvoke/postinvoke behavior for restart-safe references.
+
+Malformed, wrong-ORB, unregistered-path, inactive-adapter, stale-object, and
+servant-manager failure cases must produce deterministic CORBA system
+exceptions without leaking filesystem paths, secrets, or implementation class
+names. Rehydration must not use Java serialization, reflection dispatch,
+dynamic proxies, runtime bytecode generation, classpath scanning, `Unsafe`,
+`sun.*`, or `jdk.internal.*`.
+
 ### Network IIOP Dispatch Bridge
 
 G10-050 exposes activated local POA objects through bounded local IIOP by
@@ -199,3 +236,8 @@ Java serialization marshaling.
 | `PoaAdapterActivatorTest` | G6-630 implemented | Covers child POA lookup through an adapter activator. |
 | `RmiGeneratedJavaBindingGeneratorTest` | G7-070 implemented | Covers generated RMI ties and skeletons activating through `Poa.activateServant` and dispatching local calls from generated stubs through `LocalOrb`. |
 | `IiopOrbDispatchTest` | G10-050 implemented | Covers activated POA servant dispatch through loopback IIOP, target-address routing, unknown object keys, system exception replies, and declared user-exception replies. |
+
+G13 follow-on tasks must add focused tests for the durable POA path registry,
+adapter activation lookup, servant-manager rehydration, hostile durable keys,
+loopback IIOP routing into durable lookup, and Native Image smoke coverage for
+the public rehydration entrypoints.
