@@ -81,6 +81,25 @@ public final class GeneratedServerNativeSmoke {
                     "native-activation-orb", "/RootPOA/missing", ascii("native-object"), 0),
                 true),
         "unregistered durable POA lookup");
+
+    LocalOrb rehydrationOrb = LocalOrb.create(OrbIdentity.durable("native-rehydrate-orb"));
+    Poa rehydrationRoot = Poa.createRoot(rehydrationOrb, persistentUserIdServantManagerPolicy());
+    rehydrationRoot.registerDurablePath();
+    rehydrationRoot.setServantActivator((targetPoa, objectId) -> new NativeGreeter("Activated "));
+    LocalObjectReference<SmokeDescriptorFixtures.Greeter> durableReference =
+        rehydrationRoot.createReferenceWithId(
+            "native-object",
+            SmokeDescriptorFixtures.Greeter.class,
+            SmokeDescriptorFixtures.GREETER,
+            (servant, request) ->
+                ((NativeGreeter) servant).greet((String) request.arguments().get(0)));
+    LocalObjectReference<?> resolved =
+        rehydrationRoot.resolveDurableReference(
+            durableReference.durableObjectKey().orElseThrow(), true);
+    SmokeAssertions.requireEquals(
+        "Activated Grace",
+        rehydrationOrb.invoke(resolved, SmokeDescriptorFixtures.GREET, List.of("Grace")),
+        "durable POA servant-manager rehydration");
   }
 
   private static byte[] ascii(String value) {
@@ -96,5 +115,29 @@ public final class GeneratedServerNativeSmoke {
         PoaPolicySet.ServantRetentionPolicy.RETAIN,
         PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
         PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
+  }
+
+  private static PoaPolicySet persistentUserIdServantManagerPolicy() {
+    return new PoaPolicySet(
+        PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+        PoaPolicySet.LifespanPolicy.PERSISTENT,
+        PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+        PoaPolicySet.IdAssignmentPolicy.USER_ID,
+        PoaPolicySet.ServantRetentionPolicy.RETAIN,
+        PoaPolicySet.RequestProcessingPolicy.USE_SERVANT_MANAGER,
+        PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
+  }
+
+  private static final class NativeGreeter implements SmokeDescriptorFixtures.Greeter {
+
+    private final String prefix;
+
+    private NativeGreeter(String prefix) {
+      this.prefix = prefix;
+    }
+
+    private String greet(String name) {
+      return prefix + name;
+    }
   }
 }

@@ -348,6 +348,13 @@ public final class Poa {
     return reference;
   }
 
+  /** Resolves an approved durable object key through the root POA into an active reference. */
+  public synchronized LocalObjectReference<?> resolveDurableReference(
+      DurableObjectKey key, boolean activatePoa) {
+    Poa target = resolveDurablePoa(key, activatePoa);
+    return target.referenceForDurableKey(key);
+  }
+
   /** Resolves an approved persistent POA path from a decoded durable object key. */
   public synchronized Poa resolveDurablePoa(DurableObjectKey key, boolean activate) {
     requireNotDestroyed();

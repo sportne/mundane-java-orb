@@ -251,18 +251,24 @@ registry, persistent POAs expose narrow wrappers for registering their own
 paths, and shutdown clears the approved path set. G13-070 adds root-POA lookup
 for decoded durable keys: registry approval is checked before activation, active
 POAs are returned directly, and registered missing child paths can be recreated
-through the caller's explicit `PoaAdapterActivator`. The remaining follow-on
-model applies normal POA request-processing policy after the target POA is
-located.
+through the caller's explicit `PoaAdapterActivator`. G13-080 adds root-level
+durable reference lookup after the target POA is located. The POA applies its
+normal request-processing policy to the validated durable object id: retained
+active objects are reused, retained `ServantActivator` entries are incarnated
+once and recorded in the active object map, default servants handle explicit
+references without retained state, and non-retained `ServantLocator` callbacks
+run per request. `USE_ACTIVE_OBJECT_MAP_ONLY` still requires an existing active
+entry and does not invent servants.
 
 Rehydration remains a dispatch and activation contract, not persistence for
 servants or application state. Callers must configure the durable ORB identity,
 endpoint policy, Naming store, approved POA paths, adapter activation factories,
-servant managers, and all backing state explicitly. The ORB/POA runtime owns
-bounded `MJOK` decoding, ORB id and path validation, POA registry lookup,
-servant-manager invocation according to POA policy, and deterministic
-system-exception mapping for malformed, wrong-ORB, unregistered-path,
-inactive-adapter, and stale-object cases.
+servant managers, reference templates, and all backing state explicitly. The
+ORB/POA runtime owns bounded `MJOK` decoding, ORB id and path validation, POA
+registry lookup, servant-manager invocation according to POA policy, and
+deterministic system-exception mapping for malformed, wrong-ORB,
+unregistered-path, inactive-adapter, stale-object, hostile-object-id, and
+servant-manager failure cases.
 
 The IIOP layer continues to treat durable keys as opaque octets. It preserves
 KeyAddr, ProfileAddr, ReferenceAddr, binary IOR, and stringified IOR forms, then

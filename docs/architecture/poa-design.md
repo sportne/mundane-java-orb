@@ -168,9 +168,11 @@ clears that approval set on shutdown. G13-070 adds root-POA lookup for decoded
 durable keys. Lookup rejects wrong-ORB and unregistered paths before adapter
 activation, returns active persistent POAs directly, and activates registered
 missing child paths only through the caller's explicit `PoaAdapterActivator`.
-The ORB must not invent global persistence or scan for adapters. Later tasks add
-the servant managers or default servants required by policy and all application
-state needed to recreate servants.
+G13-080 adds root-level durable reference lookup after durable POA lookup. It
+requires callers to recreate reference templates or references explicitly, then
+routes the validated object id through the target POA's normal request policy.
+The ORB must not invent global persistence, scan for adapters, or persist
+servants or application state.
 
 The durable lookup contract is deliberately ordered to avoid activation side
 effects for hostile input:
@@ -189,9 +191,9 @@ validated durable object id and record it in the active object map.
 `USE_ACTIVE_OBJECT_MAP_ONLY` does not rehydrate servants; it requires an
 already active entry. `USE_DEFAULT_SERVANT` may receive validated durable object
 ids but still depends on a caller-supplied default servant. Persistent
-`NON_RETAIN` plus `USE_SERVANT_MANAGER` stays a follow-on decision inside the
-servant-manager implementation task because it requires precise
-`ServantLocator` preinvoke/postinvoke behavior for restart-safe references.
+`NON_RETAIN` plus `USE_SERVANT_MANAGER` remains explicit: caller-recreated
+reference templates may reach a configured `ServantLocator`, and the runtime
+does not retain or persist the located servant between requests.
 
 Malformed, wrong-ORB, unregistered-path, inactive-adapter, stale-object, and
 servant-manager failure cases must produce deterministic CORBA system
@@ -245,6 +247,9 @@ smoke coverage for the public registry entrypoints. G13-070 adds focused tests
 for active durable POA lookup, registered adapter activation, wrong-namespace
 and unregistered-path ordering, destroyed/inactive targets, activator failure
 mapping, and Native Image smoke coverage for registered activation factories.
-Remaining G13 follow-on tasks must add focused tests for servant-manager
-rehydration, hostile durable keys, loopback IIOP routing into durable lookup,
-and Native Image smoke coverage for the public rehydration entrypoints.
+G13-080 adds focused tests for durable reference lookup through retained
+servant activators, active-map reuse, default servants, non-retained servant
+locators, missing dispatch templates, stale object ids, hostile object ids,
+servant-manager failures, and Native Image smoke coverage for the public
+rehydration entrypoint. Remaining G13 follow-on tasks must add loopback IIOP
+routing into durable lookup.

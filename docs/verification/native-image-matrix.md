@@ -231,3 +231,14 @@ without activation. The path remains explicit-constructor only and introduces no
 reflection metadata, dynamic proxies, Java serialization metadata,
 service-loader discovery, runtime bytecode generation, internal JDK APIs, or
 `Unsafe`.
+
+## G13-080 durable POA rehydration Native Image evidence
+
+G13-080 extends the `generatedServer` smoke entrypoint with public durable
+reference lookup through a retained `ServantActivator`. The smoke creates a
+durable ORB and persistent POA, registers the POA path, recreates an explicit
+reference template, resolves the reference from its `MJOK` durable key, and
+invokes the generated-style dispatcher through `LocalOrb`. The path remains
+explicit-constructor only and introduces no reflection metadata, dynamic
+proxies, Java serialization metadata, service-loader discovery, runtime
+bytecode generation, internal JDK APIs, or `Unsafe`.

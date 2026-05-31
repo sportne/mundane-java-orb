@@ -1,7 +1,7 @@
 # G13-080 POA Servant Manager Rehydration
 
 Task ID: G13-080-POA-SERVANT-MANAGER-REHYDRATION
-Status: ready-for-implementation
+Status: complete
 Gate: G13 durable runtime hardening
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014, ADR-0015
@@ -13,5 +13,5 @@ Expected behavior: Task type: implementation. Apply POA servant-manager policy t
 Tests to add/update: Add tests for retained `ServantActivator` incarnation, active-object-map reuse, `USE_ACTIVE_OBJECT_MAP_ONLY` non-rehydration, default-servant durable object-id delivery, servant-manager failure mapping, persistent `NON_RETAIN` decision coverage, hostile object ids, and Native Image smoke coverage.
 Documentation to update: Runtime architecture, POA design, CORBA conformance matrix, Native Image matrix if touched, roadmap index, README ready-task status, this task, and G13-090 status when complete.
 Commands to run: ./gradlew :modules:corba-poa:test :modules:corba-orb-core:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
-Acceptance criteria: Valid durable object ids reach only the servant lookup path allowed by POA policy, retained servant activation records active entries deterministically, unsupported policy combinations fail explicitly, no servant persistence or Java serialization is introduced, and G13-090 is promoted only if maintainers approve continuing the implementation sequence.
+Acceptance criteria: Valid durable object ids reach only the servant lookup path allowed by POA policy, retained servant activation records active entries deterministically, unsupported policy combinations fail explicitly, no servant persistence or Java serialization is introduced, and G13-090 is promoted for the approved implementation sequence.
 Rollback notes: Revert servant-manager rehydration code, tests, docs, Native Image updates, and roadmap status changes together.
