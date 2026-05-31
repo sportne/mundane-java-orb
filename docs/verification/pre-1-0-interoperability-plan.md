@@ -150,3 +150,18 @@ binaries remain ignored local output and are not committed.
 matrix. No maintainer-approved `peer-bug`, `spec-ambiguity`, or
 `profile-mismatch` classification was needed, and no `our-bug` or unresolved
 infrastructure failure remains in the final evidence set.
+
+## Post-1.0 Durable Persistence Follow-Up
+
+G13 durable peer persistence work is outside the 1.0.0 release bar. G13-050
+defines future design-only scenarios for peer clients invoking old persistent
+IORs and resolving old persistent Naming references after our server process
+restarts. The approved G10 peer set remains the candidate peer set, but no live
+durable IOR or persistent Naming execution is approved by this plan.
+
+Future execution must be human-gated and limited to opaque object-key
+preservation claims. Peers are not expected to understand the project-owned
+`MJOK` durable key or `MJNS` Naming store formats. Raw live durable reports,
+logs, IORs, Naming stores, peer artifacts, Docker layers, and Native Image
+binaries must remain ignored local outputs unless a later release evidence task
+approves a clean-room summary.

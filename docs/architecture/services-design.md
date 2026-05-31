@@ -62,6 +62,16 @@ repository ids, wrong context key namespaces, malformed durable keys, transient
 target IORs, and wrong-ORB target IORs fail deterministically during startup or
 before a mutating bind is committed.
 
+G13-050 defines future persistent Naming peer scenarios without approving live
+execution. The proposed peer claim is that an approved black-box peer client can
+use an old persistent Naming IOR or `corbaname` value after our Naming server
+process restarts with the same durable ORB id, endpoint, and `MJNS` store. The
+peer is not expected to understand `MJNS` or `MJOK`; it only preserves ordinary
+IOR, object-key, and Naming URL data on the wire. Raw Naming stores, reports,
+logs, IORs, peer artifacts, Docker layers, and Native Image binaries remain
+ignored local outputs unless a later human-gated task approves a clean-room
+summary.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

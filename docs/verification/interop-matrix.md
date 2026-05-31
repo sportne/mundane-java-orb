@@ -241,6 +241,71 @@ ORB id, endpoint, and `MJNS` store, and resolves the old `corbaname` value.
 This is still local loopback evidence only; it does not approve live peer
 persistent IOR or Naming execution.
 
+## G13-050 durable peer persistence design
+
+G13-050 defines future live peer scenarios for durable IOR and persistent
+Naming behavior, but does not approve live execution or add peer manifest
+metadata. The proposed peer set is the existing approved G6-820 set: JacORB,
+Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO. The peer claim is
+only opaque object-key preservation. Peers are not expected to parse or
+understand the project-owned `MJOK` durable object-key format or the `MJNS`
+Naming store format.
+
+The proposed scenario names are:
+
+- `g13-durable-ior-peer-client-restart`: a peer client receives a stringified
+  persistent IOR emitted by our first server process, that process exits, our
+  second server process starts with the same durable ORB id, endpoint, POA
+  path, object id, and operation fixture, and the peer client invokes through
+  the old IOR.
+- `g13-durable-naming-peer-client-restart`: a peer client receives a
+  `corbaname` value or persistent Naming Service IOR from our first Naming
+  server process, that process exits, our second Naming server starts with the
+  same durable ORB id, endpoint, and `MJNS` store, and the peer client resolves
+  the old value and invokes the resolved durable target where the peer supports
+  that object-reference flow.
+
+The proposed direction matrix is intentionally one-sided:
+
+| Scenario | Direction | Local server runtime | Peer role | Claim |
+|---|---|---|---|---|
+| `g13-durable-ior-peer-client-restart` | `local-server-to-peer-client` | JVM | client | Peer preserves opaque durable object-key octets from old IOR into the restarted server request. |
+| `g13-durable-ior-peer-client-restart` | `local-server-to-peer-client` | Native Image | client | Same as JVM lane, using the Native Image server binary once a later task approves and wires it. |
+| `g13-durable-naming-peer-client-restart` | `local-server-to-peer-client` | JVM | client | Peer preserves the persistent Naming IOR/corbaname path and resolves against the restarted Naming service. |
+| `g13-durable-naming-peer-client-restart` | `local-server-to-peer-client` | Native Image | client | Same as JVM lane, using the Native Image Naming server binary once a later task approves and wires it. |
+
+`peer-server-to-local-client` directions are out of scope for these scenarios
+because a peer server does not emit mundane Java ORB durable keys. A later
+human-gated implementation task may add manifest metadata only after the local
+JVM and Native Image restart lanes expose durable server commands, persistent
+Naming startup commands, and deterministic missing-prerequisite reports.
+
+The cache and image prerequisites match the existing live matrix: approved
+external peer cache entries, digest-pinned Java and native base images, prepared
+peer images, Docker or Podman, local JVM lane commands, Native Image server
+binaries when native lanes are selected, and an explicit container network.
+Missing cache entries, missing images, missing local lane commands, missing
+Native Image binaries, startup timeouts, early server exits, and unsupported
+peer scenario metadata must become structured reports instead of skipped or
+implicit results.
+
+The expected durable-specific report fields are scenario, peer, peer version,
+direction, local server runtime, peer client runtime, durable ORB id label,
+POA path label, object id label, first-generation endpoint, restarted endpoint,
+restart phase, stringified IOR path, corbaname value when applicable, Naming
+store label when applicable, status, classification, exit code, report path,
+stdout path, stderr path, start/end timestamps, and clean-room notes. Reports
+must not include raw `MJOK` decoded internals beyond non-secret fixture labels,
+raw `MJNS` store bytes, peer artifacts, Docker layers, Native Image binaries,
+or copied reference implementation material.
+
+Expected classifications include `opaque-key-preserved`,
+`durable-naming-resolved`, `server-ready`, `expected-deferral`,
+`unsupported-scenario`, `missing-prerequisite`, `infrastructure-failure`,
+`our-bug`, `peer-bug`, `profile-mismatch`, and `spec-ambiguity`. Actual live
+execution remains unapproved; raw reports, logs, IORs, Naming stores, peer
+artifacts, Docker layers, and native binaries remain ignored local outputs.
+
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.

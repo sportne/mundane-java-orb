@@ -121,10 +121,52 @@ filtering, structured missing-prerequisite reports, and summary aggregation.
 The committed evidence remains metadata and deterministic report-schema tests;
 raw G12 live outputs are ignored local artifacts.
 
+G13-050 defines a design-only durable persistence reference-capture package for
+future live peer work. The proposed scenarios are
+`g13-durable-ior-peer-client-restart` and
+`g13-durable-naming-peer-client-restart`, both limited to peer clients invoking
+or resolving against our restarted JVM or Native Image servers. The reference
+claim is opaque object-key preservation through a peer ORB, not peer knowledge
+of `MJOK` or `MJNS`.
+
+Future durable peer reports must extend the normal capture fields with:
+
+```json
+{
+  "scenario": "g13-durable-ior-peer-client-restart",
+  "direction": "local-server-to-peer-client",
+  "localServerRuntime": "our-jvm-jdk21",
+  "peerClientRuntime": "peer-jvm",
+  "durableOrbIdLabel": "g13-peer-restart-orb",
+  "poaPathLabel": "RootPOA/g13/persistent",
+  "objectIdLabel": "fixture-object",
+  "firstEndpoint": "127.0.0.1:2809",
+  "restartedEndpoint": "127.0.0.1:2809",
+  "restartPhase": "after-second-server-ready",
+  "stringifiedIorPath": "build/interop/<peer>/iors/g13-durable.ior",
+  "corbaname": "",
+  "namingStoreLabel": "",
+  "status": "passed",
+  "classification": "opaque-key-preserved"
+}
+```
+
+The Naming scenario uses `classification: durable-naming-resolved` when the peer
+client resolves the old persistent Naming reference after restart. If a peer
+cannot express the scenario without project-specific glue, the report must use
+`unsupported-scenario`; missing cache entries, images, local lane commands,
+Native Image binaries, or container runtimes must use
+`infrastructure-failure` or `missing-prerequisite`. Peer behavior that drops or
+rewrites opaque object-key octets is reviewed as `peer-bug`,
+`profile-mismatch`, or `spec-ambiguity`; mundane Java ORB restart, Naming, or
+IOR handling defects remain `our-bug`.
+
 `status` is one of `passed`, `failed`, or `skipped`. `classification` is one of
 `our-bug`, `peer-bug`, `spec-ambiguity`, `profile-mismatch`,
 `infrastructure-failure`, `missing-prerequisite`, `unsupported-scenario`, or
-`expected-deferral`.
+`expected-deferral`. Approved scenario-specific success classifications also
+include `object-reference-checked`, `server-ready`, `calculator-checked`,
+`opaque-key-preserved`, and `durable-naming-resolved`.
 
 ## Clean-room rule
 

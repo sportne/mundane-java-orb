@@ -266,3 +266,11 @@ routes persistent keys to the ORB/POA durable-key lookup path instead of parsing
 `MJOK` itself. All rehydration implementation must remain closed-world friendly:
 no reflection metadata, dynamic proxies, classpath scanning, Java serialization,
 runtime bytecode generation, `Unsafe`, `sun.*`, or `jdk.internal.*`.
+
+G13-050 defines future live peer durable persistence scenarios as design-only
+interop work. The proposed peer-facing claim is that approved black-box peers
+preserve opaque object-key octets when acting as clients for our restarted
+durable JVM or Native Image servers. Peers are not expected to decode `MJOK`,
+inspect `MJNS`, or provide durable server keys for our clients. Actual peer
+execution, manifest metadata, raw report capture, and compatibility claims stay
+deferred behind a later human gate.
