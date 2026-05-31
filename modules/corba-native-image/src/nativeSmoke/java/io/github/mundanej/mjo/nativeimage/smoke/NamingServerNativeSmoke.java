@@ -89,8 +89,7 @@ public final class NamingServerNativeSmoke {
           durableTarget, client.resolve(NamingName.parse("apps/service")).ior(), "durable bind");
     }
 
-    try (NetworkNamingService service =
-        NetworkNamingService.bind(endpoint, IiopOptions.defaults(), persistence)) {
+    try (NetworkNamingService service = bindAfterRestart(endpoint, persistence)) {
       Ior resolved =
           NetworkNamingClient.resolve(
                   CorbanameUrl.parse(
@@ -101,6 +100,23 @@ public final class NamingServerNativeSmoke {
               .ior();
       SmokeAssertions.requireEquals(durableTarget, resolved, "durable persisted resolve");
     }
+  }
+
+  private static NetworkNamingService bindAfterRestart(
+      IiopEndpoint endpoint, NamingPersistenceOptions persistence) throws InterruptedException {
+    IiopException lastBindFailure = null;
+    for (int attempt = 0; attempt < 20; attempt++) {
+      try {
+        return NetworkNamingService.bind(endpoint, IiopOptions.defaults(), persistence);
+      } catch (IiopException exception) {
+        if (!isBindFailure(exception)) {
+          throw exception;
+        }
+        lastBindFailure = exception;
+        Thread.sleep(50L);
+      }
+    }
+    throw new IllegalStateException("restart port was not released before rebind", lastBindFailure);
   }
 
   private static boolean isBindFailure(IiopException exception) {
