@@ -45,6 +45,23 @@ fall back to bounded replacement. Store backups, retention, file permissions,
 and external replication remain caller/operator responsibilities unless a later
 roadmap task adds an explicit policy.
 
+G13-030 records the `MJNS` version 1 compatibility policy. The store is a
+single big-endian binary file with magic `MJNS`, one-octet version `1`, a
+length-prefixed UTF-8 durable ORB id, signed 32-bit next-context id, unsigned
+16-bit context count, and one record per context. Each context record contains a
+length-prefixed stringified durable NamingContext IOR, a one-octet destroyed
+flag, an unsigned 16-bit binding count, and one record per binding. Each
+binding record contains length-prefixed UTF-8 name id and kind strings, a
+one-octet target kind (`0` object, `1` context), and a length-prefixed
+stringified durable target IOR. All string, store, context, and binding counts
+remain bounded by `NamingPersistenceOptions`.
+
+No `MJNS` migrations are implemented yet. Unsupported future versions, trailing
+octets, malformed UTF-8, oversized records, wrong ORB ids, wrong Naming context
+repository ids, wrong context key namespaces, malformed durable keys, transient
+target IORs, and wrong-ORB target IORs fail deterministically during startup or
+before a mutating bind is committed.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

@@ -364,6 +364,119 @@ final class NetworkNamingServiceTest {
   }
 
   @Test
+  void persistenceStoreAcceptsDocumentedV1LayoutAndRejectsFutureVersions() throws Exception {
+    OrbIdentity identity = OrbIdentity.durable("naming-v1-layout-orb");
+    Path valid = tempDir.resolve("valid-v1.mjns");
+    byte[] validStore = rawStore(identity, durableNamingContextIor(identity, "NameService"), true);
+    Files.write(valid, validStore);
+
+    try (NetworkNamingService service =
+            NetworkNamingService.bind(
+                IiopEndpoint.loopback(0),
+                IiopOptions.defaults(),
+                NamingPersistenceOptions.of(identity, valid));
+        NetworkNamingClient client =
+            NetworkNamingClient.connect(service.ior(), IiopOptions.defaults())) {
+      assertEquals(
+          durableFixtureIor(identity, "target"), client.resolve(NamingName.parse("svc")).ior());
+      assertEquals((byte) 'M', validStore[0]);
+      assertEquals((byte) 'J', validStore[1]);
+      assertEquals((byte) 'N', validStore[2]);
+      assertEquals((byte) 'S', validStore[3]);
+      assertEquals(1, validStore[4]);
+    }
+
+    assertStoreRejected(
+        identity,
+        "future-version.mjns",
+        rawStoreWithVersion(identity, durableNamingContextIor(identity, "NameService"), 2));
+  }
+
+  @Test
+  void persistenceStoreRejectsTrailingAndOversizedRecords() throws Exception {
+    OrbIdentity identity = OrbIdentity.durable("naming-hostile-record-orb");
+
+    assertStoreRejected(
+        identity,
+        "trailing-octets.mjns",
+        appendByte(rawStore(identity, durableNamingContextIor(identity, "NameService"), false), 1));
+
+    Path oversizedString = tempDir.resolve("oversized-string.mjns");
+    Files.write(
+        oversizedString,
+        rawStore(identity, durableNamingContextIor(identity, "NameService"), false));
+    NamingPersistenceOptions tinyStringLimit =
+        new NamingPersistenceOptions(
+            identity,
+            oversizedString,
+            new BoundedLimit("store", 16_384),
+            new BoundedLimit("string", 8),
+            new BoundedLimit("contexts", 4),
+            new BoundedLimit("bindings", 4));
+    assertCode(
+        NamingDiagnosticCodes.INVALID_NAME,
+        () ->
+            NetworkNamingService.bind(
+                IiopEndpoint.loopback(0), IiopOptions.defaults(), tinyStringLimit));
+
+    assertLimitedStoreRejected(
+        identity, "oversized-contexts.mjns", rawStoreWithContextCount(identity, 5));
+    assertLimitedStoreRejected(
+        identity, "oversized-bindings.mjns", rawStoreWithBindingCount(identity, 5));
+  }
+
+  @Test
+  void persistenceStoreRejectsWrongNamespacesAndDurabilityKinds() throws Exception {
+    OrbIdentity identity = OrbIdentity.durable("naming-hostile-namespace-orb");
+    OrbIdentity otherIdentity = OrbIdentity.durable("naming-other-orb");
+
+    assertStoreRejected(
+        identity,
+        "wrong-orb.mjns",
+        rawStore(otherIdentity, durableNamingContextIor(otherIdentity, "NameService"), false));
+    assertStoreRejected(
+        identity,
+        "wrong-context-repository.mjns",
+        rawStore(
+            identity,
+            durableIor(
+                identity,
+                "IDL:example/Fixture:1.0",
+                List.of("RootPOA", "NameService"),
+                "NameService"),
+            false));
+    assertStoreRejected(
+        identity,
+        "wrong-context-namespace.mjns",
+        rawStore(
+            identity,
+            durableIor(
+                identity,
+                "IDL:omg.org/CosNaming/NamingContextExt:1.0",
+                List.of("RootPOA", "Other"),
+                "NameService"),
+            false));
+    assertStoreRejected(
+        identity,
+        "malformed-context-key.mjns",
+        rawStore(
+            identity,
+            iorWithObjectKey(
+                "IDL:omg.org/CosNaming/NamingContextExt:1.0", new byte[] {'M', 'J', 'O', 'K', 1}),
+            false));
+    assertStoreRejected(
+        identity,
+        "transient-target.mjns",
+        rawStoreWithTarget(identity, fixtureIor("transient-target")));
+    assertStoreRejected(
+        identity,
+        "wrong-orb-target.mjns",
+        rawStoreWithTarget(identity, durableFixtureIor(otherIdentity, "target")));
+    assertStoreRejected(
+        identity, "malformed-target-key.mjns", rawStoreWithTarget(identity, malformedDurableIor()));
+  }
+
+  @Test
   void persistenceStoreHardensDirectoryTempAndFallbackWritePaths() throws Exception {
     OrbIdentity identity = OrbIdentity.durable("naming-store-hardening-orb");
     Path directoryStore = tempDir.resolve("directory-store.mjns");
@@ -523,6 +636,36 @@ final class NetworkNamingServiceTest {
   private static void assertCode(Object expectedCode, ThrowingRunnable runnable) {
     NamingException exception = assertThrows(NamingException.class, runnable::run);
     assertEquals(expectedCode, exception.code());
+  }
+
+  private void assertStoreRejected(OrbIdentity identity, String fileName, byte[] storeBytes)
+      throws Exception {
+    Path store = tempDir.resolve(fileName);
+    Files.write(store, storeBytes);
+    assertCode(
+        NamingDiagnosticCodes.INVALID_NAME,
+        () ->
+            NetworkNamingService.bind(
+                IiopEndpoint.loopback(0),
+                IiopOptions.defaults(),
+                NamingPersistenceOptions.of(identity, store)));
+  }
+
+  private void assertLimitedStoreRejected(OrbIdentity identity, String fileName, byte[] storeBytes)
+      throws Exception {
+    Path store = tempDir.resolve(fileName);
+    Files.write(store, storeBytes);
+    NamingPersistenceOptions limited =
+        new NamingPersistenceOptions(
+            identity,
+            store,
+            new BoundedLimit("store", 16_384),
+            new BoundedLimit("string", 16_384),
+            new BoundedLimit("contexts", 4),
+            new BoundedLimit("bindings", 4));
+    assertCode(
+        NamingDiagnosticCodes.INVALID_NAME,
+        () -> NetworkNamingService.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), limited));
   }
 
   private ProcessState startPersistentNaming(
@@ -740,6 +883,74 @@ final class NetworkNamingServiceTest {
       writeString(output, StringifiedIor.format(durableFixtureIor(identity, "target")));
     }
     return output.toByteArray();
+  }
+
+  private static byte[] rawStoreWithVersion(OrbIdentity identity, Ior contextIor, int version) {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    output.writeBytes(new byte[] {'M', 'J', 'N', 'S'});
+    output.write(version);
+    writeString(output, identity.requireDurableOrbId());
+    writeInt(output, 1);
+    writeUnsignedShort(output, 1);
+    writeString(output, StringifiedIor.format(contextIor));
+    output.write(0);
+    writeUnsignedShort(output, 0);
+    return output.toByteArray();
+  }
+
+  private static byte[] rawStoreWithContextCount(OrbIdentity identity, int contextCount) {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    output.writeBytes(new byte[] {'M', 'J', 'N', 'S'});
+    output.write(1);
+    writeString(output, identity.requireDurableOrbId());
+    writeInt(output, 1);
+    writeUnsignedShort(output, contextCount);
+    return output.toByteArray();
+  }
+
+  private static byte[] rawStoreWithBindingCount(OrbIdentity identity, int bindingCount) {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    output.writeBytes(new byte[] {'M', 'J', 'N', 'S'});
+    output.write(1);
+    writeString(output, identity.requireDurableOrbId());
+    writeInt(output, 1);
+    writeUnsignedShort(output, 1);
+    writeString(output, StringifiedIor.format(durableNamingContextIor(identity, "NameService")));
+    output.write(0);
+    writeUnsignedShort(output, bindingCount);
+    return output.toByteArray();
+  }
+
+  private static byte[] rawStoreWithTarget(OrbIdentity identity, Ior targetIor) {
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    output.writeBytes(new byte[] {'M', 'J', 'N', 'S'});
+    output.write(1);
+    writeString(output, identity.requireDurableOrbId());
+    writeInt(output, 1);
+    writeUnsignedShort(output, 1);
+    writeString(output, StringifiedIor.format(durableNamingContextIor(identity, "NameService")));
+    output.write(0);
+    writeUnsignedShort(output, 1);
+    writeString(output, "svc");
+    writeString(output, "");
+    output.write(0);
+    writeString(output, StringifiedIor.format(targetIor));
+    return output.toByteArray();
+  }
+
+  private static Ior iorWithObjectKey(String typeId, byte[] objectKey) {
+    return new Ior(
+        typeId,
+        List.of(
+            TaggedProfile.internetIop(
+                new IiopProfile(
+                    IiopVersion.V1_2, "127.0.0.1", 9, new ObjectKey(objectKey), List.of()))));
+  }
+
+  private static byte[] appendByte(byte[] bytes, int value) {
+    byte[] result = java.util.Arrays.copyOf(bytes, bytes.length + 1);
+    result[result.length - 1] = (byte) value;
+    return result;
   }
 
   private static byte[] rawStoreWithMalformedName(OrbIdentity identity) {

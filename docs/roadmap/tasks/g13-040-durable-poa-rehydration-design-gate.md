@@ -1,7 +1,7 @@
 # G13-040 Durable POA Rehydration Design Gate
 
 Task ID: G13-040-DURABLE-POA-REHYDRATION-DESIGN-GATE
-Status: blocked
+Status: ready-for-implementation
 Gate: G13 durable runtime hardening
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0010, ADR-0014
