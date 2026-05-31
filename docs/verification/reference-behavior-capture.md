@@ -130,7 +130,7 @@ or resolving against our restarted JVM or Native Image servers. The reference
 claim is opaque object-key preservation through a peer ORB, not peer knowledge
 of `MJOK` or `MJNS`.
 
-Future durable peer reports must extend the normal capture fields with:
+G14-030 durable peer reports extend the normal capture fields with:
 
 ```json
 {

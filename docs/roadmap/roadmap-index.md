@@ -189,5 +189,5 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g14-000-durable-peer-persistence-task-set.md` - complete
 - `tasks/g14-010-local-durable-evidence-acceptance-gate.md` - complete
 - `tasks/g14-020-durable-peer-harness-metadata.md` - complete
-- `tasks/g14-030-durable-peer-prerequisite-reports.md` - ready-for-implementation
-- `tasks/g14-040-durable-peer-live-execution.md` - human-gate-blocked
+- `tasks/g14-030-durable-peer-prerequisite-reports.md` - complete
+- `tasks/g14-040-durable-peer-live-execution.md` - ready-for-implementation

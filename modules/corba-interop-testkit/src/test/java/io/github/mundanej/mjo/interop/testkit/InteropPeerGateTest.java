@@ -1030,6 +1030,221 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void durablePeerRestartLiveRunRequiresExplicitApprovalReport() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-naming-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-naming-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"local-server-to-peer-client\""), report);
+    assertTrue(report.contains("\"localServerRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerClientRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingServerCommand() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_DURABLE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"true\""), report);
+    assertTrue(report.contains("\"expectedClassification\": \"durable-ior-invoked\""), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "INTEROP_DURABLE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingNativeBinary() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_DURABLE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-native-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "INTEROP_DURABLE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "PATH",
+                    isolatedBin.toString(),
+                    "INTEROP_DURABLE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void durablePeerRestartPrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("durable-missing-image", 1, 0);
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--require-live",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_DURABLE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
+                        + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
   void durablePeerRawEvidencePathsRemainIgnored() throws Exception {
     String gitignore = Files.readString(repoRoot().resolve(".gitignore"));
 
@@ -1622,6 +1837,15 @@ final class InteropPeerGateTest {
         StandardCharsets.UTF_8);
     runtime.toFile().setExecutable(true);
     return runtime;
+  }
+
+  private Path isolatedPathWithoutContainerRuntime() throws IOException {
+    Path bin = temporaryDirectory.resolve("isolated-bin-" + System.nanoTime());
+    Files.createDirectories(bin);
+    for (String executable : List.of("bash", "python3", "date", "basename", "dirname", "mkdir")) {
+      Files.createSymbolicLink(bin.resolve(executable), executableOnPath(executable));
+    }
+    return bin;
   }
 
   private static List<String> pathEntries(String path) {

@@ -281,6 +281,7 @@ adds only the dry-run manifest metadata for these local-server-to-peer-client
 directions; live execution remains gated until deterministic
 missing-prerequisite reports and maintainer live approval are both recorded.
 
+G14-030 adds deterministic missing-prerequisite reports for this durable lane.
 The cache and image prerequisites match the existing live matrix: approved
 external peer cache entries, digest-pinned Java and native base images, prepared
 peer images, Docker or Podman, local JVM lane commands, Native Image server
@@ -304,8 +305,9 @@ Expected classifications include `durable-ior-invoked`,
 `durable-naming-resolved`, `server-ready`, `expected-deferral`,
 `unsupported-scenario`, `missing-prerequisite`, `infrastructure-failure`,
 `our-bug`, `peer-bug`, `profile-mismatch`, and `spec-ambiguity`. Actual live
-execution remains unapproved; raw reports, logs, IORs, Naming stores, peer
-artifacts, Docker layers, and native binaries remain ignored local outputs.
+execution is approved only for G14-040 after G14-030 completion; raw reports,
+logs, IORs, Naming stores, peer artifacts, Docker layers, and native binaries
+remain ignored local outputs.
 
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because

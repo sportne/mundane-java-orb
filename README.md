@@ -148,9 +148,9 @@ This repository is in **post-1.0.0 G14 durable peer persistence planning state**
   durable IOR and persistent Naming restart evidence before operational Naming
   store hardening, `MJNS` versioning policy, durable POA rehydration design, or
   live peer persistence claims;
-- the G14 durable peer persistence roadmap is packaged for future live peer
-  execution, but all live durable IOR/Naming claims remain blocked until
-  maintainers accept the local durable routing evidence;
+- the G14 durable peer persistence roadmap has accepted local durable routing
+  evidence and is ready for the scoped live durable IOR/Naming execution; any
+  broader durable peer claim remains gated by a separate maintainer decision;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -216,12 +216,11 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 G8 optional-service design gates are complete, and optional service
 implementation remains blocked behind service-specific task groups. G13-000
-through G13-090 are complete. G14-000 through G14-020 are complete, with
+through G13-090 are complete. G14-000 through G14-030 are complete, with
 maintainers accepting the local durable routing evidence for peer-harness
-preparation and dry-run peer harness metadata recorded. G14-030 durable peer
-prerequisite reports is the next ready-for-implementation task. G14-040 live
-durable peer execution remains human-gate-blocked.
+preparation, dry-run peer harness metadata recorded, and deterministic durable
+missing-prerequisite reports available. G14-040 live durable peer execution is
+the next ready-for-implementation task.
 
-Remaining human gates, including future live peer durable IOR/Naming execution,
-stay tracked as `human-gate-blocked` roadmap tasks until maintainers record the
-relevant decisions.
+Future live peer expansion beyond the approved G14-040 durable IOR/Naming
+directions stays out of scope until maintainers record a separate decision.

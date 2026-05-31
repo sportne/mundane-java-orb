@@ -7,7 +7,14 @@ public enum InteropFailureClassification {
   SPEC_AMBIGUITY("spec-ambiguity"),
   PROFILE_MISMATCH("profile-mismatch"),
   INFRASTRUCTURE_FAILURE("infrastructure-failure"),
-  EXPECTED_DEFERRAL("expected-deferral");
+  MISSING_PREREQUISITE("missing-prerequisite"),
+  UNSUPPORTED_SCENARIO("unsupported-scenario"),
+  EXPECTED_DEFERRAL("expected-deferral"),
+  SERVER_READY("server-ready"),
+  OBJECT_REFERENCE_CHECKED("object-reference-checked"),
+  CALCULATOR_CHECKED("calculator-checked"),
+  DURABLE_IOR_INVOKED("durable-ior-invoked"),
+  DURABLE_NAMING_RESOLVED("durable-naming-resolved");
 
   private final String wireName;
 

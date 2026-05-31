@@ -629,6 +629,21 @@ local_runtime_name() {
   fi
 }
 
+durable_scenario() {
+  case "${1:-}" in
+    g13-durable-ior-peer-client-restart|g13-durable-naming-peer-client-restart) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+durable_success_classification() {
+  case "${1:-}" in
+    g13-durable-ior-peer-client-restart) printf 'durable-ior-invoked\n' ;;
+    g13-durable-naming-peer-client-restart) printf 'durable-naming-resolved\n' ;;
+    *) printf 'expected-deferral\n' ;;
+  esac
+}
+
 ensure_container_network() {
   local runtime="$1"
   local network="${INTEROP_CONTAINER_NETWORK:-}"
@@ -670,6 +685,7 @@ import json
 import os
 import sys
 
+args = sys.argv[1:]
 (
     report_file,
     peer,
@@ -690,7 +706,8 @@ import sys
     started_at,
     ended_at,
     notes,
-) = sys.argv[1:]
+) = args[:19]
+extras = args[19:]
 
 data = {
     "peer": peer,
@@ -712,6 +729,13 @@ data = {
     "endedAt": ended_at,
     "notes": notes,
 }
+for item in extras:
+    if "=" not in item:
+        raise SystemExit(f"extra report field must use key=value: {item}")
+    key, value = item.split("=", 1)
+    if not key or not key.replace("_", "").isalnum():
+        raise SystemExit(f"extra report field key must be alphanumeric: {key}")
+    data[key] = value
 os.makedirs(os.path.dirname(report_file), exist_ok=True)
 with open(report_file, "w", encoding="utf-8") as handle:
     json.dump(data, handle, indent=2)
@@ -1423,6 +1447,118 @@ cleanup_started_local_server() {
   STARTED_LOCAL_SERVER_PID=""
 }
 
+durable_prerequisite_failure() {
+  local scenario="$1"
+  local runtime="$2"
+  local peer="$3"
+  if [[ "${INTEROP_DURABLE_LIVE_APPROVED:-}" != "true" ]]; then
+    printf 'live-approval\tINTEROP_DURABLE_LIVE_APPROVED must be true for approved durable live execution\n'
+    return 0
+  fi
+
+  local command_env command
+  if [[ "${runtime}" == "jvm" ]]; then
+    command_env="MJO_JVM_SERVER_COMMAND"
+    command="${!command_env:-}"
+    if [[ -z "${command}" ]]; then
+      printf '%s\t%s must provide the JVM durable restart server lane\n' "${command_env}" "${command_env}"
+      return 0
+    fi
+  else
+    command_env="MJO_NATIVE_SERVER_BINARY"
+    command="${!command_env:-}"
+    if [[ -z "${command}" || ! -x "${command}" ]]; then
+      printf '%s\t%s must point to an executable Native Image durable restart server lane\n' \
+        "${command_env}" "${command_env}"
+      return 0
+    fi
+  fi
+
+  local gate_output
+  if ! gate_output="$(validate_gates --require-cache "${peer}" 2>&1)"; then
+    printf 'artifact-cache\t%s\n' "${gate_output//$'\n'/; }"
+    return 0
+  fi
+
+  local manifest peer_type base_image_env base_image_value
+  manifest="$(manifest_path "${peer}")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+  base_image_env="$(base_image_env_name "${peer_type}")"
+  base_image_value="${!base_image_env:-}"
+  if [[ -z "${base_image_value}" || "${base_image_value}" != *@sha256:* ]]; then
+    printf '%s\t%s must be set to a digest-pinned image before durable live peer execution\n' \
+      "${base_image_env}" "${base_image_env}"
+    return 0
+  fi
+
+  local runtime_command
+  if [[ -n "${DEFAULT_RUNTIME}" ]]; then
+    runtime_command="${DEFAULT_RUNTIME}"
+  elif command -v docker >/dev/null 2>&1; then
+    runtime_command="docker"
+  elif command -v podman >/dev/null 2>&1; then
+    runtime_command="podman"
+  else
+    printf 'container-runtime\tCONTAINER_RUNTIME is unset and neither docker nor podman was found\n'
+    return 0
+  fi
+
+  local image
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  if ! "${runtime_command}" image inspect "${image}" >/dev/null 2>&1; then
+    printf 'peer-image\tpeer image is missing; run build-image first: %s\n' "${image}"
+    return 0
+  fi
+
+  return 1
+}
+
+write_durable_prerequisite_report() {
+  local scenario="$1"
+  local runtime="$2"
+  local peer="$3"
+  local missing="$4"
+  local message="$5"
+  local direction="local-server-to-peer-client"
+  local manifest peer_type peer_runtime peer_version image idl reports_dir logs_dir label report_abs
+  local stdout_abs stderr_abs started ended our_runtime
+  manifest="$(manifest_path "${peer}")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+  peer_runtime="$(peer_runtime_name "${peer_type}")"
+  peer_version="$(manifest_value "${manifest}" "candidateOrigin.version")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  idl="$(scenario_idl "${scenario}")"
+  reports_dir="build/interop/local/reports"
+  logs_dir="build/interop/local/logs"
+  label="$(report_label "${scenario}" "${peer}-${runtime}-server-${direction}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  our_runtime="$(local_runtime_name "${runtime}")"
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "$(dirname "${stderr_abs}")"
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  ended="${started}"
+  : >"${stdout_abs}"
+  printf '%s\n' "${message}" >"${stderr_abs}"
+  write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+    "${peer_runtime}" "${our_runtime}" "${runtime}-server-${direction}" "${image}" "${missing}" \
+    "failed" "missing-prerequisite" "1" "${logs_dir}/${label}.stdout.log" \
+    "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+    "${message}" \
+    "direction=${direction}" \
+    "localServerRuntime=${our_runtime}" \
+    "peerClientRuntime=${peer_runtime}" \
+    "missingPrerequisite=${missing}" \
+    "liveApprovalState=${INTEROP_DURABLE_LIVE_APPROVED:-missing}" \
+    "expectedClassification=$(durable_success_classification "${scenario}")" \
+    "evidencePolicy=clean-room-summary-only" \
+    "durableOrbIdLabel=g13-peer-restart-orb" \
+    "poaPathLabel=RootPOA/g13/persistent" \
+    "objectIdLabel=fixture-object" \
+    "restartPhase=missing-prerequisite" \
+    "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
+}
+
 start_local_server_lane() {
   local scenario="$1"
   local runtime="$2"
@@ -1783,6 +1919,17 @@ run_direction_matrix() {
           "local-server-to-peer-client"; then
         while IFS= read -r runtime; do
           STARTED_LOCAL_SERVER_PID=""
+          if durable_scenario "${scenario}" && [[ "${require_live}" == "true" ]]; then
+            prerequisite=""
+            if prerequisite="$(durable_prerequisite_failure "${scenario}" "${runtime}" "${peer}")"; then
+              missing="${prerequisite%%$'\t'*}"
+              message="${prerequisite#*$'\t'}"
+              write_durable_prerequisite_report \
+                "${scenario}" "${runtime}" "${peer}" "${missing}" "${message}"
+              failures=$((failures + 1))
+              continue
+            fi
+          fi
           if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
             run_container_role "${peer}" "client" "${scenario}" "${runtime}-server-to-peer-client" \
               "" "$(local_runtime_name "${runtime}")" \

@@ -187,6 +187,22 @@ final class InteropReportTest {
         IllegalArgumentException.class, () -> new InteropScenario("bad", "../BasicTypes.idl"));
   }
 
+  @Test
+  void durablePeerReportClassificationsAreKnownVocabulary() {
+    assertEquals(
+        InteropFailureClassification.MISSING_PREREQUISITE,
+        InteropFailureClassification.fromWireName("missing-prerequisite"));
+    assertEquals(
+        InteropFailureClassification.UNSUPPORTED_SCENARIO,
+        InteropFailureClassification.fromWireName("unsupported-scenario"));
+    assertEquals(
+        InteropFailureClassification.DURABLE_IOR_INVOKED,
+        InteropFailureClassification.fromWireName("durable-ior-invoked"));
+    assertEquals(
+        InteropFailureClassification.DURABLE_NAMING_RESOLVED,
+        InteropFailureClassification.fromWireName("durable-naming-resolved"));
+  }
+
   private static InteropReport sampleReport(String notes) {
     return new InteropReport(
         "jacorb",
