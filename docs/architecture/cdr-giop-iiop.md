@@ -155,3 +155,9 @@ survive a local ORB/POA/server restart when the caller recreates the same
 durable ORB id, POA path, object id, and endpoint. Malformed durable-key
 prefixes are rejected before dispatch with deterministic system-exception
 replies; stale or unbound durable keys remain `OBJECT_NOT_EXIST`.
+
+G13-010 verifies that restart behavior across separate JVM processes, not only
+same-process object recreation. The old `IOR:` string continues to carry the
+original opaque object-key octets, and the restarted IIOP server routes them
+only when the durable ORB id, POA path, object id, endpoint, and active binding
+match the original server process.

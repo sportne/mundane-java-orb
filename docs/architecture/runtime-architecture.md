@@ -170,6 +170,12 @@ caller-configured: the process must recreate the same durable ORB id, POA path,
 object id, servant binding, and endpoint before an old stringified IOR can route
 locally.
 
+G13-010 strengthens that claim with forked-JVM evidence. The durable IOR restart
+test starts one server process, records its stringified IOR, exits that process,
+starts a second process with the same durable ORB id, endpoint, POA path, object
+id, and servant binding, and dispatches through the old IOR. Wrong-ORB and
+missing-binding restarts remain deterministic unknown-object failures.
+
 This path does not add CORBA Security Service policy, RMI-IIOP value semantics,
 live peer harness execution, reflection dispatch, dynamic proxies, runtime
 bytecode generation, Java serialization marshaling, or generated production

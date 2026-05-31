@@ -27,10 +27,15 @@ import io.github.mundanej.mjo.naming.NamingName;
 import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.OrbIdentity;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.List;
+import java.util.Properties;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -230,6 +235,51 @@ final class NetworkNamingServiceTest {
   }
 
   @Test
+  void persistentNamingCorbanameResolvesAfterForkedJvmRestart() throws Exception {
+    Path store = tempDir.resolve("process-names.mjns");
+    OrbIdentity identity = OrbIdentity.durable("g13-process-naming-orb");
+    Ior object = durableFixtureIor(identity, "service");
+    ProcessState first =
+        startPersistentNaming(
+            identity.requireDurableOrbId(),
+            store,
+            0,
+            true,
+            tempDir.resolve("naming-first-ready.properties"));
+    String corbaname = first.ready().getProperty("corbaname");
+    int port = Integer.parseInt(first.ready().getProperty("port"));
+
+    try (first) {
+      assertEquals(
+          object,
+          NetworkNamingClient.resolve(CorbanameUrl.parse(corbaname), IiopOptions.defaults()).ior());
+    }
+
+    ProcessState restarted =
+        startPersistentNaming(
+            identity.requireDurableOrbId(),
+            store,
+            port,
+            false,
+            tempDir.resolve("naming-second-ready.properties"));
+    try (restarted) {
+      assertEquals(
+          object,
+          NetworkNamingClient.resolve(CorbanameUrl.parse(corbaname), IiopOptions.defaults()).ior());
+    }
+
+    Process wrongOrb =
+        startRejectedPersistentNaming(
+            "g13-process-other-naming-orb", store, port, tempDir.resolve("naming-wrong-orb.log"));
+    boolean exited = wrongOrb.waitFor(10, java.util.concurrent.TimeUnit.SECONDS);
+    if (!exited) {
+      wrongOrb.destroyForcibly();
+    }
+    assertTrue(exited, "wrong-ORB Naming restart did not exit");
+    assertTrue(wrongOrb.exitValue() != 0, "wrong-ORB Naming restart unexpectedly succeeded");
+  }
+
+  @Test
   void persistentNamingRejectsTransientAndMalformedDurableIors() {
     NamingPersistenceOptions options =
         NamingPersistenceOptions.of(
@@ -420,6 +470,204 @@ final class NetworkNamingServiceTest {
   private static void assertCode(Object expectedCode, ThrowingRunnable runnable) {
     NamingException exception = assertThrows(NamingException.class, runnable::run);
     assertEquals(expectedCode, exception.code());
+  }
+
+  private ProcessState startPersistentNaming(
+      String orbId, Path store, int port, boolean initialize, Path readyFile) throws Exception {
+    Path stopFile = readyFile.resolveSibling(readyFile.getFileName() + ".stop");
+    Path logFile = readyFile.resolveSibling(readyFile.getFileName() + ".log");
+    List<String> command =
+        namingCommand(
+            PersistentNamingRestartServer.class.getName(),
+            orbId,
+            store,
+            port,
+            readyFile,
+            stopFile,
+            Boolean.toString(initialize));
+    Process process =
+        new ProcessBuilder(command)
+            .redirectErrorStream(true)
+            .redirectOutput(logFile.toFile())
+            .start();
+    return ProcessState.await(process, readyFile, stopFile, logFile);
+  }
+
+  private Process startRejectedPersistentNaming(String orbId, Path store, int port, Path logFile)
+      throws Exception {
+    List<String> command =
+        namingCommand(
+            PersistentNamingRestartServer.class.getName(),
+            orbId,
+            store,
+            port,
+            tempDir.resolve("wrong-orb-ready.properties"),
+            tempDir.resolve("wrong-orb.stop"),
+            Boolean.toString(false));
+    return new ProcessBuilder(command)
+        .redirectErrorStream(true)
+        .redirectOutput(logFile.toFile())
+        .start();
+  }
+
+  private static List<String> namingCommand(
+      String className,
+      String orbId,
+      Path store,
+      int port,
+      Path readyFile,
+      Path stopFile,
+      String initialize) {
+    return List.of(
+        Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+        "-cp",
+        System.getProperty("java.class.path"),
+        className,
+        readyFile.toString(),
+        stopFile.toString(),
+        orbId,
+        store.toString(),
+        Integer.toString(port),
+        initialize);
+  }
+
+  /** Child JVM entrypoint for process-level persistent Naming restart tests. */
+  public static final class PersistentNamingRestartServer {
+
+    private PersistentNamingRestartServer() {}
+
+    /** Starts a persistent Naming Service until the stop file appears. */
+    public static void main(String[] args) throws Exception {
+      Path readyFile = Path.of(args[0]);
+      Path stopFile = Path.of(args[1]);
+      OrbIdentity identity = OrbIdentity.durable(args[2]);
+      Path store = Path.of(args[3]);
+      int port = Integer.parseInt(args[4]);
+      boolean initialize = Boolean.parseBoolean(args[5]);
+      NamingPersistenceOptions persistenceOptions = NamingPersistenceOptions.of(identity, store);
+      try (NetworkNamingService service =
+          NetworkNamingService.bind(
+              IiopEndpoint.loopback(port), IiopOptions.defaults(), persistenceOptions)) {
+        if (initialize) {
+          Ior object = durableFixtureIor(identity, "service");
+          try (NetworkNamingClient root =
+              NetworkNamingClient.connect(service.ior(), IiopOptions.defaults())) {
+            RemoteNamingBindingTarget child = root.bindNewContext(NamingName.parse("apps"));
+            try (NetworkNamingClient childClient =
+                NetworkNamingClient.connect(child.ior(), IiopOptions.defaults())) {
+              childClient.bind(NamingName.parse("service"), object);
+            }
+          }
+        }
+        Properties properties = new Properties();
+        properties.setProperty("host", service.endpoint().host());
+        properties.setProperty("port", Integer.toString(service.endpoint().port()));
+        properties.setProperty(
+            "corbaname",
+            "corbaname:" + service.corbaloc().substring("corbaloc:".length()) + "#apps/service");
+        publishReady(readyFile, properties);
+        while (!Files.exists(stopFile)) {
+          Thread.sleep(50L);
+        }
+      }
+    }
+  }
+
+  private static final class ProcessState implements AutoCloseable {
+
+    private static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(15);
+
+    private final Process process;
+    private final Properties ready;
+    private final Path stopFile;
+    private final Path logFile;
+    private boolean stopped;
+
+    private ProcessState(Process process, Properties ready, Path stopFile, Path logFile) {
+      this.process = process;
+      this.ready = ready;
+      this.stopFile = stopFile;
+      this.logFile = logFile;
+    }
+
+    private static ProcessState await(Process process, Path readyFile, Path stopFile, Path logFile)
+        throws Exception {
+      long deadline = System.nanoTime() + STARTUP_TIMEOUT.toNanos();
+      while (System.nanoTime() < deadline) {
+        if (Files.exists(readyFile)) {
+          Properties ready = new Properties();
+          try (InputStream input = Files.newInputStream(readyFile)) {
+            ready.load(input);
+          }
+          return new ProcessState(process, ready, stopFile, logFile);
+        }
+        if (!process.isAlive()) {
+          throw new AssertionError("child exited before ready: " + log(logFile));
+        }
+        Thread.sleep(50L);
+      }
+      process.destroyForcibly();
+      throw new AssertionError("child did not become ready: " + log(logFile));
+    }
+
+    private Properties ready() {
+      return ready;
+    }
+
+    private void stop() {
+      if (stopped) {
+        return;
+      }
+      try {
+        Files.writeString(stopFile, "stop");
+        if (!process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+          process.destroyForcibly();
+          throw new AssertionError("child did not stop: " + log(logFile));
+        }
+      } catch (InterruptedException exception) {
+        process.destroyForcibly();
+        Thread.currentThread().interrupt();
+        throw new AssertionError(
+            "interrupted while stopping child: " + safeLog(logFile), exception);
+      } catch (Exception exception) {
+        process.destroyForcibly();
+        throw new AssertionError("failed to stop child: " + safeLog(logFile), exception);
+      }
+      if (process.exitValue() != 0) {
+        throw new AssertionError(
+            "child exited with " + process.exitValue() + ": " + safeLog(logFile));
+      }
+      stopped = true;
+    }
+
+    @Override
+    public void close() {
+      stop();
+    }
+
+    private static String log(Path logFile) throws Exception {
+      return Files.exists(logFile) ? Files.readString(logFile) : "<no child log>";
+    }
+
+    private static String safeLog(Path logFile) {
+      try {
+        return log(logFile);
+      } catch (Exception exception) {
+        return "<unreadable child log: " + exception.getMessage() + ">";
+      }
+    }
+  }
+
+  private static void publishReady(Path readyFile, Properties properties) throws Exception {
+    Path tempFile = readyFile.resolveSibling(readyFile.getFileName() + ".writing");
+    try (OutputStream output = Files.newOutputStream(tempFile)) {
+      properties.store(output, "ready");
+    }
+    try {
+      Files.move(tempFile, readyFile, StandardCopyOption.ATOMIC_MOVE);
+    } catch (java.io.IOException exception) {
+      Files.move(tempFile, readyFile, StandardCopyOption.REPLACE_EXISTING);
+    }
   }
 
   private static byte[] rawStore(OrbIdentity identity, Ior contextIor, boolean withEmptyBinding) {

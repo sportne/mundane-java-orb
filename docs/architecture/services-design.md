@@ -30,6 +30,13 @@ operations. It rejects corrupted or oversized stores, traversal-containing store
 paths, transient IORs, malformed durable object keys, and wrong-ORB durable
 targets before committing state.
 
+G13-010 adds process-level evidence for that caller-managed model. A forked
+Naming server process creates a durable binding and persistent child context,
+exits, and a second server process with the same durable ORB id, store, and
+endpoint resolves the original `corbaname` value through the old location. A
+restart with a different configured ORB id rejects the existing store during
+startup rather than silently adopting another identity.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

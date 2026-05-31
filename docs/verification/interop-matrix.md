@@ -226,6 +226,21 @@ unknown-object failures. The structured report evidence is local-only under the
 `g12-persistent-ior-roundtrip` scenario; G12-130 does not promote a new live
 peer scenario or commit raw report outputs.
 
+## G13-010 cross-process durable restart lane
+
+G13-010 upgrades the local persistent IOR and persistent Naming evidence from
+same-process restart simulation to forked JVM restart tests. The IIOP lane
+records a stringified persistent IOR from the first server process, exits that
+process, starts a second server process with the same durable ORB id, endpoint,
+POA path, object id, and binding, and dispatches through the old IOR. Wrong-ORB
+and missing-binding restarts fail as deterministic unknown-object cases.
+
+The Naming lane records a remote `corbaname` value from the first persistent
+Naming server process, exits it, starts a second process with the same durable
+ORB id, endpoint, and `MJNS` store, and resolves the old `corbaname` value.
+This is still local loopback evidence only; it does not approve live peer
+persistent IOR or Naming execution.
+
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because
 `INTEROP_ARTIFACT_CACHE` was unset and approved cache entries were unavailable.

@@ -213,7 +213,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 The next non-human-gated roadmap task ready for implementation is:
 
-- `docs/roadmap/tasks/g13-010-cross-process-durable-restart-evidence.md`
+- `docs/roadmap/tasks/g13-020-naming-store-operational-hardening.md`
 
 Remaining human gates, including optional CORBA service approval and future live
 peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap

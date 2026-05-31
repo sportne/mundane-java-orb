@@ -207,3 +207,7 @@ ordinary file I/O, bounded codecs, and explicit constructors only; it introduces
 no reflection metadata, dynamic proxies, Java serialization metadata,
 service-loader discovery, runtime bytecode generation, internal JDK APIs, or
 `Unsafe`.
+
+G13-010 adds forked-JVM restart coverage in the normal unit-test lane without
+changing Native Image smoke entrypoints. The existing native smoke remains the
+Native Image parity check for the durable Naming persistence API surface.

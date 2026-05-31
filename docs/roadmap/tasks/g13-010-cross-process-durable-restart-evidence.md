@@ -1,7 +1,7 @@
 # G13-010 Cross-Process Durable Restart Evidence
 
 Task ID: G13-010-CROSS-PROCESS-DURABLE-RESTART-EVIDENCE
-Status: ready-for-implementation
+Status: complete
 Gate: G13 durable runtime hardening
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-NAM-001, REQ-INTEROP-009, REQ-NATIVE-002, REQ-SEC-006
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014

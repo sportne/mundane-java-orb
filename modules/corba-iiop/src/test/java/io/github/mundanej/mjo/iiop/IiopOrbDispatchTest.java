@@ -41,12 +41,20 @@ import io.github.mundanej.mjo.typecode.IdlParameterDescriptor;
 import io.github.mundanej.mjo.typecode.IdlParameterMode;
 import io.github.mundanej.mjo.typecode.IdlTypeKind;
 import io.github.mundanej.mjo.typecode.IdlTypeReference;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.omg.CORBA.SystemException;
 
 /** Local integration tests for network IIOP dispatch through ORB and POA references. */
@@ -77,6 +85,8 @@ final class IiopOrbDispatchTest {
           List.of(),
           List.of(GREET));
   private static final IiopInvocationCodec STRING_CODEC = new StringOperationCodec();
+
+  @TempDir Path tempDir;
 
   @Test
   void poaActivatedServantDispatchesOverLoopbackIiop() {
@@ -326,6 +336,58 @@ final class IiopOrbDispatchTest {
       try (IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
         assertEquals("Hello Ada", client.invoke(GREET, STRING_CODEC, List.of("Ada")));
       }
+    }
+  }
+
+  @Test
+  void persistentStringifiedIorRoutesAfterForkedJvmRestart() throws Exception {
+    ProcessState first =
+        startPersistentServer(
+            "g13-process-ior-orb", 0, true, tempDir.resolve("first-ready.properties"));
+    String stringifiedIor = first.ready().getProperty("ior");
+    int port = Integer.parseInt(first.ready().getProperty("port"));
+
+    try (first;
+        IiopOrbClient client =
+            IiopOrbClient.connect(
+                IiopObjectReference.fromIor(StringifiedIor.parse(stringifiedIor)),
+                IiopOptions.defaults())) {
+      assertEquals("Hello Ada", client.invoke(GREET, STRING_CODEC, List.of("Ada")));
+    }
+
+    IiopObjectReference parsedReference =
+        IiopObjectReference.fromIor(StringifiedIor.parse(stringifiedIor));
+
+    ProcessState restarted =
+        startPersistentServer(
+            "g13-process-ior-orb", port, true, tempDir.resolve("second-ready.properties"));
+    try (restarted;
+        IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
+      assertEquals("Hello Bob", client.invoke(GREET, STRING_CODEC, List.of("Bob")));
+    }
+
+    parsedReference = IiopObjectReference.fromIor(StringifiedIor.parse(stringifiedIor));
+
+    ProcessState wrongOrb =
+        startPersistentServer(
+            "g13-process-other-orb", port, true, tempDir.resolve("wrong-orb-ready.properties"));
+    try (wrongOrb;
+        IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
+      SystemException exception =
+          assertThrows(
+              SystemException.class, () -> client.invoke(GREET, STRING_CODEC, List.of("Mallory")));
+      assertEquals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0", exception.getMessage());
+    }
+
+    ProcessState missingBinding =
+        startPersistentServer(
+            "g13-process-ior-orb", port, false, tempDir.resolve("missing-ready.properties"));
+    try (missingBinding;
+        IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
+      SystemException exception =
+          assertThrows(
+              SystemException.class, () -> client.invoke(GREET, STRING_CODEC, List.of("Mallory")));
+      assertEquals("IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0", exception.getMessage());
     }
   }
 
@@ -829,6 +891,170 @@ final class IiopOrbDispatchTest {
   private static String decodedStringReply(GiopReply reply) {
     assertEquals(GiopReplyStatus.NO_EXCEPTION, reply.replyStatus());
     return CdrReader.bigEndian(reply.body()).readString();
+  }
+
+  private ProcessState startPersistentServer(
+      String orbId, int port, boolean bindObject, Path readyFile) throws Exception {
+    Path stopFile = readyFile.resolveSibling(readyFile.getFileName() + ".stop");
+    Path logFile = readyFile.resolveSibling(readyFile.getFileName() + ".log");
+    List<String> command =
+        List.of(
+            Path.of(System.getProperty("java.home"), "bin", "java").toString(),
+            "-cp",
+            System.getProperty("java.class.path"),
+            PersistentRestartServer.class.getName(),
+            readyFile.toString(),
+            stopFile.toString(),
+            orbId,
+            Integer.toString(port),
+            Boolean.toString(bindObject));
+    Process process =
+        new ProcessBuilder(command)
+            .redirectErrorStream(true)
+            .redirectOutput(logFile.toFile())
+            .start();
+    return ProcessState.await(process, readyFile, stopFile, logFile);
+  }
+
+  /** Child JVM entrypoint for process-level durable IOR restart tests. */
+  public static final class PersistentRestartServer {
+
+    private PersistentRestartServer() {}
+
+    /** Starts a durable ORB-backed IIOP server until the stop file appears. */
+    public static void main(String[] args) throws Exception {
+      Path readyFile = Path.of(args[0]);
+      Path stopFile = Path.of(args[1]);
+      String orbId = args[2];
+      int port = Integer.parseInt(args[3]);
+      boolean bindObject = Boolean.parseBoolean(args[4]);
+      LocalOrb orb = LocalOrb.create(OrbIdentity.durable(orbId));
+      Poa poa = Poa.createRoot(orb, persistentUserIdPolicy());
+      IiopOrbServerHandler.Builder builder = IiopOrbServerHandler.builder(orb);
+      LocalObjectReference<Greeter> reference = null;
+      if (bindObject) {
+        reference =
+            poa.activateServantWithId(
+                "alpha",
+                Greeter.class,
+                GREETER_DESCRIPTOR,
+                new GreeterServant(),
+                new GreeterDispatcher());
+        builder.bind(reference, List.of(new IiopOperationBinding(GREET, STRING_CODEC)));
+      }
+      try (IiopServer server =
+          IiopServer.bind(IiopEndpoint.loopback(port), IiopOptions.defaults(), builder.build())) {
+        Properties properties = new Properties();
+        properties.setProperty("host", server.endpoint().host());
+        properties.setProperty("port", Integer.toString(server.endpoint().port()));
+        if (reference != null) {
+          IiopObjectReference networkReference =
+              IiopObjectReference.fromLocal(server.endpoint(), reference);
+          properties.setProperty("ior", StringifiedIor.format(networkReference.ior()));
+        }
+        publishReady(readyFile, properties);
+        while (!Files.exists(stopFile)) {
+          Thread.sleep(50L);
+        }
+      }
+    }
+  }
+
+  private static final class ProcessState implements AutoCloseable {
+
+    private static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(15);
+
+    private final Process process;
+    private final Properties ready;
+    private final Path stopFile;
+    private final Path logFile;
+    private boolean stopped;
+
+    private ProcessState(Process process, Properties ready, Path stopFile, Path logFile) {
+      this.process = process;
+      this.ready = ready;
+      this.stopFile = stopFile;
+      this.logFile = logFile;
+    }
+
+    private static ProcessState await(Process process, Path readyFile, Path stopFile, Path logFile)
+        throws Exception {
+      long deadline = System.nanoTime() + STARTUP_TIMEOUT.toNanos();
+      while (System.nanoTime() < deadline) {
+        if (Files.exists(readyFile)) {
+          Properties ready = new Properties();
+          try (InputStream input = Files.newInputStream(readyFile)) {
+            ready.load(input);
+          }
+          return new ProcessState(process, ready, stopFile, logFile);
+        }
+        if (!process.isAlive()) {
+          throw new AssertionError("child exited before ready: " + log(logFile));
+        }
+        Thread.sleep(50L);
+      }
+      process.destroyForcibly();
+      throw new AssertionError("child did not become ready: " + log(logFile));
+    }
+
+    private Properties ready() {
+      return ready;
+    }
+
+    private void stop() {
+      if (stopped) {
+        return;
+      }
+      try {
+        Files.writeString(stopFile, "stop");
+        if (!process.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+          process.destroyForcibly();
+          throw new AssertionError("child did not stop: " + log(logFile));
+        }
+      } catch (InterruptedException exception) {
+        process.destroyForcibly();
+        Thread.currentThread().interrupt();
+        throw new AssertionError(
+            "interrupted while stopping child: " + safeLog(logFile), exception);
+      } catch (Exception exception) {
+        process.destroyForcibly();
+        throw new AssertionError("failed to stop child: " + safeLog(logFile), exception);
+      }
+      if (process.exitValue() != 0) {
+        throw new AssertionError(
+            "child exited with " + process.exitValue() + ": " + safeLog(logFile));
+      }
+      stopped = true;
+    }
+
+    @Override
+    public void close() {
+      stop();
+    }
+
+    private static String log(Path logFile) throws Exception {
+      return Files.exists(logFile) ? Files.readString(logFile) : "<no child log>";
+    }
+
+    private static String safeLog(Path logFile) {
+      try {
+        return log(logFile);
+      } catch (Exception exception) {
+        return "<unreadable child log: " + exception.getMessage() + ">";
+      }
+    }
+  }
+
+  private static void publishReady(Path readyFile, Properties properties) throws Exception {
+    Path tempFile = readyFile.resolveSibling(readyFile.getFileName() + ".writing");
+    try (OutputStream output = Files.newOutputStream(tempFile)) {
+      properties.store(output, "ready");
+    }
+    try {
+      Files.move(tempFile, readyFile, StandardCopyOption.ATOMIC_MOVE);
+    } catch (java.io.IOException exception) {
+      Files.move(tempFile, readyFile, StandardCopyOption.REPLACE_EXISTING);
+    }
   }
 
   private interface Greeter {
