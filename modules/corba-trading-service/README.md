@@ -1,10 +1,11 @@
 # corba-trading-service
 
-Trading Service implementation module, initially design-only.
+Trading Service implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0020. Implementation remains blocked behind
+`G8-400-TRADING-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 

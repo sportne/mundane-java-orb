@@ -370,7 +370,8 @@ and are not committed.
 
 ## Optional service lanes
 
-G6-D20 splits Trading, Event, Notification, Transaction, Security, and Time
-Services into separate human-gated design tasks. No optional service currently
-has a live peer lane, structured report schema, or pass/fail evidence. Future
-service gates must add those details before any peer execution is required.
+G8 accepts staged designs for Time, Event, Notification, Trading, Transaction,
+and Security/CSIv2 Services through ADR-0016 through ADR-0022. No optional
+service currently has a live peer lane, structured report schema, or pass/fail
+evidence. The blocked G8 task groups must add service-specific metadata and
+missing-prerequisite reports before any peer execution is required.

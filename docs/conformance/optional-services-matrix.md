@@ -1,14 +1,14 @@
 # Optional Services Conformance Matrix
 
-G6-D20 records service-gate traceability only. These rows do not claim
-implementation, local compatibility, Native Image execution, or live peer
-interop.
+G8 records accepted optional-service designs and blocked implementation task
+groups. These rows do not claim implementation, local compatibility, Native
+Image execution, or live peer interop until follow-on tasks are promoted.
 
 | Service behavior | Clause / section | Requirement IDs | Status | Test IDs | Notes |
 |---|---|---|---|---|---|
-| Trading Service | TRADE-10 | REQ-SVC-010, REQ-SVC-001 | deferred | unassigned | Split into `G8-D10-TRADING-SERVICE-DESIGN-GATE`. No trader, offer repository, service type repository, import/export, or constraint behavior is implemented. |
-| Event Service | EVNT-12 | REQ-SVC-020, REQ-SVC-001 | deferred | unassigned | Split into `G8-D20-EVENT-SERVICE-DESIGN-GATE`. No event channel, push/pull supplier, push/pull consumer, or channel lifecycle behavior is implemented. |
-| Notification Service | NOT-11 | REQ-SVC-030, REQ-SVC-001 | deferred | unassigned | Split into `G8-D30-NOTIFICATION-SERVICE-DESIGN-GATE`. No notification channel, filtering, QoS/admin, or Event Service compatibility behavior is implemented. |
-| Transaction Service / OTS | TRANS-14 | REQ-SVC-040, REQ-SVC-001 | deferred | unassigned | Split into `G8-D40-TRANSACTION-SERVICE-DESIGN-GATE`. No coordinator, resource, propagation, recovery, or transaction context behavior is implemented. |
-| Security Service / CSIv2 | SEC-18; CORBA-IOP-SECURITY | REQ-SVC-050, REQ-SVC-001 | deferred | unassigned | Split into `G8-D50-SECURITY-SERVICE-DESIGN-GATE`. No credential, policy, access-decision, audit, secure invocation, or CSIv2 behavior is implemented. |
-| Time Service | TIME-11 | REQ-SVC-060, REQ-SVC-001 | deferred | unassigned | Split into `G8-D60-TIME-SERVICE-DESIGN-GATE`. No universal time, time interval, timer event, or clock synchronization behavior is implemented. |
+| Time Service | TIME-11 | REQ-SVC-060, REQ-SVC-001 | design-approved | planned in G8-100 | ADR-0017 approves the staged design: value/clock model, local behavior, optional IIOP/Naming exposure, Native Image smoke, interop metadata, and closure. No universal time or interval behavior is implemented yet. |
+| Event Service | EVNT-12 | REQ-SVC-020, REQ-SVC-001 | design-approved | planned in G8-200 | ADR-0018 approves the staged design: channel model, push/pull delivery, backpressure, optional IIOP/Naming exposure, Native Image smoke, interop metadata, and closure. No event channel behavior is implemented yet. |
+| Notification Service | NOT-11 | REQ-SVC-030, REQ-SVC-001 | design-approved | planned in G8-300 | ADR-0019 approves the staged design: Event Service boundary, structured events, bounded filters, QoS/admin policy, local delivery, Native Image smoke, interop metadata, and closure. No notification behavior is implemented yet. |
+| Trading Service | TRADE-10 | REQ-SVC-010, REQ-SVC-001 | design-approved | planned in G8-400 | ADR-0020 approves the staged design: service type repository, offer repository, bounded constraint parsing, local query, import/export design, Native Image smoke, interop metadata, and closure. No trader behavior is implemented yet. |
+| Transaction Service / OTS | TRANS-14 | REQ-SVC-040, REQ-SVC-001 | design-approved | planned in G8-500 | ADR-0021 approves the staged design: coordinator/resource model, timeout policy, local state transitions, propagation metadata, recovery design, Native Image smoke, interop metadata, and closure. No transaction behavior is implemented yet. |
+| Security Service / CSIv2 | SEC-18; CORBA-IOP-SECURITY | REQ-SVC-050, REQ-SVC-001 | design-approved | planned in G8-600 | ADR-0022 approves the staged design: credential/trust model, policy model, CSIv2 metadata, audit/failure disclosure, IIOP integration, Native Image smoke, interop metadata, and closure. No security-service behavior is implemented yet. |

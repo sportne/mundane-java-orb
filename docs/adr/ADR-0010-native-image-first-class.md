@@ -9,13 +9,20 @@ decisions before coding begins.
 
 ## Decision
 
-Validate JVM and Native Image behavior across OpenJDK and GraalVM Java 21/25 matrices.
+Validate JVM and Native Image behavior across OpenJDK and GraalVM Java 21/25
+matrices. Optional CORBA services inherit this policy: service implementations
+must use explicit runtime objects and deterministic metadata, not reflection
+metadata, classpath scanning, service-loader discovery, dynamic proxies, Java
+serialization metadata, runtime bytecode generation, `Unsafe`, `sun.*`, or
+`jdk.internal.*`.
 
 ## Consequences
 
 - Coding-agent work can be scoped and audited.
 - Build and architecture gates become part of the project contract.
 - Future changes must update this ADR or supersede it.
+- Optional service ADRs may add stricter service-specific Native Image smoke
+  expectations, but they do not weaken this baseline.
 
 ## Requirements affected
 
@@ -26,5 +33,5 @@ Validate JVM and Native Image behavior across OpenJDK and GraalVM Java 21/25 mat
 ## Specification references
 
 Operational runtime-compatibility decision. Feature-specific Native Image tasks
-must cite the relevant CORBA, IDL, language-mapping, or Naming reference from
-`docs/specification-traceability.md`.
+must cite the relevant CORBA, IDL, language-mapping, Naming, or optional-service
+reference from `docs/specification-traceability.md`.

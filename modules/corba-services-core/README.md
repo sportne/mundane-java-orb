@@ -4,7 +4,8 @@ Shared infrastructure for optional CORBA services.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0016. Runtime behavior remains blocked until a promoted
+optional-service task names the exact shared contract.
 
 ## Documentation requirements
 

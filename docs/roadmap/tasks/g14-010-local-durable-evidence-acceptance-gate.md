@@ -1,7 +1,7 @@
 # G14-010 Local Durable Evidence Acceptance Gate
 
 Task ID: G14-010-LOCAL-DURABLE-EVIDENCE-ACCEPTANCE-GATE
-Status: human-gate-blocked
+Status: complete
 Gate: G14 durable peer persistence execution
 Requirement IDs: REQ-IOR-002, REQ-NAM-001, REQ-POA-001, REQ-POA-002, REQ-ORB-001, REQ-INTEROP-009, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0003, ADR-0005, ADR-0008, ADR-0010, ADR-0014, ADR-0015
@@ -14,4 +14,5 @@ Tests to add/update: No product tests; later approved tasks may add harness meta
 Documentation to update: This task, roadmap index, README ready-task status, and the next G14 task statuses if maintainers accept the local durable evidence.
 Commands to run: ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Maintainers explicitly record whether local durable evidence is accepted for live peer preparation; if accepted, promote G14-020 to `ready-for-implementation` and keep G14-040 human-gated; if rejected, leave G14-020/G14-030 blocked and record the missing local evidence as future work.
+Completion evidence: Completed on 2026-05-31 by explicit maintainer approval in the project thread. Maintainers accepted the completed G13 local durable evidence as sufficient to prepare live peer durable IOR/Naming harness metadata: cross-process durable IOR and persistent Naming restart evidence, durable POA path registration, adapter activation lookup, servant-manager rehydration, and IIOP durable-key routing are complete locally. The accepted claim remains local evidence only; live peer durable IOR/Naming execution remains human-gated under G14-040.
 Rollback notes: Revert only the acceptance-status documentation changes; do not alter completed G13 implementation commits.

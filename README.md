@@ -135,9 +135,9 @@ This repository is in **post-1.0.0 G14 durable peer persistence planning state**
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
-- optional Trading, Event, Notification, Transaction, Security, and Time
-  Services are split into separately traceable human-gated design tasks, with
-  no service behavior implemented by that split;
+- optional Time, Event, Notification, Trading, Transaction, and Security/CSIv2
+  Services now have accepted G8 ADR designs and blocked task groups, with no
+  service behavior implemented by that design pass;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -214,12 +214,14 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-G13-000 through G13-090 are complete. G14-000 is complete as roadmap packaging.
-G14-010 local durable evidence acceptance and G14-040 live durable peer
-execution remain explicit human gates. G14-020/G14-030 peer harness preparation
-is held behind the G14-010 gate until maintainers accept local durable evidence,
-so there is no non-human-gated ready G14 task yet.
+G8 optional-service design gates are complete, and optional service
+implementation remains blocked behind service-specific task groups. G13-000
+through G13-090 are complete. G14-000 and G14-010 are complete, with
+maintainers accepting the local durable routing evidence for peer-harness
+preparation. G14-020 durable peer harness metadata is the next
+ready-for-implementation task. G14-040 live durable peer execution remains
+human-gate-blocked.
 
-Remaining human gates, including optional CORBA service approval and future live
-peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap
-tasks until maintainers record the relevant decisions.
+Remaining human gates, including future live peer durable IOR/Naming execution,
+stay tracked as `human-gate-blocked` roadmap tasks until maintainers record the
+relevant decisions.

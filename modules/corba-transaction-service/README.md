@@ -1,10 +1,11 @@
 # corba-transaction-service
 
-Transaction Service / OTS implementation module, initially design-only.
+Transaction Service / OTS implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0021. Implementation remains blocked behind
+`G8-500-TRANSACTION-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 

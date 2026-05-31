@@ -1,10 +1,11 @@
 # corba-notification-service
 
-Notification Service implementation module, initially design-only.
+Notification Service implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0019. Implementation remains blocked behind
+`G8-300-NOTIFICATION-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 

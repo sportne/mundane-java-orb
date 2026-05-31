@@ -1,10 +1,11 @@
 # corba-time-service
 
-Time Service implementation module, initially design-only.
+Time Service implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0017. Implementation remains blocked behind
+`G8-100-TIME-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 

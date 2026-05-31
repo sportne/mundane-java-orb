@@ -9,7 +9,11 @@ decisions before coding begins.
 
 ## Decision
 
-CORBA 3.4 is the primary normative baseline; CORBA 3.3, CORBA 3.2, and legacy Java/CORBA behavior are compatibility profiles.
+CORBA 3.4 is the primary normative baseline; CORBA 3.3, CORBA 3.2, and legacy
+Java/CORBA behavior are compatibility profiles. CosNaming is part of the
+required baseline. Trading, Event, Notification, Transaction, Security/CSIv2,
+and Time are optional service baselines that require separate ADR and roadmap
+approval before implementation.
 
 ## Consequences
 
@@ -31,6 +35,7 @@ CORBA 3.4 is the primary normative baseline; CORBA 3.3, CORBA 3.2, and legacy Ja
 - REQ-INT-001
 - REQ-NAM-001
 - REQ-RMI-001
+- REQ-SVC-010 through REQ-SVC-060
 
 ## Specification references
 
@@ -40,3 +45,9 @@ CORBA 3.4 is the primary normative baseline; CORBA 3.3, CORBA 3.2, and legacy Ja
 - I2JAV-13
 - JAV2I-14
 - NAM-13
+- TRADE-10
+- EVNT-12
+- NOT-11
+- TRANS-14
+- SEC-18
+- TIME-11

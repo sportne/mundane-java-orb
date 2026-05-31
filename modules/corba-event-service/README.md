@@ -1,10 +1,11 @@
 # corba-event-service
 
-Event Service implementation module, initially design-only.
+Event Service implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0018. Implementation remains blocked behind
+`G8-200-EVENT-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 

@@ -110,12 +110,18 @@ values, task-type markers, and the rule that at least one task is active as
 ## G8 Optional CORBA Services
 
 - `tasks/g6-d20-optional-corba-services.md` - complete
-- `tasks/g8-d10-trading-service-design-gate.md` - human-gate-blocked
-- `tasks/g8-d20-event-service-design-gate.md` - human-gate-blocked
-- `tasks/g8-d30-notification-service-design-gate.md` - human-gate-blocked
-- `tasks/g8-d40-transaction-service-design-gate.md` - human-gate-blocked
-- `tasks/g8-d50-security-service-design-gate.md` - human-gate-blocked
-- `tasks/g8-d60-time-service-design-gate.md` - human-gate-blocked
+- `tasks/g8-d10-trading-service-design-gate.md` - complete
+- `tasks/g8-d20-event-service-design-gate.md` - complete
+- `tasks/g8-d30-notification-service-design-gate.md` - complete
+- `tasks/g8-d40-transaction-service-design-gate.md` - complete
+- `tasks/g8-d50-security-service-design-gate.md` - complete
+- `tasks/g8-d60-time-service-design-gate.md` - complete
+- `tasks/g8-100-time-service-task-group.md` - blocked
+- `tasks/g8-200-event-service-task-group.md` - blocked
+- `tasks/g8-300-notification-service-task-group.md` - blocked
+- `tasks/g8-400-trading-service-task-group.md` - blocked
+- `tasks/g8-500-transaction-service-task-group.md` - blocked
+- `tasks/g8-600-security-service-task-group.md` - blocked
 
 ## G9 Verification Hardening
 
@@ -181,7 +187,7 @@ values, task-type markers, and the rule that at least one task is active as
 ## G14 Durable Peer Persistence
 
 - `tasks/g14-000-durable-peer-persistence-task-set.md` - complete
-- `tasks/g14-010-local-durable-evidence-acceptance-gate.md` - human-gate-blocked
-- `tasks/g14-020-durable-peer-harness-metadata.md` - human-gate-blocked
+- `tasks/g14-010-local-durable-evidence-acceptance-gate.md` - complete
+- `tasks/g14-020-durable-peer-harness-metadata.md` - ready-for-implementation
 - `tasks/g14-030-durable-peer-prerequisite-reports.md` - human-gate-blocked
 - `tasks/g14-040-durable-peer-live-execution.md` - human-gate-blocked

@@ -1,10 +1,11 @@
 # corba-security-service
 
-CORBA Security / CSIv2 implementation module, initially design-only.
+CORBA Security / CSIv2 implementation module.
 
 ## Current status
 
-Scaffold only. No CORBA implementation behavior belongs here until G6.
+Design accepted by ADR-0022. Implementation remains blocked behind
+`G8-600-SECURITY-SERVICE-TASK-GROUP`.
 
 ## Documentation requirements
 
