@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **post-1.0.0 G13 durable runtime hardening state**:
+This repository is in **post-1.0.0 G14 durable peer persistence planning state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -148,6 +148,9 @@ This repository is in **post-1.0.0 G13 durable runtime hardening state**:
   durable IOR and persistent Naming restart evidence before operational Naming
   store hardening, `MJNS` versioning policy, durable POA rehydration design, or
   live peer persistence claims;
+- the G14 durable peer persistence roadmap is packaged for future live peer
+  execution, but all live durable IOR/Naming claims remain blocked until
+  maintainers accept the local durable routing evidence;
 - CORBA runtime, ORB, POA, service, and generated-code behavior remain limited
   to approved roadmap tasks.
 
@@ -211,8 +214,11 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-G13-000 through G13-090 are complete. Future live peer durable IOR/Naming
-execution remains human-gate-blocked.
+G13-000 through G13-090 are complete. G14-000 is complete as roadmap packaging.
+G14-010 local durable evidence acceptance and G14-040 live durable peer
+execution remain explicit human gates. G14-020/G14-030 peer harness preparation
+is held behind the G14-010 gate until maintainers accept local durable evidence,
+so there is no non-human-gated ready G14 task yet.
 
 Remaining human gates, including optional CORBA service approval and future live
 peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap
