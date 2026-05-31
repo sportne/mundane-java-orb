@@ -84,6 +84,27 @@ public final class Poa {
     return manager;
   }
 
+  /** Registers this persistent POA path for durable-key rehydration. */
+  public synchronized void registerDurablePath() {
+    requireNotDestroyed();
+    requirePersistentForDurablePath();
+    orb.durablePoaPaths().register(pathComponents);
+  }
+
+  /** Unregisters this persistent POA path from durable-key rehydration. */
+  public synchronized void unregisterDurablePath() {
+    requireNotDestroyed();
+    requirePersistentForDurablePath();
+    orb.durablePoaPaths().unregister(pathComponents);
+  }
+
+  /** Returns whether this persistent POA path is registered for durable-key rehydration. */
+  public synchronized boolean durablePathRegistered() {
+    requireNotDestroyed();
+    requirePersistentForDurablePath();
+    return orb.durablePoaPaths().contains(pathComponents);
+  }
+
   /** Creates or replaces the adapter activator used by explicit child lookup. */
   public synchronized void setAdapterActivator(PoaAdapterActivator adapterActivator) {
     requireNotDestroyed();
@@ -473,6 +494,12 @@ public final class Poa {
   private void requireDurableOrbForPersistentPoa() {
     if (isPersistent() && !orb.identity().durable()) {
       throw PoaExceptions.badParam("PERSISTENT POA references require a durable ORB identity");
+    }
+  }
+
+  private void requirePersistentForDurablePath() {
+    if (!isPersistent()) {
+      throw PoaExceptions.badParam("Durable POA path registration requires a persistent POA");
     }
   }
 

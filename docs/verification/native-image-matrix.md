@@ -211,3 +211,12 @@ service-loader discovery, runtime bytecode generation, internal JDK APIs, or
 G13-010 adds forked-JVM restart coverage in the normal unit-test lane without
 changing Native Image smoke entrypoints. The existing native smoke remains the
 Native Image parity check for the durable Naming persistence API surface.
+
+## G13-060 durable POA registry Native Image evidence
+
+G13-060 extends the `generatedServer` smoke entrypoint with durable POA path
+registry registration, duplicate rejection, transient-ORB rejection, durable-key
+approval lookup, and shutdown rejection. The smoke uses explicit constructors
+and bounded durable-key APIs only; it introduces no reflection metadata, dynamic
+proxies, Java serialization metadata, service-loader discovery, runtime bytecode
+generation, internal JDK APIs, or `Unsafe`.

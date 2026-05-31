@@ -211,8 +211,7 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-G13-000 through G13-050 are complete. No non-human-gated roadmap task is
-currently ready for implementation.
+G13-000 through G13-060 are complete. G13-070 is ready for implementation.
 
 Remaining human gates, including optional CORBA service approval and future live
 peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap

@@ -19,6 +19,7 @@ public final class LocalOrb {
 
   private final long ownerToken = NEXT_OWNER_TOKEN.getAndIncrement();
   private final OrbIdentity identity;
+  private final DurablePoaPathRegistry durablePoaPaths;
   private final Map<String, Binding> bindings = new LinkedHashMap<>();
   private final Map<String, InitialReference> initialReferences = new LinkedHashMap<>();
   private long nextObjectNumber = 1L;
@@ -26,6 +27,7 @@ public final class LocalOrb {
 
   private LocalOrb(OrbIdentity identity) {
     this.identity = LocalExceptionMapper.requireNonNull(identity, "identity");
+    this.durablePoaPaths = new DurablePoaPathRegistry(this.identity);
   }
 
   /** Creates an active local ORB instance. */
@@ -41,6 +43,11 @@ public final class LocalOrb {
   /** Returns this ORB's configured identity. */
   public OrbIdentity identity() {
     return identity;
+  }
+
+  /** Returns the durable POA path registry owned by this ORB. */
+  public DurablePoaPathRegistry durablePoaPaths() {
+    return durablePoaPaths;
   }
 
   /** Binds a generated-style dispatcher and returns a local object reference. */
@@ -197,6 +204,7 @@ public final class LocalOrb {
   /** Shuts this local ORB down. Repeated shutdown calls are safe. */
   public synchronized void shutdown() {
     shutdown = true;
+    durablePoaPaths.close();
     bindings.clear();
     initialReferences.clear();
   }

@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.omg.CORBA.BAD_INV_ORDER;
 import org.omg.CORBA.BAD_PARAM;
 import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.OBJECT_NOT_EXIST;
@@ -280,6 +281,63 @@ final class PoaPolicyCombinationTest {
     assertEquals("Right Ada", invoke(orb, rightReference));
     assertEquals("/RootPOA/left", leftReference.durableObjectKey().orElseThrow().poaPathString());
     assertEquals("/RootPOA/right", rightReference.durableObjectKey().orElseThrow().poaPathString());
+  }
+
+  @Test
+  void persistentPoaRegistersAndUnregistersItsDurablePath() {
+    PoaPolicySet persistentUserId =
+        policy(
+            PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+            PoaPolicySet.LifespanPolicy.PERSISTENT,
+            PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+            PoaPolicySet.IdAssignmentPolicy.USER_ID,
+            PoaPolicySet.ServantRetentionPolicy.RETAIN,
+            PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
+            PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
+    LocalOrb orb = LocalOrb.create(OrbIdentity.durable("registered-poa-orb"));
+    Poa root = Poa.createRoot(orb);
+    Poa child = root.createChild("apps", persistentUserId);
+    DurableObjectKey key =
+        DurableObjectKey.fromPoaPath("registered-poa-orb", "/RootPOA/apps", ascii("alpha"), 0);
+
+    child.registerDurablePath();
+
+    assertEquals(true, child.durablePathRegistered());
+    orb.durablePoaPaths().requireRegistered(key);
+
+    child.unregisterDurablePath();
+
+    assertEquals(false, child.durablePathRegistered());
+    assertObjectNotExist(() -> orb.durablePoaPaths().requireRegistered(key));
+  }
+
+  @Test
+  void persistentPoaDurablePathRegistrationRejectsInvalidLifecycleAndPolicy() {
+    LocalOrb orb = LocalOrb.create(OrbIdentity.durable("registered-poa-orb"));
+    Poa transientPoa = Poa.createRoot(orb);
+    Poa persistentPoa =
+        Poa.createRoot(
+            LocalOrb.create(OrbIdentity.durable("registered-poa-orb-2")),
+            policy(
+                PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+                PoaPolicySet.LifespanPolicy.PERSISTENT,
+                PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+                PoaPolicySet.IdAssignmentPolicy.USER_ID,
+                PoaPolicySet.ServantRetentionPolicy.RETAIN,
+                PoaPolicySet.RequestProcessingPolicy.USE_ACTIVE_OBJECT_MAP_ONLY,
+                PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION));
+
+    assertBadParam(transientPoa::registerDurablePath);
+
+    persistentPoa.registerDurablePath();
+
+    assertBadParam(persistentPoa::registerDurablePath);
+
+    persistentPoa.destroy();
+
+    BAD_INV_ORDER exception =
+        assertThrows(BAD_INV_ORDER.class, persistentPoa::unregisterDurablePath);
+    assertEquals(CompletionStatus.COMPLETED_NO, exception.completed);
   }
 
   @Test
