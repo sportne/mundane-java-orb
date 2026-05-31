@@ -364,6 +364,59 @@ final class NetworkNamingServiceTest {
   }
 
   @Test
+  void persistenceStoreHardensDirectoryTempAndFallbackWritePaths() throws Exception {
+    OrbIdentity identity = OrbIdentity.durable("naming-store-hardening-orb");
+    Path directoryStore = tempDir.resolve("directory-store.mjns");
+    Files.createDirectory(directoryStore);
+
+    assertCode(
+        NamingDiagnosticCodes.INVALID_NAME,
+        () ->
+            NetworkNamingService.bind(
+                IiopEndpoint.loopback(0),
+                IiopOptions.defaults(),
+                NamingPersistenceOptions.of(identity, directoryStore)));
+
+    Path cleanupStore = tempDir.resolve("cleanup-store.mjns");
+    Path cleanupTemp = cleanupStore.resolveSibling(cleanupStore.getFileName() + ".tmp");
+    Files.createDirectory(cleanupTemp);
+    assertCode(
+        NamingDiagnosticCodes.INVALID_NAME,
+        () ->
+            NetworkNamingService.bind(
+                IiopEndpoint.loopback(0),
+                IiopOptions.defaults(),
+                NamingPersistenceOptions.of(identity, cleanupStore)));
+    assertTrue(Files.notExists(cleanupTemp), "failed-write temp path should be cleaned up");
+
+    Path durableStore = tempDir.resolve("durable-store.mjns");
+    try (NetworkNamingService service =
+        NetworkNamingService.bind(
+            IiopEndpoint.loopback(0),
+            IiopOptions.defaults(),
+            NamingPersistenceOptions.of(identity, durableStore))) {
+      assertEquals("127.0.0.1", service.endpoint().host());
+      byte[] bytes = Files.readAllBytes(durableStore);
+      assertEquals((byte) 'M', bytes[0]);
+      assertEquals((byte) 'J', bytes[1]);
+      assertEquals((byte) 'N', bytes[2]);
+      assertEquals((byte) 'S', bytes[3]);
+      assertTrue(
+          Files.notExists(durableStore.resolveSibling(durableStore.getFileName() + ".tmp")),
+          "successful write should not leave a temp file");
+    }
+
+    Path fallbackTemp = tempDir.resolve("fallback.tmp");
+    Path fallbackStore = tempDir.resolve("fallback.mjns");
+    Files.writeString(fallbackStore, "old");
+    Files.writeString(fallbackTemp, "new");
+    NamingPersistenceStore.replaceStore(fallbackTemp, fallbackStore, false);
+
+    assertEquals("new", Files.readString(fallbackStore));
+    assertTrue(Files.notExists(fallbackTemp), "fallback replacement should consume temp file");
+  }
+
+  @Test
   void persistenceStoreRejectsWrongContextNamespaceAndMalformedUtf8() throws Exception {
     OrbIdentity identity = OrbIdentity.durable("naming-hostile-store-orb");
     Path wrongContext = tempDir.resolve("wrong-context.mjns");

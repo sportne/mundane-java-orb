@@ -37,6 +37,14 @@ endpoint resolves the original `corbaname` value through the old location. A
 restart with a different configured ORB id rejects the existing store during
 startup rather than silently adopting another identity.
 
+G13-020 hardens the store write path without changing `MJNS` version 1. Existing
+directory store paths are rejected deterministically, temp-file contents are
+forced before replacement when the JDK and filesystem support it, failed writes
+attempt best-effort sibling temp cleanup, and filesystems without atomic moves
+fall back to bounded replacement. Store backups, retention, file permissions,
+and external replication remain caller/operator responsibilities unless a later
+roadmap task adds an explicit policy.
+
 ## Optional services
 
 | Service | Requirement | Spec key | Module boundary | Current posture |

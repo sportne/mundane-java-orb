@@ -169,7 +169,7 @@ values, task-type markers, and the rule that at least one task is active as
 
 - `tasks/g13-000-durable-runtime-hardening-task-set.md` - complete
 - `tasks/g13-010-cross-process-durable-restart-evidence.md` - complete
-- `tasks/g13-020-naming-store-operational-hardening.md` - ready-for-implementation
-- `tasks/g13-030-mjns-store-versioning-policy.md` - blocked
+- `tasks/g13-020-naming-store-operational-hardening.md` - complete
+- `tasks/g13-030-mjns-store-versioning-policy.md` - ready-for-implementation
 - `tasks/g13-040-durable-poa-rehydration-design-gate.md` - blocked
 - `tasks/g13-050-live-peer-durable-ior-naming-design.md` - blocked

@@ -12,12 +12,14 @@ import io.github.mundanej.mjo.orb.DurableObjectKey;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +50,7 @@ final class NamingPersistenceStore {
     if (!Files.exists(path)) {
       return StoredState.empty();
     }
+    rejectDirectory(path);
     try {
       long size = Files.size(path);
       requireWithin(options.storeOctets(), size);
@@ -126,23 +129,64 @@ final class NamingPersistenceStore {
     byte[] bytes = output.toByteArray();
     requireWithin(options.storeOctets(), bytes.length);
     Path storePath = options.storePath();
+    rejectDirectory(storePath);
     Path parent = storePath.toAbsolutePath().getParent();
+    Path temp = storePath.resolveSibling(storePath.getFileName() + ".tmp");
     try {
       if (parent != null) {
         Files.createDirectories(parent);
       }
-      Path temp = storePath.resolveSibling(storePath.getFileName() + ".tmp");
-      Files.write(temp, bytes);
-      try {
-        Files.move(
-            temp, storePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-      } catch (IOException atomicFailure) {
-        Files.move(temp, storePath, StandardCopyOption.REPLACE_EXISTING);
-      }
+      writeDurableTempFile(temp, bytes);
+      replaceStore(temp, storePath, true);
     } catch (IOException exception) {
+      cleanupTempFile(temp);
       throw new NamingException(
           NamingDiagnosticCodes.INVALID_NAME,
           "failed to write Naming persistence store: " + exception.getMessage());
+    }
+  }
+
+  private static void rejectDirectory(Path path) {
+    if (Files.isDirectory(path)) {
+      throw new NamingException(
+          NamingDiagnosticCodes.INVALID_NAME, "Naming persistence store path is a directory");
+    }
+  }
+
+  private static void writeDurableTempFile(Path temp, byte[] bytes) throws IOException {
+    try (FileChannel channel =
+        FileChannel.open(
+            temp,
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE)) {
+      ByteBuffer buffer = ByteBuffer.wrap(bytes);
+      while (buffer.hasRemaining()) {
+        channel.write(buffer);
+      }
+      channel.force(true);
+    }
+  }
+
+  static void replaceStore(Path temp, Path storePath, boolean attemptAtomicMove)
+      throws IOException {
+    if (attemptAtomicMove) {
+      try {
+        Files.move(
+            temp, storePath, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+        return;
+      } catch (IOException atomicFailure) {
+        // Fall through to a bounded non-atomic replacement on filesystems without atomic moves.
+      }
+    }
+    Files.move(temp, storePath, StandardCopyOption.REPLACE_EXISTING);
+  }
+
+  private static void cleanupTempFile(Path temp) {
+    try {
+      Files.deleteIfExists(temp);
+    } catch (IOException ignored) {
+      // Cleanup is best-effort; the original write failure remains the surfaced diagnostic.
     }
   }
 
