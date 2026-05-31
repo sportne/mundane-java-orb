@@ -243,9 +243,10 @@ persistent IOR or Naming execution.
 
 ## G13-050 durable peer persistence design
 
-G13-050 defines future live peer scenarios for durable IOR and persistent
-Naming behavior, but does not approve live execution or add peer manifest
-metadata. The proposed peer set is the existing approved G6-820 set: JacORB,
+G13-050 defined future live peer scenarios for durable IOR and persistent
+Naming behavior, but did not approve live execution. G14-020 promotes that
+design into dry-run peer manifest metadata without approving live execution.
+The peer set is the existing approved G6-820 set: JacORB,
 Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO. The peer claim is
 only opaque object-key preservation. Peers are not expected to parse or
 understand the project-owned `MJOK` durable object-key format or the `MJNS`
@@ -275,10 +276,10 @@ The proposed direction matrix is intentionally one-sided:
 | `g13-durable-naming-peer-client-restart` | `local-server-to-peer-client` | Native Image | client | Same as JVM lane, using the Native Image Naming server binary once a later task approves and wires it. |
 
 `peer-server-to-local-client` directions are out of scope for these scenarios
-because a peer server does not emit mundane Java ORB durable keys. A later
-human-gated implementation task may add manifest metadata only after the local
-JVM and Native Image restart lanes expose durable server commands, persistent
-Naming startup commands, and deterministic missing-prerequisite reports.
+because a peer server does not emit mundane Java ORB durable keys. G14-020
+adds only the dry-run manifest metadata for these local-server-to-peer-client
+directions; live execution remains gated until deterministic
+missing-prerequisite reports and maintainer live approval are both recorded.
 
 The cache and image prerequisites match the existing live matrix: approved
 external peer cache entries, digest-pinned Java and native base images, prepared
@@ -299,7 +300,7 @@ must not include raw `MJOK` decoded internals beyond non-secret fixture labels,
 raw `MJNS` store bytes, peer artifacts, Docker layers, Native Image binaries,
 or copied reference implementation material.
 
-Expected classifications include `opaque-key-preserved`,
+Expected classifications include `durable-ior-invoked`,
 `durable-naming-resolved`, `server-ready`, `expected-deferral`,
 `unsupported-scenario`, `missing-prerequisite`, `infrastructure-failure`,
 `our-bug`, `peer-bug`, `profile-mismatch`, and `spec-ambiguity`. Actual live

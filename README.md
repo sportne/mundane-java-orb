@@ -216,11 +216,11 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 G8 optional-service design gates are complete, and optional service
 implementation remains blocked behind service-specific task groups. G13-000
-through G13-090 are complete. G14-000 and G14-010 are complete, with
+through G13-090 are complete. G14-000 through G14-020 are complete, with
 maintainers accepting the local durable routing evidence for peer-harness
-preparation. G14-020 durable peer harness metadata is the next
-ready-for-implementation task. G14-040 live durable peer execution remains
-human-gate-blocked.
+preparation and dry-run peer harness metadata recorded. G14-030 durable peer
+prerequisite reports is the next ready-for-implementation task. G14-040 live
+durable peer execution remains human-gate-blocked.
 
 Remaining human gates, including future live peer durable IOR/Naming execution,
 stay tracked as `human-gate-blocked` roadmap tasks until maintainers record the

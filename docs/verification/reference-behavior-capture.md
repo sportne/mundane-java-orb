@@ -121,8 +121,9 @@ filtering, structured missing-prerequisite reports, and summary aggregation.
 The committed evidence remains metadata and deterministic report-schema tests;
 raw G12 live outputs are ignored local artifacts.
 
-G13-050 defines a design-only durable persistence reference-capture package for
-future live peer work. The proposed scenarios are
+G13-050 defined a design-only durable persistence reference-capture package for
+future live peer work, and G14-020 promotes those scenario names into dry-run
+peer manifest metadata. The scenarios are
 `g13-durable-ior-peer-client-restart` and
 `g13-durable-naming-peer-client-restart`, both limited to peer clients invoking
 or resolving against our restarted JVM or Native Image servers. The reference
@@ -147,7 +148,7 @@ Future durable peer reports must extend the normal capture fields with:
   "corbaname": "",
   "namingStoreLabel": "",
   "status": "passed",
-  "classification": "opaque-key-preserved"
+  "classification": "durable-ior-invoked"
 }
 ```
 
@@ -166,7 +167,7 @@ IOR handling defects remain `our-bug`.
 `infrastructure-failure`, `missing-prerequisite`, `unsupported-scenario`, or
 `expected-deferral`. Approved scenario-specific success classifications also
 include `object-reference-checked`, `server-ready`, `calculator-checked`,
-`opaque-key-preserved`, and `durable-naming-resolved`.
+`durable-ior-invoked`, and `durable-naming-resolved`.
 
 ## Clean-room rule
 

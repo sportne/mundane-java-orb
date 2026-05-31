@@ -156,8 +156,9 @@ infrastructure failure remains in the final evidence set.
 G13 durable peer persistence work is outside the 1.0.0 release bar. G13-050
 defines future design-only scenarios for peer clients invoking old persistent
 IORs and resolving old persistent Naming references after our server process
-restarts. The approved G10 peer set remains the candidate peer set, but no live
-durable IOR or persistent Naming execution is approved by this plan.
+restarts. G14-020 adds dry-run peer manifest metadata for those scenarios. The
+approved G10 peer set remains the candidate peer set, but no live durable IOR
+or persistent Naming execution is approved by this plan.
 
 Future execution must be human-gated and limited to opaque object-key
 preservation claims. Peers are not expected to understand the project-owned

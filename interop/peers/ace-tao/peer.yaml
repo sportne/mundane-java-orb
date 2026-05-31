@@ -24,6 +24,8 @@ scenarioGroups:
   - iiop
   - rmi-iiop
   - g12-wide-core-types
+  - g13-durable-ior-peer-client-restart
+  - g13-durable-naming-peer-client-restart
 scenarioCapabilities:
   basic-idl:
     idl: interop/idl/basic/BasicTypes.idl
@@ -116,6 +118,32 @@ scenarioCapabilities:
       - expected-deferral
       - object-reference-checked
       - server-ready
+  g13-durable-ior-peer-client-restart:
+    idl: interop/idl/object-reference.idl
+    support: durable-ior-peer-client-restart
+    directions:
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - durable-ior-invoked
+      - server-ready
+      - expected-deferral
+      - missing-prerequisite
+  g13-durable-naming-peer-client-restart:
+    idl: interop/idl/naming.idl
+    support: durable-naming-peer-client-restart
+    directions:
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - durable-naming-resolved
+      - server-ready
+      - expected-deferral
+      - missing-prerequisite
 candidateOrigin:
   kind: source-archive
   coordinate: "ACE+TAO-8.0.6"

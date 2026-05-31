@@ -43,13 +43,17 @@ final class InteropPeerGateTest {
   }
 
   @Test
-  void actualPeerManifestsDeclareRmiIiopScenario() throws Exception {
+  void actualPeerManifestsDeclareRmiIiopAndDurablePeerScenarios() throws Exception {
     for (String peer : REAL_PEERS) {
       String manifest =
           Files.readString(repoRoot().resolve("interop/peers/" + peer + "/peer.yaml"));
 
       assertTrue(manifest.contains("scenarioGroups:"), manifest);
       assertTrue(manifest.contains("  - rmi-iiop"), manifest);
+      assertTrue(manifest.contains("  - g13-durable-ior-peer-client-restart"), manifest);
+      assertTrue(manifest.contains("  - g13-durable-naming-peer-client-restart"), manifest);
+      assertTrue(manifest.contains("support: durable-ior-peer-client-restart"), manifest);
+      assertTrue(manifest.contains("support: durable-naming-peer-client-restart"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -379,6 +383,8 @@ final class InteropPeerGateTest {
                   - basic-idl
                   - rmi-iiop
                   - g12-wide-core-types
+                  - g13-durable-ior-peer-client-restart
+                  - g13-durable-naming-peer-client-restart
                 """,
                 ""),
         StandardCharsets.UTF_8);
@@ -989,6 +995,50 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void durablePeerRestartDryRunEnumeratesOnlyLocalServerToPeerClientDirections() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command(
+                "run-direction-matrix",
+                "--dry-run",
+                "g13-durable-ior-peer-client-restart",
+                FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertFalse(
+        result.output().contains("would start fixture-peer server"),
+        "durable peer scenarios must not claim peer servers emit MJO durable keys");
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for "
+                    + "g13-durable-ior-peer-client-restart"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for "
+                    + "g13-durable-ior-peer-client-restart"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void durablePeerRawEvidencePathsRemainIgnored() throws Exception {
+    String gitignore = Files.readString(repoRoot().resolve(".gitignore"));
+
+    assertTrue(gitignore.contains("build/"), gitignore);
+    assertTrue(gitignore.contains("interop/work/"), gitignore);
+    assertTrue(gitignore.contains("interop/reports/"), gitignore);
+  }
+
+  @Test
   void directionMatrixReportsMissingLocalPrerequisites() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Path runtime = fakeContainerRuntime("matrix-live", 0, 0);
@@ -1310,6 +1360,8 @@ final class InteropPeerGateTest {
                   - basic-idl
                   - rmi-iiop
                   - g12-wide-core-types
+                  - g13-durable-ior-peer-client-restart
+                  - g13-durable-naming-peer-client-restart
                 scenarioCapabilities:
                   basic-idl:
                     idl: interop/idl/basic/BasicTypes.idl
@@ -1345,6 +1397,32 @@ final class InteropPeerGateTest {
                       - native
                     expectedClassifications:
                       - expected-deferral
+                  g13-durable-ior-peer-client-restart:
+                    idl: interop/idl/object-reference.idl
+                    support: durable-ior-peer-client-restart
+                    directions:
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - durable-ior-invoked
+                      - server-ready
+                      - expected-deferral
+                      - missing-prerequisite
+                  g13-durable-naming-peer-client-restart:
+                    idl: interop/idl/naming.idl
+                    support: durable-naming-peer-client-restart
+                    directions:
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - durable-naming-resolved
+                      - server-ready
+                      - expected-deferral
+                      - missing-prerequisite
                 candidateOrigin:
                   kind: maven
                   coordinate: "example:fixture:1.0"

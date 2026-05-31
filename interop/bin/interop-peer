@@ -120,6 +120,8 @@ known_classifications = {
     "object-reference-checked",
     "server-ready",
     "calculator-checked",
+    "durable-ior-invoked",
+    "durable-naming-resolved",
     "infrastructure-failure",
     "unsupported-scenario",
     "missing-prerequisite",
@@ -517,6 +519,8 @@ scenario_idl() {
     basic-idl) printf 'interop/idl/basic/BasicTypes.idl\n' ;;
     hello) printf 'interop/idl/hello/hello.idl\n' ;;
     rmi-iiop) printf 'interop/idl/rmi-iiop/Calculator.idl\n' ;;
+    g13-durable-ior-peer-client-restart) printf 'interop/idl/object-reference.idl\n' ;;
+    g13-durable-naming-peer-client-restart) printf 'interop/idl/naming.idl\n' ;;
     g12-wide-core-types) printf 'interop/idl/g12-wide/CoreTypes.idl\n' ;;
     g12-wide-repository-pragmas) printf 'interop/idl/g12-wide/RepositoryPragmas.idl\n' ;;
     g12-wide-valuetypes) printf 'interop/idl/g12-wide/ValueTypes.idl\n' ;;
