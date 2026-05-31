@@ -162,10 +162,14 @@ original opaque object-key octets, and the restarted IIOP server routes them
 only when the durable ORB id, POA path, object id, endpoint, and active binding
 match the original server process.
 
-ADR-0015 keeps `MJOK` parsing out of the protocol layer for POA-managed durable
-rehydration. The IOR and IIOP code must continue to preserve object keys as
-opaque octets through KeyAddr, ProfileAddr, ReferenceAddr, binary IOR, and
-stringified IOR paths. When a persistent key reaches server dispatch, the
-bridge routes the opaque key to ORB/POA durable-key lookup; ORB/POA code owns
-version validation, ORB id checks, POA path registry lookup, adapter activation,
-servant-manager policy, and stale-object diagnostics.
+G13-090 implements that boundary with a caller-configured durable resolver on
+`IiopOrbServerHandler`. The handler first checks exact opaque object-key
+bindings, then passes unknown key bytes to the resolver without inspecting
+`MJOK`. ORB/POA code owns durable-key decoding, version validation, ORB id
+checks, POA path registry lookup, adapter activation, servant-manager policy,
+and stale-object diagnostics. Dynamic resolver results use descriptor-level
+operation bindings, so the protocol module can dispatch generated operations
+through `LocalOrb` without depending on `corba-poa`. The loopback evidence
+covers KeyAddr, ProfileAddr, ReferenceAddr, stringified IOR restart,
+adapter-activation lookup, servant-manager dispatch, wrong ORB, stale object
+ids, malformed keys, and unregistered paths.

@@ -202,6 +202,13 @@ names. Rehydration must not use Java serialization, reflection dispatch,
 dynamic proxies, runtime bytecode generation, classpath scanning, `Unsafe`,
 `sun.*`, or `jdk.internal.*`.
 
+G13-090 exposes this lookup path to IIOP through an explicit resolver
+interface. The protocol module passes opaque object-key bytes to the resolver;
+root POA code decodes `MJOK`, validates the durable path registry, activates
+approved adapters, and resolves caller-recreated references before dispatch.
+This keeps IIOP independent of `corba-poa` and prevents protocol code from
+interpreting project-owned durable-key bytes.
+
 ### Network IIOP Dispatch Bridge
 
 G10-050 exposes activated local POA objects through bounded local IIOP by
@@ -251,5 +258,7 @@ G13-080 adds focused tests for durable reference lookup through retained
 servant activators, active-map reuse, default servants, non-retained servant
 locators, missing dispatch templates, stale object ids, hostile object ids,
 servant-manager failures, and Native Image smoke coverage for the public
-rehydration entrypoint. Remaining G13 follow-on tasks must add loopback IIOP
-routing into durable lookup.
+rehydration entrypoint. G13-090 adds loopback IIOP tests for opaque durable-key
+routing through the POA resolver across KeyAddr, ProfileAddr, ReferenceAddr,
+stringified IOR restart, registered adapter activation, servant-manager
+dispatch, wrong ORB, stale object ids, malformed keys, and unregistered paths.

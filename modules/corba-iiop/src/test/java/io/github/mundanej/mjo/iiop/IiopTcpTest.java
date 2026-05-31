@@ -464,6 +464,7 @@ final class IiopTcpTest {
         String filename = fileNamePath.toString();
         if (!filename.equals("IiopOrbServerHandler.java")
             && !filename.equals("IiopObjectReference.java")
+            && !filename.equals("IiopDurableObjectResolver.java")
             && !filename.equals("IiopInvocationCodec.java")) {
           assertTrue(!readSource(path).contains("io.github.mundanej.mjo.orb"));
         }

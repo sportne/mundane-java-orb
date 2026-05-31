@@ -1,7 +1,7 @@
 # G13-090 IIOP Durable Key POA Routing
 
 Task ID: G13-090-IIOP-DURABLE-KEY-POA-ROUTING
-Status: ready-for-implementation
+Status: complete
 Gate: G13 durable runtime hardening
 Requirement IDs: REQ-ORB-001, REQ-POA-001, REQ-POA-002, REQ-IOR-001, REQ-IOR-002, REQ-IIOP-001, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0005, ADR-0008, ADR-0010, ADR-0014, ADR-0015

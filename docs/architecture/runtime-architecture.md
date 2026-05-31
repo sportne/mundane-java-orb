@@ -232,8 +232,9 @@ ASCII object id, and active object map entry before dispatch.
 
 G12-130 preserves durable keys through local IOR creation, binary and
 stringified IOR parsing, GIOP target-address extraction, and loopback IIOP
-server dispatch. Malformed durable-key prefixes fail before invocation; stale
-durable keys fail as unknown object references.
+server dispatch. With the later G13-090 resolver configured, malformed durable
+keys fail before invocation and stale durable keys fail as unknown object
+references.
 
 G12-140 completes the staged durable identity implementation by adding explicit
 Naming persistence. `NetworkNamingService.bind(..., NamingPersistenceOptions)`
@@ -270,12 +271,18 @@ deterministic system-exception mapping for malformed, wrong-ORB,
 unregistered-path, inactive-adapter, stale-object, hostile-object-id, and
 servant-manager failure cases.
 
-The IIOP layer continues to treat durable keys as opaque octets. It preserves
+G13-090 keeps the IIOP layer opaque to durable-key structure. It preserves
 KeyAddr, ProfileAddr, ReferenceAddr, binary IOR, and stringified IOR forms, then
-routes persistent keys to the ORB/POA durable-key lookup path instead of parsing
-`MJOK` itself. All rehydration implementation must remain closed-world friendly:
-no reflection metadata, dynamic proxies, classpath scanning, Java serialization,
-runtime bytecode generation, `Unsafe`, `sun.*`, or `jdk.internal.*`.
+routes unknown object-key bytes to a caller-configured durable resolver. That
+resolver is owned by ORB/POA code and decodes `MJOK`, checks the registry,
+activates approved POA paths, resolves caller-recreated reference templates,
+and maps malformed, wrong-ORB, unregistered-path, and stale-object diagnostics.
+IIOP uses descriptor-level operation bindings for dynamically resolved
+references so it can dispatch through `LocalOrb` without depending on POA
+classes or parsing `MJOK`. All rehydration implementation must remain
+closed-world friendly: no reflection metadata, dynamic proxies, classpath
+scanning, Java serialization, runtime bytecode generation, `Unsafe`, `sun.*`,
+or `jdk.internal.*`.
 
 G13-050 defines future live peer durable persistence scenarios as design-only
 interop work. The proposed peer-facing claim is that approved black-box peers

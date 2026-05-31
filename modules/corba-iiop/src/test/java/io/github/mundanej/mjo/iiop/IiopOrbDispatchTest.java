@@ -22,8 +22,11 @@ import io.github.mundanej.mjo.interceptors.PortableClientRequestInterceptor;
 import io.github.mundanej.mjo.interceptors.PortableInterceptorRegistry;
 import io.github.mundanej.mjo.interceptors.PortableServerRequestInterceptor;
 import io.github.mundanej.mjo.interceptors.ServerRequestContext;
+import io.github.mundanej.mjo.ior.IiopProfile;
+import io.github.mundanej.mjo.ior.IiopVersion;
 import io.github.mundanej.mjo.ior.Ior;
 import io.github.mundanej.mjo.ior.IorCodeSetComponent;
+import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.StringifiedIor;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.modern.LocalInvocationRequest;
@@ -285,6 +288,157 @@ final class IiopOrbDispatchTest {
   }
 
   @Test
+  void durableResolverRoutesTargetAddressesThroughActivatedPoaAndServantManager() {
+    LocalOrb orb = LocalOrb.create(OrbIdentity.durable("g13-iiop-routing-orb"));
+    Poa root = Poa.createRoot(orb);
+    orb.durablePoaPaths().register(List.of("RootPOA", "svc"));
+    root.setAdapterActivator(
+        (parent, name) -> {
+          Poa child = parent.createChild(name, persistentUserIdServantManagerPolicy());
+          child.setServantActivator(
+              (targetPoa, objectId) -> new GreeterServant("Resolved " + objectId + " "));
+          child.createReferenceWithId(
+              "alpha", Greeter.class, GREETER_DESCRIPTOR, new ObjectGreeterDispatcher());
+          return child;
+        });
+    byte[] durableKey =
+        DurableObjectKey.fromPoaPath("g13-iiop-routing-orb", "/RootPOA/svc", ascii("alpha"), 0)
+            .encode();
+    IiopOrbServerHandler handler =
+        IiopOrbServerHandler.builder(orb)
+            .bindDescriptor(
+                GREETER_DESCRIPTOR, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .durableObjectResolver(key -> root.resolveDurableReference(key, true))
+            .build();
+
+    try (IiopServer server =
+            IiopServer.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), handler);
+        IiopClient client = IiopClient.connect(server.endpoint(), IiopOptions.defaults())) {
+      IiopObjectReference reference = durableNetworkReference(server.endpoint(), durableKey);
+      TaggedProfile profile = reference.ior().profiles().get(0);
+
+      assertEquals(
+          "Resolved alpha Key",
+          decodedStringReply(
+              client.invoke(request(91, GiopTargetAddress.keyAddr(durableKey), "Key"))));
+      assertEquals(
+          "Resolved alpha Profile",
+          decodedStringReply(
+              client.invoke(request(92, GiopTargetAddress.profileAddr(profile), "Profile"))));
+      assertEquals(
+          "Resolved alpha Reference",
+          decodedStringReply(
+              client.invoke(
+                  request(93, GiopTargetAddress.referenceAddr(0, reference.ior()), "Reference"))));
+      assertEquals(1, root.findChild("svc", false).activeObjectCount());
+    }
+  }
+
+  @Test
+  void durableResolverMapsWrongStaleMalformedAndUnregisteredKeysDeterministically() {
+    LocalOrb orb = LocalOrb.create(OrbIdentity.durable("g13-iiop-hostile-orb"));
+    Poa root = Poa.createRoot(orb, persistentUserIdPolicy());
+    root.registerDurablePath();
+    root.activateServantWithId(
+        "alpha", Greeter.class, GREETER_DESCRIPTOR, new GreeterServant(), new GreeterDispatcher());
+    IiopOrbServerHandler handler =
+        IiopOrbServerHandler.builder(orb)
+            .bindDescriptor(
+                GREETER_DESCRIPTOR, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .durableObjectResolver(key -> root.resolveDurableReference(key, true))
+            .build();
+
+    try (IiopServer server =
+            IiopServer.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), handler);
+        IiopClient client = IiopClient.connect(server.endpoint(), IiopOptions.defaults())) {
+      assertSystemException(
+          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
+          client.invoke(
+              request(
+                  94,
+                  GiopTargetAddress.keyAddr(
+                      DurableObjectKey.fromPoaPath("other-orb", "/RootPOA", ascii("alpha"), 0)
+                          .encode()),
+                  "Ada")));
+      assertSystemException(
+          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
+          client.invoke(
+              request(
+                  95,
+                  GiopTargetAddress.keyAddr(
+                      DurableObjectKey.fromPoaPath(
+                              "g13-iiop-hostile-orb", "/RootPOA", ascii("stale"), 0)
+                          .encode()),
+                  "Ada")));
+      assertSystemException(
+          "IDL:omg.org/CORBA/BAD_PARAM:1.0",
+          client.invoke(
+              request(96, GiopTargetAddress.keyAddr(new byte[] {'M', 'J', 'O', 'K', 1}), "Ada")));
+      assertSystemException(
+          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
+          client.invoke(
+              request(
+                  97,
+                  GiopTargetAddress.keyAddr(
+                      DurableObjectKey.fromPoaPath(
+                              "g13-iiop-hostile-orb", "/RootPOA/missing", ascii("alpha"), 0)
+                          .encode()),
+                  "Ada")));
+    }
+  }
+
+  @Test
+  void durableResolverRoutesOldStringifiedIorAfterRestartWithoutDirectBinding() {
+    IiopEndpoint endpoint;
+    String stringifiedIor;
+    LocalOrb firstOrb = LocalOrb.create(OrbIdentity.durable("g13-iiop-restart-orb"));
+    Poa firstPoa = Poa.createRoot(firstOrb, persistentUserIdPolicy());
+    firstPoa.registerDurablePath();
+    LocalObjectReference<Greeter> firstReference =
+        firstPoa.activateServantWithId(
+            "alpha",
+            Greeter.class,
+            GREETER_DESCRIPTOR,
+            new GreeterServant("First "),
+            new GreeterDispatcher());
+
+    try (IiopServer firstServer =
+        IiopServer.bind(
+            IiopEndpoint.loopback(0),
+            IiopOptions.defaults(),
+            IiopOrbServerHandler.builder(firstOrb)
+                .bind(firstReference, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+                .build())) {
+      endpoint = firstServer.endpoint();
+      stringifiedIor =
+          StringifiedIor.format(IiopObjectReference.fromLocal(endpoint, firstReference).ior());
+    }
+
+    LocalOrb secondOrb = LocalOrb.create(OrbIdentity.durable("g13-iiop-restart-orb"));
+    Poa secondPoa = Poa.createRoot(secondOrb, persistentUserIdServantManagerPolicy());
+    secondPoa.registerDurablePath();
+    secondPoa.setServantActivator((targetPoa, objectId) -> new GreeterServant("Second "));
+    secondPoa.createReferenceWithId(
+        "alpha", Greeter.class, GREETER_DESCRIPTOR, new ObjectGreeterDispatcher());
+    IiopOrbServerHandler secondHandler =
+        IiopOrbServerHandler.builder(secondOrb)
+            .bindDescriptor(
+                GREETER_DESCRIPTOR, List.of(new IiopOperationBinding(GREET, STRING_CODEC)))
+            .durableObjectResolver(key -> secondPoa.resolveDurableReference(key, true))
+            .build();
+
+    try (IiopServer secondServer =
+        IiopServer.bind(endpoint, IiopOptions.defaults(), secondHandler)) {
+      assertEquals(endpoint, secondServer.endpoint());
+      IiopObjectReference parsedReference =
+          IiopObjectReference.fromIor(StringifiedIor.parse(stringifiedIor));
+      try (IiopOrbClient client = IiopOrbClient.connect(parsedReference, IiopOptions.defaults())) {
+        assertEquals("Second Ada", client.invoke(GREET, STRING_CODEC, List.of("Ada")));
+      }
+    }
+  }
+
+  @Test
   void persistentStringifiedIorRoutesAfterRestartSimulation() throws Exception {
     runWithRestartPortRetry(this::assertPersistentStringifiedIorRoutesAfterRestartSimulation);
   }
@@ -464,7 +618,7 @@ final class IiopOrbDispatchTest {
               request(77, GiopTargetAddress.keyAddr(new byte[] {'M', 'J', 'O', 'K', 1}), "Ada"));
       assertEquals(GiopReplyStatus.SYSTEM_EXCEPTION, malformedDurableKey.replyStatus());
       assertEquals(
-          "IDL:omg.org/CORBA/BAD_PARAM:1.0",
+          "IDL:omg.org/CORBA/OBJECT_NOT_EXIST:1.0",
           GiopSystemExceptionBody.fromBytes(CdrByteOrder.BIG_ENDIAN, malformedDurableKey.body())
               .repositoryId());
 
@@ -933,9 +1087,45 @@ final class IiopOrbDispatchTest {
         PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
   }
 
+  private static PoaPolicySet persistentUserIdServantManagerPolicy() {
+    return new PoaPolicySet(
+        PoaPolicySet.ThreadPolicy.ORB_CTRL_MODEL,
+        PoaPolicySet.LifespanPolicy.PERSISTENT,
+        PoaPolicySet.IdUniquenessPolicy.UNIQUE_ID,
+        PoaPolicySet.IdAssignmentPolicy.USER_ID,
+        PoaPolicySet.ServantRetentionPolicy.RETAIN,
+        PoaPolicySet.RequestProcessingPolicy.USE_SERVANT_MANAGER,
+        PoaPolicySet.ImplicitActivationPolicy.NO_IMPLICIT_ACTIVATION);
+  }
+
+  private static IiopObjectReference durableNetworkReference(IiopEndpoint endpoint, byte[] key) {
+    IiopProfile profile =
+        new IiopProfile(
+            IiopVersion.V1_2,
+            endpoint.host(),
+            endpoint.port(),
+            new ObjectKey(key),
+            List.of(IorCodeSetComponent.defaults().toComponent()));
+    return new IiopObjectReference(
+        new Ior("IDL:hello/Greeter:1.0", List.of(TaggedProfile.internetIop(profile))),
+        endpoint,
+        key);
+  }
+
+  private static byte[] ascii(String value) {
+    return value.getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+  }
+
   private static String decodedStringReply(GiopReply reply) {
     assertEquals(GiopReplyStatus.NO_EXCEPTION, reply.replyStatus());
     return CdrReader.bigEndian(reply.body()).readString();
+  }
+
+  private static void assertSystemException(String repositoryId, GiopReply reply) {
+    assertEquals(GiopReplyStatus.SYSTEM_EXCEPTION, reply.replyStatus());
+    assertEquals(
+        repositoryId,
+        GiopSystemExceptionBody.fromBytes(CdrByteOrder.BIG_ENDIAN, reply.body()).repositoryId());
   }
 
   private ProcessState startPersistentServer(
@@ -1111,6 +1301,16 @@ final class IiopOrbDispatchTest {
 
   private static final class GreeterServant implements Greeter {
 
+    private final String prefix;
+
+    private GreeterServant() {
+      this("Hello ");
+    }
+
+    private GreeterServant(String prefix) {
+      this.prefix = prefix;
+    }
+
     @Override
     public String greet(String name) throws GreetFailure {
       if ("system-exception".equals(name)) {
@@ -1120,7 +1320,7 @@ final class IiopOrbDispatchTest {
       if ("user-exception".equals(name)) {
         throw new GreetFailure("bad greeting");
       }
-      return "Hello " + name;
+      return prefix + name;
     }
   }
 
@@ -1129,6 +1329,14 @@ final class IiopOrbDispatchTest {
     @Override
     public Object invoke(Greeter servant, LocalInvocationRequest request) throws Exception {
       return servant.greet((String) request.arguments().get(0));
+    }
+  }
+
+  private static final class ObjectGreeterDispatcher implements PoaServantDispatcher<Object> {
+
+    @Override
+    public Object invoke(Object servant, LocalInvocationRequest request) throws Exception {
+      return ((Greeter) servant).greet((String) request.arguments().get(0));
     }
   }
 

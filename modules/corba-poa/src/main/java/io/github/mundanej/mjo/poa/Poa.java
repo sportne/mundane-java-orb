@@ -355,6 +355,16 @@ public final class Poa {
     return target.referenceForDurableKey(key);
   }
 
+  /** Decodes and resolves opaque durable object-key octets through the root POA. */
+  public synchronized LocalObjectReference<?> resolveDurableReference(
+      byte[] encodedKey, boolean activatePoa) {
+    try {
+      return resolveDurableReference(DurableObjectKey.decode(encodedKey), activatePoa);
+    } catch (IllegalArgumentException exception) {
+      throw PoaExceptions.badParam("Malformed durable POA object key: " + exception.getMessage());
+    }
+  }
+
   /** Resolves an approved persistent POA path from a decoded durable object key. */
   public synchronized Poa resolveDurablePoa(DurableObjectKey key, boolean activate) {
     requireNotDestroyed();

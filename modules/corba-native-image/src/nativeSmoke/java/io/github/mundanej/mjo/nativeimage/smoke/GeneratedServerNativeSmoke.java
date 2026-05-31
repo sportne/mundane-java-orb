@@ -1,12 +1,25 @@
 package io.github.mundanej.mjo.nativeimage.smoke;
 
+import io.github.mundanej.mjo.cdr.CdrReader;
+import io.github.mundanej.mjo.cdr.CdrWriter;
+import io.github.mundanej.mjo.giop.GiopHeader;
+import io.github.mundanej.mjo.giop.GiopMessageType;
+import io.github.mundanej.mjo.giop.GiopReply;
+import io.github.mundanej.mjo.giop.GiopReplyStatus;
+import io.github.mundanej.mjo.giop.GiopRequest;
+import io.github.mundanej.mjo.giop.GiopTargetAddress;
+import io.github.mundanej.mjo.iiop.IiopInvocationCodec;
+import io.github.mundanej.mjo.iiop.IiopOperationBinding;
+import io.github.mundanej.mjo.iiop.IiopOrbServerHandler;
 import io.github.mundanej.mjo.modern.LocalInvocationDispatcher;
 import io.github.mundanej.mjo.orb.DurableObjectKey;
+import io.github.mundanej.mjo.orb.LocalInvocationUserException;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
 import io.github.mundanej.mjo.orb.OrbIdentity;
 import io.github.mundanej.mjo.poa.Poa;
 import io.github.mundanej.mjo.poa.PoaPolicySet;
+import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.omg.CORBA.BAD_INV_ORDER;
@@ -100,6 +113,31 @@ public final class GeneratedServerNativeSmoke {
         "Activated Grace",
         rehydrationOrb.invoke(resolved, SmokeDescriptorFixtures.GREET, List.of("Grace")),
         "durable POA servant-manager rehydration");
+
+    IiopOrbServerHandler durableHandler =
+        IiopOrbServerHandler.builder(rehydrationOrb)
+            .bindDescriptor(
+                SmokeDescriptorFixtures.GREETER,
+                List.of(new IiopOperationBinding(SmokeDescriptorFixtures.GREET, new StringCodec())))
+            .durableObjectResolver(key -> rehydrationRoot.resolveDurableReference(key, true))
+            .build();
+    GiopReply durableReply =
+        durableHandler.handle(
+            new GiopRequest(
+                GiopHeader.forType(GiopMessageType.REQUEST),
+                17,
+                3,
+                GiopTargetAddress.keyAddr(
+                    durableReference.durableObjectKey().orElseThrow().encode()),
+                "greet",
+                List.of(),
+                CdrWriter.bigEndian().writeString("Grace").toByteArray()));
+    SmokeAssertions.requireEquals(
+        GiopReplyStatus.NO_EXCEPTION, durableReply.replyStatus(), "durable IIOP reply status");
+    SmokeAssertions.requireEquals(
+        "Activated Grace",
+        CdrReader.bigEndian(durableReply.body()).readString(),
+        "durable IIOP resolver dispatch");
   }
 
   private static byte[] ascii(String value) {
@@ -138,6 +176,42 @@ public final class GeneratedServerNativeSmoke {
 
     private String greet(String name) {
       return prefix + name;
+    }
+  }
+
+  private static final class StringCodec implements IiopInvocationCodec {
+
+    @Override
+    public List<Object> decodeArguments(IdlOperationDescriptor operation, byte[] requestBody) {
+      return List.of(CdrReader.bigEndian(requestBody).readString());
+    }
+
+    @Override
+    public byte[] encodeArguments(IdlOperationDescriptor operation, List<Object> arguments) {
+      return CdrWriter.bigEndian().writeString((String) arguments.get(0)).toByteArray();
+    }
+
+    @Override
+    public byte[] encodeReturnValue(IdlOperationDescriptor operation, Object value) {
+      return CdrWriter.bigEndian().writeString((String) value).toByteArray();
+    }
+
+    @Override
+    public Object decodeReturnValue(IdlOperationDescriptor operation, byte[] replyBody) {
+      return CdrReader.bigEndian(replyBody).readString();
+    }
+
+    @Override
+    public byte[] encodeUserException(LocalInvocationUserException exception) {
+      return CdrWriter.bigEndian()
+          .writeString(exception.userException().getMessage())
+          .toByteArray();
+    }
+
+    @Override
+    public RuntimeException decodeUserException(
+        IdlOperationDescriptor operation, String repositoryId, byte[] exceptionBody) {
+      return new IllegalStateException(repositoryId);
     }
   }
 }

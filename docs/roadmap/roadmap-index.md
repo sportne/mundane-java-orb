@@ -176,4 +176,4 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g13-060-poa-durable-path-registry.md` - complete
 - `tasks/g13-070-poa-adapter-activation-lookup.md` - complete
 - `tasks/g13-080-poa-servant-manager-rehydration.md` - complete
-- `tasks/g13-090-iiop-durable-key-poa-routing.md` - ready-for-implementation
+- `tasks/g13-090-iiop-durable-key-poa-routing.md` - complete

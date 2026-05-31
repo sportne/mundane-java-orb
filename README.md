@@ -211,7 +211,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 ## Ready roadmap tasks
 
-G13-000 through G13-080 are complete. G13-090 is ready for implementation.
+G13-000 through G13-090 are complete. Future live peer durable IOR/Naming
+execution remains human-gate-blocked.
 
 Remaining human gates, including optional CORBA service approval and future live
 peer durable IOR/Naming execution, stay tracked as `human-gate-blocked` roadmap

@@ -242,3 +242,15 @@ invokes the generated-style dispatcher through `LocalOrb`. The path remains
 explicit-constructor only and introduces no reflection metadata, dynamic
 proxies, Java serialization metadata, service-loader discovery, runtime
 bytecode generation, internal JDK APIs, or `Unsafe`.
+
+## G13-090 durable IIOP resolver Native Image evidence
+
+G13-090 extends the `generatedServer` smoke entrypoint with
+`IiopOrbServerHandler` durable resolver dispatch. The smoke builds a handler
+with descriptor-level operation bindings, sends a GIOP request carrying opaque
+durable object-key bytes, resolves those bytes through the POA-owned
+rehydration path, and decodes the normal reply. The IIOP module does not parse
+`MJOK` or depend on `corba-poa`; the path remains explicit-constructor only and
+introduces no reflection metadata, dynamic proxies, Java serialization
+metadata, service-loader discovery, runtime bytecode generation, internal JDK
+APIs, or `Unsafe`.

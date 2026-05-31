@@ -15,10 +15,10 @@ import io.github.mundanej.mjo.interceptors.ServerRequestContext;
 import io.github.mundanej.mjo.ior.IiopProfile;
 import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.TaggedProfile;
-import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalInvocationUserException;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
+import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,12 +31,21 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
 
   private final LocalOrb orb;
   private final Map<ObjectKey, Binding> bindings;
+  private final Map<String, Map<String, IiopOperationBinding>> descriptorBindings;
+  private final IiopDurableObjectResolver durableResolver;
   private final PortableInterceptorRegistry interceptors;
 
   private IiopOrbServerHandler(
-      LocalOrb orb, Map<ObjectKey, Binding> bindings, PortableInterceptorRegistry interceptors) {
+      LocalOrb orb,
+      Map<ObjectKey, Binding> bindings,
+      Map<String, Map<String, IiopOperationBinding>> descriptorBindings,
+      IiopDurableObjectResolver durableResolver,
+      PortableInterceptorRegistry interceptors) {
     this.orb = Objects.requireNonNull(orb, "orb");
     this.bindings = Map.copyOf(Objects.requireNonNull(bindings, "bindings"));
+    this.descriptorBindings =
+        Map.copyOf(Objects.requireNonNull(descriptorBindings, "descriptorBindings"));
+    this.durableResolver = durableResolver;
     this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
   }
 
@@ -188,20 +197,25 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
   }
 
   private Binding bindingFor(byte[] objectKey) {
-    if (DurableObjectKey.hasDurablePrefix(objectKey)) {
-      try {
-        DurableObjectKey.decode(objectKey);
-      } catch (IllegalArgumentException exception) {
-        throw new org.omg.CORBA.BAD_PARAM(
-            "Malformed durable IIOP object key", exception, 0, CompletionStatus.COMPLETED_NO);
-      }
-    }
     Binding binding = bindings.get(new ObjectKey(objectKey));
-    if (binding == null) {
+    if (binding != null) {
+      return binding;
+    }
+    if (durableResolver == null) {
       throw new org.omg.CORBA.OBJECT_NOT_EXIST(
           "Unknown IIOP object key", 0, CompletionStatus.COMPLETED_NO);
     }
-    return binding;
+    LocalObjectReference<?> reference = durableResolver.resolve(objectKey.clone());
+    Map<String, IiopOperationBinding> operations =
+        descriptorBindings.get(reference.descriptor().repositoryId().value());
+    if (operations == null) {
+      throw new org.omg.CORBA.BAD_PARAM(
+          "No IIOP operation bindings registered for "
+              + reference.descriptor().repositoryId().value(),
+          0,
+          CompletionStatus.COMPLETED_NO);
+    }
+    return new Binding(reference, operations);
   }
 
   private static GiopReply systemExceptionReply(
@@ -247,6 +261,9 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
 
     private final LocalOrb orb;
     private final Map<ObjectKey, Binding> bindings = new LinkedHashMap<>();
+    private final Map<String, Map<String, IiopOperationBinding>> descriptorBindings =
+        new LinkedHashMap<>();
+    private IiopDurableObjectResolver durableResolver;
     private PortableInterceptorRegistry interceptors = PortableInterceptorRegistry.empty();
 
     private Builder(LocalOrb orb) {
@@ -267,6 +284,33 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
       return this;
     }
 
+    /** Registers operation codecs for dynamically resolved references of one descriptor. */
+    public Builder bindDescriptor(
+        IdlGeneratedTypeDescriptor descriptor, List<IiopOperationBinding> operationBindings) {
+      Objects.requireNonNull(descriptor, "descriptor");
+      Map<String, IiopOperationBinding> operations = Binding.operationMap(operationBindings);
+      for (IiopOperationBinding operation : operations.values()) {
+        if (!descriptor.operations().contains(operation.operation())) {
+          throw new IiopException(
+              IiopDiagnosticCodes.UNSUPPORTED_MESSAGE,
+              "operation binding is not declared by descriptor: " + operation.operation().name());
+        }
+      }
+      String repositoryId = descriptor.repositoryId().value();
+      if (descriptorBindings.put(repositoryId, operations) != null) {
+        throw new IiopException(
+            IiopDiagnosticCodes.UNSUPPORTED_MESSAGE,
+            "duplicate descriptor IIOP binding: " + repositoryId);
+      }
+      return this;
+    }
+
+    /** Configures the fallback resolver for opaque durable object keys. */
+    public Builder durableObjectResolver(IiopDurableObjectResolver durableResolver) {
+      this.durableResolver = Objects.requireNonNull(durableResolver, "durableResolver");
+      return this;
+    }
+
     /** Configures Portable Interceptors for this server handler. */
     public Builder interceptors(PortableInterceptorRegistry interceptors) {
       this.interceptors = Objects.requireNonNull(interceptors, "interceptors");
@@ -275,7 +319,8 @@ public final class IiopOrbServerHandler implements IiopRequestHandler {
 
     /** Builds the immutable handler. */
     public IiopOrbServerHandler build() {
-      return new IiopOrbServerHandler(orb, bindings, interceptors);
+      return new IiopOrbServerHandler(
+          orb, bindings, descriptorBindings, durableResolver, interceptors);
     }
   }
 
