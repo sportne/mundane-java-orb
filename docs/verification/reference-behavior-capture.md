@@ -169,6 +169,19 @@ IOR handling defects remain `our-bug`.
 include `object-reference-checked`, `server-ready`, `calculator-checked`,
 `durable-ior-invoked`, and `durable-naming-resolved`.
 
+G14-040 live execution on 2026-05-31 accepted these clean-room summaries:
+
+- `g13-durable-ior-peer-client-restart`: JacORB, Eclipse GlassFish CORBA ORB,
+  JBoss OpenJDK ORB, and ACE/TAO all returned `durable-ior-invoked` for both
+  JVM and Native Image local restarted servers.
+- `g13-durable-naming-peer-client-restart`: JacORB, Eclipse GlassFish CORBA
+  ORB, and JBoss OpenJDK ORB returned `durable-naming-resolved` for both JVM
+  and Native Image local restarted Naming servers.
+- ACE/TAO returned `profile-mismatch` for both durable Naming lanes because its
+  generated CosNaming client path reported `MARSHAL` while resolving the
+  persistent Naming corbaname profile. The raw logs and corbaname values remain
+  ignored local outputs.
+
 ## Clean-room rule
 
 Behavioral observations can become tests. Reference implementation source code

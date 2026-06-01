@@ -20,8 +20,15 @@ import io.github.mundanej.mjo.ior.ObjectKey;
 import io.github.mundanej.mjo.ior.StringifiedIor;
 import io.github.mundanej.mjo.ior.TaggedProfile;
 import io.github.mundanej.mjo.modern.LocalInvocationDispatcher;
+import io.github.mundanej.mjo.naming.NamingName;
+import io.github.mundanej.mjo.naming.server.NamingPersistenceOptions;
+import io.github.mundanej.mjo.naming.server.NetworkNamingClient;
+import io.github.mundanej.mjo.naming.server.NetworkNamingService;
+import io.github.mundanej.mjo.naming.server.RemoteNamingBindingTarget;
+import io.github.mundanej.mjo.orb.DurableObjectKey;
 import io.github.mundanej.mjo.orb.LocalObjectReference;
 import io.github.mundanej.mjo.orb.LocalOrb;
+import io.github.mundanej.mjo.orb.OrbIdentity;
 import io.github.mundanej.mjo.repositoryid.RepositoryId;
 import io.github.mundanej.mjo.rmi.iiop.RmiCdrValue;
 import io.github.mundanej.mjo.rmi.iiop.RmiIdlExceptionReference;
@@ -46,6 +53,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,6 +66,10 @@ public final class LiveInteropLane {
   private static final String LEGACY_SMOKE_REPOSITORY_ID = "IDL:interop/Smoke:1.0";
   private static final byte[] BASIC_OBJECT_KEY =
       "mjo-basic-smoke".getBytes(StandardCharsets.US_ASCII);
+  private static final String DURABLE_RESTART_ORB_ID = "g13-peer-restart-orb";
+  private static final String DURABLE_RESTART_POA_PATH = "/RootPOA/g13/persistent";
+  private static final byte[] DURABLE_RESTART_OBJECT_ID =
+      "fixture-object".getBytes(StandardCharsets.US_ASCII);
   private static final String CALCULATOR_REPOSITORY_ID = "IDL:example/calc/Calculator:1.0";
   private static final String PROBLEM_REPOSITORY_ID = "IDL:example/calc/CalculatorProblem:1.0";
   private static final IdlTypeReference LONG_TYPE =
@@ -125,6 +137,12 @@ public final class LiveInteropLane {
     if ("rmi-iiop".equals(scenario)) {
       return startCalculatorServer(bindHost, advertisedHost, port, serverIorPath(env));
     }
+    if ("g13-durable-ior-peer-client-restart".equals(scenario)) {
+      return startDurableLivenessServer(bindHost, advertisedHost, port, serverIorPath(env));
+    }
+    if ("g13-durable-naming-peer-client-restart".equals(scenario)) {
+      return startDurableNamingServer(bindHost, advertisedHost, port, env);
+    }
     return startLivenessServer(bindHost, advertisedHost, port, serverIorPath(env));
   }
 
@@ -179,7 +197,7 @@ public final class LiveInteropLane {
                         new ObjectKey(BASIC_OBJECT_KEY),
                         List.of()))));
     writeIor(serverIorPath, ior);
-    return new RunningServer(server, null);
+    return new RunningServer(server);
   }
 
   private static RunningServer startCalculatorServer(
@@ -197,7 +215,82 @@ public final class LiveInteropLane {
         IiopObjectReference.fromLocal(
             new IiopEndpoint(advertisedHost, server.endpoint().port()), reference);
     writeIor(serverIorPath, iiopReference.ior());
-    return new RunningServer(server, orb);
+    return new RunningServer(server, () -> orb.shutdown());
+  }
+
+  private static RunningServer startDurableLivenessServer(
+      String bindHost, String advertisedHost, int port, Path serverIorPath) throws IOException {
+    byte[] durableObjectKey = durableObjectKey().encode();
+    IiopServer server =
+        IiopServer.bind(
+            new IiopEndpoint(bindHost, port),
+            IiopOptions.defaults(),
+            request -> handleDurableLiveness(request, durableObjectKey));
+    IiopEndpoint advertised = new IiopEndpoint(advertisedHost, server.endpoint().port());
+    writeIor(serverIorPath, durableIor(advertised, durableObjectKey));
+    return new RunningServer(server);
+  }
+
+  private static RunningServer startDurableNamingServer(
+      String bindHost, String advertisedHost, int objectPort, Map<String, String> env)
+      throws IOException {
+    byte[] durableObjectKey = durableObjectKey().encode();
+    IiopServer objectServer =
+        IiopServer.bind(
+            new IiopEndpoint(bindHost, objectPort),
+            IiopOptions.defaults(),
+            request -> handleDurableLiveness(request, durableObjectKey));
+    IiopEndpoint advertisedObject =
+        new IiopEndpoint(advertisedHost, objectServer.endpoint().port());
+    Ior objectIor = durableIor(advertisedObject, durableObjectKey);
+
+    OrbIdentity identity = OrbIdentity.durable(DURABLE_RESTART_ORB_ID);
+    NamingPersistenceOptions persistence =
+        NamingPersistenceOptions.of(identity, Path.of(required(env, "MJO_INTEROP_NAMING_STORE")));
+    int namingPort = Integer.parseInt(required(env, "MJO_INTEROP_NAMING_PORT"));
+    NetworkNamingService naming =
+        NetworkNamingService.bind(
+            new IiopEndpoint(bindHost, namingPort), IiopOptions.defaults(), persistence);
+    if ("first".equals(env.getOrDefault("MJO_INTEROP_DURABLE_PHASE", ""))) {
+      seedNamingStore(naming, objectIor);
+    }
+    String location = naming.corbaloc().substring("corbaloc:".length());
+    location =
+        location.replace(
+            "@" + naming.endpoint().host() + ":" + naming.endpoint().port() + "/",
+            "@" + advertisedHost + ":" + naming.endpoint().port() + "/");
+    String corbaname = "corbaname:" + location + "#apps/service";
+    writeText(serverIorPath(env), corbaname);
+    return new RunningServer(naming, objectServer);
+  }
+
+  private static void seedNamingStore(NetworkNamingService naming, Ior objectIor) {
+    try (NetworkNamingClient root =
+        NetworkNamingClient.connect(naming.ior(), IiopOptions.defaults())) {
+      RemoteNamingBindingTarget child = root.bindNewContext(NamingName.parse("apps"));
+      try (NetworkNamingClient apps =
+          NetworkNamingClient.connect(child.ior(), IiopOptions.defaults())) {
+        apps.bind(NamingName.parse("service"), objectIor);
+      }
+    }
+  }
+
+  private static Ior durableIor(IiopEndpoint endpoint, byte[] durableObjectKey) {
+    return new Ior(
+        BASIC_REPOSITORY_ID,
+        List.of(
+            TaggedProfile.internetIop(
+                new IiopProfile(
+                    IiopVersion.V1_2,
+                    endpoint.host(),
+                    endpoint.port(),
+                    new ObjectKey(durableObjectKey),
+                    List.of()))));
+  }
+
+  private static DurableObjectKey durableObjectKey() {
+    return DurableObjectKey.fromPoaPath(
+        DURABLE_RESTART_ORB_ID, DURABLE_RESTART_POA_PATH, DURABLE_RESTART_OBJECT_ID, 0);
   }
 
   private static GiopReply handleLiveness(GiopRequest request) {
@@ -224,6 +317,18 @@ public final class LiveInteropLane {
         GiopReplyStatus.NO_EXCEPTION,
         List.of(),
         body);
+  }
+
+  private static GiopReply handleDurableLiveness(GiopRequest request, byte[] expectedObjectKey) {
+    if (!Arrays.equals(expectedObjectKey, request.objectKey())) {
+      return new GiopReply(
+          GiopHeader.forType(GiopMessageType.REPLY),
+          request.requestId(),
+          GiopReplyStatus.SYSTEM_EXCEPTION,
+          List.of(),
+          new byte[0]);
+    }
+    return handleLiveness(request);
   }
 
   private static void invokeObjectLiveness(IiopObjectReference reference) {
@@ -325,11 +430,15 @@ public final class LiveInteropLane {
   }
 
   private static void writeIor(Path path, Ior ior) throws IOException {
+    writeText(path, StringifiedIor.format(ior));
+  }
+
+  private static void writeText(Path path, String value) throws IOException {
     Path parent = path.getParent();
     if (parent != null) {
       Files.createDirectories(parent);
     }
-    Files.writeString(path, StringifiedIor.format(ior) + System.lineSeparator());
+    Files.writeString(path, value + System.lineSeparator());
   }
 
   private static Path serverIorPath(Map<String, String> env) {
@@ -408,19 +517,20 @@ public final class LiveInteropLane {
 
   /** Running live-lane server resources. */
   public static final class RunningServer implements AutoCloseable {
-    private final IiopServer server;
-    private final LocalOrb orb;
+    private final List<AutoCloseable> resources;
 
-    private RunningServer(IiopServer server, LocalOrb orb) {
-      this.server = server;
-      this.orb = orb;
+    private RunningServer(AutoCloseable... resources) {
+      this.resources = List.of(resources);
     }
 
     @Override
     public void close() {
-      server.close();
-      if (orb != null) {
-        orb.shutdown();
+      for (int index = resources.size() - 1; index >= 0; index--) {
+        try {
+          resources.get(index).close();
+        } catch (Exception ignored) {
+          // Close is best-effort during harness process teardown.
+        }
       }
     }
   }

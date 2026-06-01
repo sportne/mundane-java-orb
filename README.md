@@ -19,7 +19,7 @@ afterthought.
 
 ## Current repository phase
 
-This repository is in **post-1.0.0 G14 durable peer persistence planning state**:
+This repository is in **post-1.0.0 durable peer persistence evidence state**:
 
 - governance documents exist;
 - requirement and ADR templates exist;
@@ -216,11 +216,13 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 
 G8 optional-service design gates are complete, and optional service
 implementation remains blocked behind service-specific task groups. G13-000
-through G13-090 are complete. G14-000 through G14-030 are complete, with
-maintainers accepting the local durable routing evidence for peer-harness
-preparation, dry-run peer harness metadata recorded, and deterministic durable
-missing-prerequisite reports available. G14-040 live durable peer execution is
-the next ready-for-implementation task.
+through G13-090 and G14-000 through G14-040 are complete. G14 live durable peer
+evidence covers old durable IOR invocation across JacORB, GlassFish CORBA ORB,
+JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image local servers.
+Persistent Naming restart evidence resolves for JacORB, GlassFish CORBA ORB,
+and JBoss OpenJDK ORB across JVM and Native Image local servers; ACE/TAO is
+recorded as a durable Naming `profile-mismatch`, not as an opaque-key failure.
+The next ready roadmap task is G8-100, the Time Service task group.
 
-Future live peer expansion beyond the approved G14-040 durable IOR/Naming
+Future live peer expansion beyond the completed G14 durable IOR/Naming
 directions stays out of scope until maintainers record a separate decision.

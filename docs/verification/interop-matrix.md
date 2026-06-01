@@ -304,10 +304,47 @@ or copied reference implementation material.
 Expected classifications include `durable-ior-invoked`,
 `durable-naming-resolved`, `server-ready`, `expected-deferral`,
 `unsupported-scenario`, `missing-prerequisite`, `infrastructure-failure`,
-`our-bug`, `peer-bug`, `profile-mismatch`, and `spec-ambiguity`. Actual live
-execution is approved only for G14-040 after G14-030 completion; raw reports,
-logs, IORs, Naming stores, peer artifacts, Docker layers, and native binaries
-remain ignored local outputs.
+`our-bug`, `peer-bug`, `profile-mismatch`, and `spec-ambiguity`. G14-040 ran
+the approved live matrix on 2026-05-31. Raw reports, logs, IORs, Naming stores,
+peer artifacts, Docker layers, and native binaries remain ignored local outputs.
+
+## G14-040 durable peer live evidence
+
+G14-040 executed the approved one-sided durable persistence matrix against
+JacORB, Eclipse GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO using the
+ignored approved artifact cache, local Docker peer images, the JVM server lane,
+and the SDKMAN GraalVM Native Image server lane.
+
+Durable IOR evidence passed for all four peers and both local runtimes. Each
+peer client invoked an old stringified IOR after the first local server process
+exited and the second process restarted with the same fixture durable ORB id,
+POA path, object id, and endpoint. The accepted classification is
+`durable-ior-invoked` for all eight peer/runtime cells.
+
+Persistent Naming evidence passed for JacORB, Eclipse GlassFish CORBA ORB, and
+JBoss OpenJDK ORB across both local runtimes. Each peer client resolved an old
+corbaname value after the first local Naming process exited and the second
+process restarted with the same durable ORB id, Naming endpoint, durable target
+endpoint, and ignored `MJNS` store. The accepted classification is
+`durable-naming-resolved` for those six cells.
+
+ACE/TAO preserved opaque durable IOR object keys, but its generated CosNaming
+client path reported `MARSHAL` while resolving the persistent Naming corbaname
+against the current bounded Naming service profile. That result is recorded as
+`profile-mismatch` for the JVM and Native Image local Naming lanes. It is not an
+opaque object-key preservation failure and does not require ACE/TAO to
+understand `MJOK` or `MJNS`.
+
+| Scenario | Peer | JVM local server | Native Image local server |
+|---|---|---|---|
+| durable IOR restart | JacORB | `durable-ior-invoked` | `durable-ior-invoked` |
+| durable IOR restart | GlassFish CORBA ORB | `durable-ior-invoked` | `durable-ior-invoked` |
+| durable IOR restart | JBoss OpenJDK ORB | `durable-ior-invoked` | `durable-ior-invoked` |
+| durable IOR restart | ACE/TAO | `durable-ior-invoked` | `durable-ior-invoked` |
+| durable Naming restart | JacORB | `durable-naming-resolved` | `durable-naming-resolved` |
+| durable Naming restart | GlassFish CORBA ORB | `durable-naming-resolved` | `durable-naming-resolved` |
+| durable Naming restart | JBoss OpenJDK ORB | `durable-naming-resolved` | `durable-naming-resolved` |
+| durable Naming restart | ACE/TAO | `profile-mismatch` | `profile-mismatch` |
 
 The first G10-120 execution attempt on 2026-05-24 did not reach live peer
 behavior. `validate-gates --require-cache` failed because

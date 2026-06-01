@@ -2,6 +2,7 @@
 #include <tao/DynamicInterface/Dynamic_Implementation.h>
 #include <tao/DynamicInterface/Server_Request.h>
 #include <tao/PortableServer/PortableServer.h>
+#include "CosNamingC.h"
 
 #include "CalculatorS.h"
 
@@ -11,6 +12,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -91,6 +93,65 @@ std::string read_file(const std::string& path) {
     throw std::runtime_error("input file is empty: " + path);
   }
   return value;
+}
+
+std::string scenario_name_path(const std::string& corbaname) {
+  const std::string prefix = "corbaname:";
+  if (corbaname.rfind(prefix, 0) != 0) {
+    throw std::runtime_error("durable Naming scenario requires a corbaname value");
+  }
+  const std::string::size_type hash = corbaname.find('#');
+  if (hash == std::string::npos || hash == corbaname.size() - 1) {
+    throw std::runtime_error("durable Naming corbaname value has no name path");
+  }
+  return corbaname.substr(hash + 1);
+}
+
+std::string scenario_corbaloc(const std::string& corbaname) {
+  const std::string prefix = "corbaname:";
+  const std::string::size_type hash = corbaname.find('#');
+  return "corbaloc:" + corbaname.substr(prefix.size(), hash - prefix.size());
+}
+
+std::vector<std::string> split_name_path(const std::string& value) {
+  std::vector<std::string> result;
+  std::string current;
+  for (const char ch : value) {
+    if (ch == '/') {
+      if (current.empty()) {
+        throw std::runtime_error("durable Naming corbaname has an empty component");
+      }
+      result.push_back(current);
+      current.clear();
+    } else {
+      current += ch;
+    }
+  }
+  if (current.empty()) {
+    throw std::runtime_error("durable Naming corbaname has an empty final component");
+  }
+  result.push_back(current);
+  return result;
+}
+
+CORBA::Object_var resolve_corbaname_target(CORBA::ORB_ptr orb, const std::string& corbaname) {
+  const std::string corbaloc = scenario_corbaloc(corbaname);
+  CORBA::Object_var naming_object = orb->string_to_object(corbaloc.c_str());
+  if (CORBA::is_nil(naming_object.in())) {
+    throw std::runtime_error("durable Naming corbaloc returned nil");
+  }
+  CosNaming::NamingContext_var naming = CosNaming::NamingContext::_unchecked_narrow(naming_object.in());
+  if (CORBA::is_nil(naming.in())) {
+    throw std::runtime_error("durable Naming unchecked narrow returned nil");
+  }
+  const std::vector<std::string> parts = split_name_path(scenario_name_path(corbaname));
+  CosNaming::Name name;
+  name.length(static_cast<CORBA::ULong>(parts.size()));
+  for (CORBA::ULong index = 0; index < name.length(); ++index) {
+    name[index].id = CORBA::string_dup(parts[index].c_str());
+    name[index].kind = CORBA::string_dup("");
+  }
+  return naming->resolve(name);
 }
 
 void write_report(const std::string& role, const std::string& scenario, const std::string& status,
@@ -177,7 +238,12 @@ int check_object(int argc, char* argv[], const std::string& role, const std::str
   }
   CORBA::ORB_var orb = CORBA::ORB_init(argc, argv);
   const std::string ior = read_file(ior_path(scenario));
-  CORBA::Object_var object = orb->string_to_object(ior.c_str());
+  CORBA::Object_var object;
+  if (scenario == "g13-durable-naming-peer-client-restart") {
+    object = resolve_corbaname_target(orb.in(), ior);
+  } else {
+    object = orb->string_to_object(ior.c_str());
+  }
   if (CORBA::is_nil(object.in())) {
     throw std::runtime_error("string_to_object returned nil");
   }

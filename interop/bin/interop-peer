@@ -748,6 +748,12 @@ classify_failed_command() {
   local scenario="$1"
   local stderr_abs="$2"
   local default_message="$3"
+  if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]] && [[ -f "${stderr_abs}" ]]; then
+    if grep -Eq 'CORBA exception: MARSHAL|string_to_object returned nil' "${stderr_abs}"; then
+      printf 'profile-mismatch\tG14-040 peer Naming client could not consume the persistent Naming corbaname profile\n'
+      return
+    fi
+  fi
   if [[ "${scenario}" == "rmi-iiop" ]] && [[ -f "${stderr_abs}" ]]; then
     if grep -Eq 'RmiIiopWireException|CdrException|wchar Code Set support not specified' "${stderr_abs}" \
         || (grep -q 'BAD_OPERATION' "${stderr_abs}" && grep -q 'PeerSmoke.verifyCalculator' "${stderr_abs}"); then
@@ -906,6 +912,24 @@ run_container_role() {
       run_args+=(-e "INTEROP_IDL=${idl}" -v "${ROOT_DIR}/${idl}:/interop/scenario.idl:ro")
       ;;
   esac
+  if [[ "${peer}" == "ace-tao" ]] && durable_scenario "${scenario}" \
+      && [[ "${role}" == "client" || "${role}" == "health" ]]; then
+    if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" && "${role}" == "client" ]]; then
+      run_args+=(
+        -v "${ROOT_DIR}/interop/peers/ace-tao/peer/src/ace_tao_peer.cpp:/interop/peer-source/ace_tao_peer.cpp:ro"
+        -e "INTEROP_PEER_CLIENT_COMMAND=mkdir -p /tmp/ace-gen && \"\${TAO_ROOT}/TAO_IDL/tao_idl\" -o /tmp/ace-gen \"\${TAO_ROOT}/orbsvcs/orbsvcs/CosNaming.idl\" && g++ -std=c++17 -O0 -Wall -Wextra -I\"\${ACE_ROOT}\" -I\"\${TAO_ROOT}\" -I/tmp/ace-gen -I/interop/peer/generated/rmi-iiop /interop/peer-source/ace_tao_peer.cpp /tmp/ace-gen/CosNamingC.cpp /interop/peer/generated/rmi-iiop/CalculatorC.cpp /interop/peer/generated/rmi-iiop/CalculatorS.cpp -L\"\${ACE_ROOT}/lib\" -L\"\${TAO_ROOT}/lib\" -Wl,-rpath,\"\${ACE_ROOT}/lib\" -Wl,-rpath,\"\${TAO_ROOT}/lib\" -lTAO_DynamicInterface -lTAO_PortableServer -lTAO_AnyTypeCode -lTAO -lACE -o /tmp/ace_tao_peer && /tmp/ace_tao_peer client"
+      )
+    else
+      run_args+=(-e "INTEROP_PEER_${role^^}_COMMAND=/interop/peer/bin/ace_tao_peer ${role}")
+    fi
+  fi
+  if [[ "${peer}" != "ace-tao" ]] && durable_scenario "${scenario}" \
+      && [[ "${role}" == "client" ]]; then
+    run_args+=(
+      -v "${ROOT_DIR}/interop/container/java-peer-smoke/PeerSmoke.java:/interop/peer-source/PeerSmoke.java:ro"
+      -e "INTEROP_PEER_CLIENT_COMMAND=mkdir -p /tmp/mjo-peer-classes && javac -cp '/interop/peer/lib/*' -d /tmp/mjo-peer-classes /interop/peer-source/PeerSmoke.java && java \${INTEROP_JAVA_OPTS:-} -cp '/tmp/mjo-peer-classes:/interop/peer/lib/*' PeerSmoke client"
+    )
+  fi
   run_args+=("${image}" "${container_command}")
 
   set +e
@@ -917,8 +941,13 @@ run_container_role() {
   local status classification notes
   if [[ "${exit_code}" -eq 0 ]]; then
     status="passed"
-    classification="expected-deferral"
-    notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
+    if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+      classification="$(durable_success_classification "${scenario}")"
+      notes="G14-040 peer client completed against the old durable restart reference"
+    else
+      classification="expected-deferral"
+      notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
+    fi
   elif [[ "${exit_code}" -eq 66 ]]; then
     status="failed"
     classification="missing-prerequisite"
@@ -934,10 +963,33 @@ run_container_role() {
     classification="${classified%%$'\t'*}"
     notes="${classified#*$'\t'}"
   fi
-  write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
-    "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
-    "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
-    "${started}" "${ended}" "${notes}"
+  if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
+      "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "${notes}" \
+      "direction=local-server-to-peer-client" \
+      "localServerRuntime=${server_runtime}" \
+      "peerClientRuntime=${client_runtime}" \
+      "expectedClassification=$(durable_success_classification "${scenario}")" \
+      "evidencePolicy=clean-room-summary-only" \
+      "durableOrbIdLabel=g13-peer-restart-orb" \
+      "poaPathLabel=RootPOA/g13/persistent" \
+      "objectIdLabel=fixture-object" \
+      "restartPhase=peer-client-after-second-server-ready" \
+      "stringifiedIorPath=${iors_dir}/${scenario}-server.ior" \
+      "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
+  else
+    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
+      "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "${notes}"
+  fi
+  if durable_scenario "${scenario}" \
+      && [[ "${classification}" == "profile-mismatch" || "${classification}" == "spec-ambiguity" \
+        || "${classification}" == "unsupported-scenario" ]]; then
+    return 0
+  fi
   return "${exit_code}"
 }
 
@@ -1447,6 +1499,31 @@ cleanup_started_local_server() {
   STARTED_LOCAL_SERVER_PID=""
 }
 
+allocate_local_port() {
+  python3 - <<'PY'
+import socket
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock.bind(("127.0.0.1", 0))
+    print(sock.getsockname()[1])
+PY
+}
+
+wait_for_tcp_port() {
+  local host="$1"
+  local port="$2"
+  local attempts="${INTEROP_DURABLE_PORT_ATTEMPTS:-30}"
+  local delay="${INTEROP_DURABLE_PORT_DELAY_SECONDS:-1}"
+  local attempt
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if (echo >"/dev/tcp/${host}/${port}") >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "${delay}"
+  done
+  return 1
+}
+
 durable_prerequisite_failure() {
   local scenario="$1"
   local runtime="$2"
@@ -1556,6 +1633,206 @@ write_durable_prerequisite_report() {
     "poaPathLabel=RootPOA/g13/persistent" \
     "objectIdLabel=fixture-object" \
     "restartPhase=missing-prerequisite" \
+    "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
+}
+
+start_durable_local_server_lane() {
+  local scenario="$1"
+  local runtime="$2"
+  local peer="$3"
+  local direction="local-server-to-peer-client"
+  local reports_dir logs_dir peer_iors_dir label report_abs stdout_abs stderr_abs command_env command idl
+  local our_runtime manifest_iors_dir
+  our_runtime="$(local_runtime_name "${runtime}")"
+  reports_dir="build/interop/local/reports"
+  logs_dir="build/interop/local/logs"
+  manifest_iors_dir="$(manifest_value "$(manifest_path "${peer}")" "reports.iors")"
+  peer_iors_dir="${ROOT_DIR}/${manifest_iors_dir}"
+  label="$(report_label "${scenario}" "${peer}-${runtime}-server-${direction}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "${peer_iors_dir}"
+  idl="$(scenario_idl "${scenario}")"
+  if [[ "${runtime}" == "jvm" ]]; then
+    command_env="MJO_JVM_SERVER_COMMAND"
+    command="${!command_env:-}"
+  else
+    command_env="MJO_NATIVE_SERVER_BINARY"
+    command="${!command_env:-}"
+  fi
+
+  local started ended
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  if [[ -z "${command}" || ( "${runtime}" == "native" && ! -x "${command}" ) ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    : >"${stdout_abs}"
+    printf '%s must provide a live durable %s server lane\n' "${command_env}" "${runtime}" >"${stderr_abs}"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "missing-prerequisite" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G14-040 ${runtime} durable server command prerequisite missing"
+    return 1
+  fi
+
+  local server_ior naming_store object_port naming_port bind_host advertise_host
+  server_ior="${peer_iors_dir}/${scenario}-server.ior"
+  naming_store="${ROOT_DIR}/build/interop/local/state/${scenario}-${peer}-${runtime}.mjns"
+  object_port="${INTEROP_DURABLE_OBJECT_PORT:-$(allocate_local_port)}"
+  naming_port="${INTEROP_DURABLE_NAMING_PORT:-$(allocate_local_port)}"
+  if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then
+    while [[ "${naming_port}" == "${object_port}" ]]; do
+      if [[ -n "${INTEROP_DURABLE_NAMING_PORT:-}" ]]; then
+        ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        : >"${stdout_abs}"
+        printf 'durable Naming port must differ from durable object port: %s\n' "${object_port}" >"${stderr_abs}"
+        write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+          "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+          "failed" "missing-prerequisite" "1" "${logs_dir}/${label}.stdout.log" \
+          "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+          "G14-040 durable Naming endpoint prerequisite conflicts with object endpoint"
+        return 1
+      fi
+      naming_port="$(allocate_local_port)"
+    done
+  fi
+  bind_host="${MJO_INTEROP_BIND_HOST:-0.0.0.0}"
+  advertise_host="${MJO_INTEROP_ADVERTISE_HOST:-host.docker.internal}"
+  rm -f "${server_ior}" "${naming_store}"
+  mkdir -p "$(dirname "${naming_store}")"
+
+  start_durable_process() {
+    local phase="$1"
+    local out="$2"
+    local err="$3"
+    set +e
+    if [[ "${runtime}" == "jvm" ]]; then
+      env \
+        "MJO_INTEROP_SCENARIO=${scenario}" \
+        "MJO_INTEROP_PEER=${peer}" \
+        "MJO_INTEROP_DIRECTION=${direction}" \
+        "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+        "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+        "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+        "MJO_INTEROP_BIND_HOST=${bind_host}" \
+        "MJO_INTEROP_ADVERTISE_HOST=${advertise_host}" \
+        "MJO_INTEROP_PORT=${object_port}" \
+        "MJO_INTEROP_NAMING_PORT=${naming_port}" \
+        "MJO_INTEROP_NAMING_STORE=${naming_store}" \
+        "MJO_INTEROP_DURABLE_PHASE=${phase}" \
+        bash -c "${command}" >"${out}" 2>"${err}" &
+    else
+      env \
+        "MJO_INTEROP_SCENARIO=${scenario}" \
+        "MJO_INTEROP_PEER=${peer}" \
+        "MJO_INTEROP_DIRECTION=${direction}" \
+        "MJO_INTEROP_IDL=${ROOT_DIR}/${idl}" \
+        "MJO_INTEROP_IORS_DIR=${peer_iors_dir}" \
+        "MJO_INTEROP_SERVER_IOR=${server_ior}" \
+        "MJO_INTEROP_BIND_HOST=${bind_host}" \
+        "MJO_INTEROP_ADVERTISE_HOST=${advertise_host}" \
+        "MJO_INTEROP_PORT=${object_port}" \
+        "MJO_INTEROP_NAMING_PORT=${naming_port}" \
+        "MJO_INTEROP_NAMING_STORE=${naming_store}" \
+        "MJO_INTEROP_DURABLE_PHASE=${phase}" \
+        "${command}" >"${out}" 2>"${err}" &
+    fi
+    STARTED_LOCAL_SERVER_PID="$!"
+    set -e
+  }
+
+  wait_for_durable_start() {
+    local require_ior="$1"
+    local attempts="${INTEROP_DURABLE_SERVER_IOR_ATTEMPTS:-30}"
+    local delay="${INTEROP_DURABLE_SERVER_IOR_DELAY_SECONDS:-1}"
+    local attempt
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+      if ! kill -0 "${STARTED_LOCAL_SERVER_PID}" >/dev/null 2>&1; then
+        return 1
+      fi
+      if [[ "${require_ior}" != "true" || -s "${server_ior}" ]]; then
+        return 0
+      fi
+      sleep "${delay}"
+    done
+    return 1
+  }
+
+  local first_stdout first_stderr second_started second_attempt second_attempts second_delay
+  first_stdout="${stdout_abs}.first"
+  first_stderr="${stderr_abs}.first"
+  start_durable_process "first" "${first_stdout}" "${first_stderr}"
+  if ! wait_for_durable_start "true"; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    {
+      printf 'first durable %s server did not produce restart reference\n' "${runtime}"
+      [[ -f "${first_stderr}" ]] && cat "${first_stderr}"
+    } >"${stderr_abs}"
+    [[ -f "${first_stdout}" ]] && cp "${first_stdout}" "${stdout_abs}" || : >"${stdout_abs}"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G14-040 first durable server did not become ready"
+    cleanup_started_local_server
+    return 1
+  fi
+  cleanup_started_local_server
+
+  second_started="false"
+  second_attempts="${INTEROP_DURABLE_RESTART_ATTEMPTS:-12}"
+  second_delay="${INTEROP_DURABLE_RESTART_DELAY_SECONDS:-1}"
+  for ((second_attempt = 1; second_attempt <= second_attempts; second_attempt++)); do
+    start_durable_process "second" "${stdout_abs}" "${stderr_abs}"
+    sleep "${INTEROP_LOCAL_SERVER_START_DELAY_SECONDS:-1}"
+    if wait_for_durable_start "false"; then
+      second_started="true"
+      break
+    fi
+    cleanup_started_local_server
+    sleep "${second_delay}"
+  done
+  if [[ "${second_started}" != "true" ]]; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G14-040 second durable server did not rebind on the original endpoint"
+    return 1
+  fi
+  if ! wait_for_tcp_port "127.0.0.1" "${object_port}" \
+      || { [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]] \
+        && ! wait_for_tcp_port "127.0.0.1" "${naming_port}"; }; then
+    ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+      "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+      "failed" "infrastructure-failure" "1" "${logs_dir}/${label}.stdout.log" \
+      "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+      "G14-040 durable server process started but endpoint readiness did not pass"
+    return 1
+  fi
+
+  ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+    "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
+    "passed" "server-ready" "0" "${logs_dir}/${label}.stdout.log" \
+    "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+    "G14-040 durable server restarted on the same endpoint before peer client execution" \
+    "direction=${direction}" \
+    "localServerRuntime=${our_runtime}" \
+    "peerClientRuntime=$(peer_runtime_name "$(manifest_value "$(manifest_path "${peer}")" "peerType")")" \
+    "expectedClassification=$(durable_success_classification "${scenario}")" \
+    "evidencePolicy=clean-room-summary-only" \
+    "durableOrbIdLabel=g13-peer-restart-orb" \
+    "poaPathLabel=RootPOA/g13/persistent" \
+    "objectIdLabel=fixture-object" \
+    "firstEndpoint=${advertise_host}:${object_port}" \
+    "restartedEndpoint=${advertise_host}:${object_port}" \
+    "restartPhase=after-second-server-ready" \
+    "stringifiedIorPath=${manifest_iors_dir}/${scenario}-server.ior" \
+    "corbanameValue=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'stored-in-ignored-ior-file'; fi)" \
     "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
 }
 
@@ -1930,7 +2207,20 @@ run_direction_matrix() {
               continue
             fi
           fi
-          if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
+          if durable_scenario "${scenario}" && [[ "${require_live}" == "true" ]]; then
+            if start_durable_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
+              start_status=0
+            else
+              start_status=$?
+            fi
+          else
+            if start_local_server_lane "${scenario}" "${runtime}" "${peer}"; then
+              start_status=0
+            else
+              start_status=$?
+            fi
+          fi
+          if [[ "${start_status}" -eq 0 ]]; then
             run_container_role "${peer}" "client" "${scenario}" "${runtime}-server-to-peer-client" \
               "" "$(local_runtime_name "${runtime}")" \
               || failures=$((failures + 1))

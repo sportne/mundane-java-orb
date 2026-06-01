@@ -141,6 +141,7 @@ scenarioCapabilities:
       - native
     expectedClassifications:
       - durable-naming-resolved
+      - profile-mismatch
       - server-ready
       - expected-deferral
       - missing-prerequisite

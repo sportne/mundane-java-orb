@@ -116,7 +116,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-d40-transaction-service-design-gate.md` - complete
 - `tasks/g8-d50-security-service-design-gate.md` - complete
 - `tasks/g8-d60-time-service-design-gate.md` - complete
-- `tasks/g8-100-time-service-task-group.md` - blocked
+- `tasks/g8-100-time-service-task-group.md` - ready-for-implementation
 - `tasks/g8-200-event-service-task-group.md` - blocked
 - `tasks/g8-300-notification-service-task-group.md` - blocked
 - `tasks/g8-400-trading-service-task-group.md` - blocked
@@ -190,4 +190,4 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g14-010-local-durable-evidence-acceptance-gate.md` - complete
 - `tasks/g14-020-durable-peer-harness-metadata.md` - complete
 - `tasks/g14-030-durable-peer-prerequisite-reports.md` - complete
-- `tasks/g14-040-durable-peer-live-execution.md` - ready-for-implementation
+- `tasks/g14-040-durable-peer-live-execution.md` - complete

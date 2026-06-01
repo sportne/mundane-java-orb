@@ -12,6 +12,8 @@ import org.omg.CORBA.ServerRequest;
 import org.omg.CORBA.StructMember;
 import org.omg.CORBA.TCKind;
 import org.omg.CORBA.TypeCode;
+import org.omg.CosNaming.NameComponent;
+import org.omg.CosNaming.NameHelper;
 import org.omg.PortableServer.DynamicImplementation;
 import org.omg.PortableServer.POA;
 import org.omg.PortableServer.POAHelper;
@@ -56,7 +58,8 @@ public final class PeerSmoke {
     ORB orb = orb(false);
     Path ior = iorPath("server");
     String value = Files.readString(ior).trim();
-    org.omg.CORBA.Object ref = orb.string_to_object(value);
+    org.omg.CORBA.Object ref =
+        isDurableNamingScenario() ? resolveCorbanameTarget(orb, value) : orb.string_to_object(value);
     if ("rmi-iiop".equals(scenario())) {
       verifyCalculator(orb, ref);
       return;
@@ -68,6 +71,43 @@ public final class PeerSmoke {
           "unexpected peer object state: exists=" + exists + ", isSmoke=" + isSmoke);
     }
     System.out.println("peer smoke client completed");
+  }
+
+  private static org.omg.CORBA.Object resolveCorbanameTarget(ORB orb, String value) {
+    if (!value.startsWith("corbaname:")) {
+      throw new IllegalArgumentException("durable Naming scenario requires corbaname input");
+    }
+    int hash = value.indexOf('#');
+    if (hash < 0 || hash == value.length() - 1) {
+      throw new IllegalArgumentException("durable Naming corbaname must include a name path");
+    }
+    org.omg.CORBA.Object naming =
+        orb.string_to_object("corbaloc:" + value.substring("corbaname:".length(), hash));
+    Request resolve = naming._request("resolve");
+    Any name = resolve.add_in_arg();
+    NameHelper.insert(name, nameComponents(value.substring(hash + 1)));
+    resolve.set_return_type(orb.get_primitive_tc(TCKind.tk_objref));
+    resolve.invoke();
+    if (resolve.env().exception() != null) {
+      throw new IllegalStateException("durable Naming resolve failed", resolve.env().exception());
+    }
+    org.omg.CORBA.Object target = resolve.return_value().extract_Object();
+    if (target == null) {
+      throw new IllegalStateException("durable Naming resolve returned nil");
+    }
+    return target;
+  }
+
+  private static NameComponent[] nameComponents(String name) {
+    String[] parts = name.split("/");
+    NameComponent[] components = new NameComponent[parts.length];
+    for (int index = 0; index < parts.length; index++) {
+      if (parts[index].isBlank()) {
+        throw new IllegalArgumentException("empty durable Naming component");
+      }
+      components[index] = new NameComponent(parts[index], "");
+    }
+    return components;
   }
 
   private static void health() throws Exception {
@@ -143,6 +183,10 @@ public final class PeerSmoke {
 
   private static String scenario() {
     return System.getenv().getOrDefault("INTEROP_SCENARIO", "manual");
+  }
+
+  private static boolean isDurableNamingScenario() {
+    return "g13-durable-naming-peer-client-restart".equals(scenario());
   }
 
   private static String peer() {

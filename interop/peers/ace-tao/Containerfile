@@ -29,11 +29,13 @@ COPY interop/peers/ace-tao/peer /interop/peer
 COPY interop/idl/rmi-iiop/Calculator.idl /interop/peer/idl/rmi-iiop/Calculator.idl
 
 RUN set -eux; \
-  mkdir -p /interop/peer/bin /interop/peer/generated/rmi-iiop; \
+  mkdir -p /interop/peer/bin /interop/peer/generated/rmi-iiop /interop/peer/generated/naming; \
   tao_idl -o /interop/peer/generated/rmi-iiop /interop/peer/idl/rmi-iiop/Calculator.idl; \
-  g++ -std=c++17 -O2 -Wall -Wextra \
-    -I"${ACE_ROOT}" -I"${TAO_ROOT}" -I/interop/peer/generated/rmi-iiop \
+  "${TAO_ROOT}/TAO_IDL/tao_idl" -o /interop/peer/generated/naming "${TAO_ROOT}/orbsvcs/orbsvcs/CosNaming.idl"; \
+  g++ -std=c++17 -O0 -Wall -Wextra \
+    -I"${ACE_ROOT}" -I"${TAO_ROOT}" -I/interop/peer/generated/naming -I/interop/peer/generated/rmi-iiop \
     /interop/peer/src/ace_tao_peer.cpp \
+    /interop/peer/generated/naming/CosNamingC.cpp \
     /interop/peer/generated/rmi-iiop/CalculatorC.cpp \
     /interop/peer/generated/rmi-iiop/CalculatorS.cpp \
     -L"${ACE_ROOT}/lib" -L"${TAO_ROOT}/lib" \

@@ -154,16 +154,15 @@ infrastructure failure remains in the final evidence set.
 ## Post-1.0 Durable Persistence Follow-Up
 
 G13 durable peer persistence work is outside the 1.0.0 release bar. G13-050
-defines future design-only scenarios for peer clients invoking old persistent
-IORs and resolving old persistent Naming references after our server process
-restarts. G14-020 adds dry-run peer manifest metadata for those scenarios, and
-G14-030 adds deterministic missing-prerequisite reports. The approved G10 peer
-set remains the candidate peer set, but no live durable IOR or persistent Naming
-execution is approved by this plan.
+defined design-only scenarios for peer clients invoking old persistent IORs and
+resolving old persistent Naming references after our server process restarts.
+G14-020 added dry-run peer manifest metadata, G14-030 added deterministic
+missing-prerequisite reports, and G14-040 executed the approved live durable
+matrix on 2026-05-31.
 
-Future execution must be human-gated and limited to opaque object-key
-preservation claims. Peers are not expected to understand the project-owned
-`MJOK` durable key or `MJNS` Naming store formats. Raw live durable reports,
-logs, IORs, Naming stores, peer artifacts, Docker layers, and Native Image
-binaries must remain ignored local outputs unless a later release evidence task
-approves a clean-room summary.
+The G14-040 claim remains limited to opaque object-key preservation and ordinary
+Naming protocol behavior. Peers are not expected to understand the
+project-owned `MJOK` durable key or `MJNS` Naming store formats. Raw live
+durable reports, logs, IORs, Naming stores, peer artifacts, Docker layers, and
+Native Image binaries remain ignored local outputs; only clean-room summaries
+are tracked.
