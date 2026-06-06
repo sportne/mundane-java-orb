@@ -13,6 +13,7 @@ public enum InteropFailureClassification {
   SERVER_READY("server-ready"),
   OBJECT_REFERENCE_CHECKED("object-reference-checked"),
   CALCULATOR_CHECKED("calculator-checked"),
+  TIME_SERVICE_CHECKED("time-service-checked"),
   DURABLE_IOR_INVOKED("durable-ior-invoked"),
   DURABLE_NAMING_RESOLVED("durable-naming-resolved");
 

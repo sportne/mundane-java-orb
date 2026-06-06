@@ -23,6 +23,7 @@ scenarioGroups:
   - giop
   - iiop
   - rmi-iiop
+  - time-service
   - g12-wide-core-types
   - g13-durable-ior-peer-client-restart
   - g13-durable-naming-peer-client-restart
@@ -94,6 +95,22 @@ scenarioCapabilities:
     expectedClassifications:
       - calculator-checked
       - expected-deferral
+  time-service:
+    idl: interop/idl/time-service.idl
+    support: live-time-service-smoke
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - time-service-checked
+      - server-ready
+      - expected-deferral
+      - missing-prerequisite
+      - unsupported-scenario
+      - infrastructure-failure
   g12-wide-core-types:
     idl: interop/idl/g12-wide/CoreTypes.idl
     support: live-mounted-idl-object-reference-smoke

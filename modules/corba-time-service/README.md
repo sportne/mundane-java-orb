@@ -12,7 +12,9 @@ loopback IIOP dispatch, TimeBase field codecs, client/server helpers, and
 optional network Naming registration.
 
 Structured interop metadata, live peer execution, and conformance closure remain
-staged in follow-on G8 Time Service tasks.
+staged in follow-on G8 Time Service tasks. `G8-120-TIME-SERVICE-INTEROP-METADATA`
+adds the approved-peer `time-service` manifest scenario and dry-run
+missing-prerequisite reporting, but does not execute live peers.
 
 ## Documentation requirements
 

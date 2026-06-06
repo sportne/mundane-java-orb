@@ -1,0 +1,31 @@
+module TimeBase {
+  struct UtcT {
+    unsigned long long time;
+    unsigned long inacclo;
+    unsigned short inacchi;
+    short tdf;
+  };
+
+  struct IntervalT {
+    unsigned long long lower_bound;
+    unsigned long long upper_bound;
+  };
+};
+
+module CosTime {
+  interface TimeService {
+    TimeBase::UtcT universal_time();
+
+    TimeBase::UtcT new_universal_time(
+      in unsigned long long time,
+      in unsigned long inacclo,
+      in unsigned short inacchi,
+      in short tdf
+    );
+
+    TimeBase::IntervalT new_interval(
+      in unsigned long long lower_bound,
+      in unsigned long long upper_bound
+    );
+  };
+};

@@ -201,6 +201,9 @@ final class InteropReportTest {
     assertEquals(
         InteropFailureClassification.DURABLE_NAMING_RESOLVED,
         InteropFailureClassification.fromWireName("durable-naming-resolved"));
+    assertEquals(
+        InteropFailureClassification.TIME_SERVICE_CHECKED,
+        InteropFailureClassification.fromWireName("time-service-checked"));
   }
 
   private static InteropReport sampleReport(String notes) {

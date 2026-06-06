@@ -415,8 +415,10 @@ and Security/CSIv2 Services through ADR-0016 through ADR-0022. G8-100
 implements the local Time Service value and clock-query slice. G8-110 adds
 local loopback IIOP/Naming exposure for `universal_time`,
 `new_universal_time`, and `new_interval` using explicit TimeBase field codecs.
-It does not add structured peer metadata, live peer execution, or peer
-compatibility claims. Those steps remain staged in G8-120 through G8-140. Other
-optional services do not yet have live peer lanes, structured report schemas, or
-pass/fail evidence. The blocked G8 task groups must add service-specific
-metadata and missing-prerequisite reports before any peer execution is required.
+G8-120 adds the `time-service` scenario metadata, approved-peer dry-run matrix,
+and deterministic missing-prerequisite reports for JVM and Native Image local
+lanes. It does not add live peer execution or peer compatibility claims; those
+steps remain staged in G8-130 and G8-140. Other optional services do not yet
+have live peer lanes, structured report schemas, or pass/fail evidence. The
+blocked G8 task groups must add service-specific metadata and
+missing-prerequisite reports before any peer execution is required.

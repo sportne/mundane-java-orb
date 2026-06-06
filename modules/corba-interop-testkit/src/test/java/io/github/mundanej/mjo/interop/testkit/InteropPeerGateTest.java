@@ -54,6 +54,11 @@ final class InteropPeerGateTest {
       assertTrue(manifest.contains("  - g13-durable-naming-peer-client-restart"), manifest);
       assertTrue(manifest.contains("support: durable-ior-peer-client-restart"), manifest);
       assertTrue(manifest.contains("support: durable-naming-peer-client-restart"), manifest);
+      assertTrue(manifest.contains("  - time-service"), manifest);
+      assertTrue(manifest.contains("time-service:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/time-service.idl"), manifest);
+      assertTrue(manifest.contains("support: live-time-service-smoke"), manifest);
+      assertTrue(manifest.contains("time-service-checked"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -63,6 +68,9 @@ final class InteropPeerGateTest {
           Files.isRegularFile(repoRoot().resolve("interop/idl/" + scenario + ".idl")),
           scenario + " IDL fixture must be present for live matrix mounting");
     }
+    assertTrue(
+        Files.isRegularFile(repoRoot().resolve("interop/idl/time-service.idl")),
+        "Time Service IDL fixture must be present for live matrix mounting");
   }
 
   @Test
@@ -382,6 +390,7 @@ final class InteropPeerGateTest {
                 """
                   - basic-idl
                   - rmi-iiop
+                  - time-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -995,6 +1004,48 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void timeServiceDirectionMatrixDryRunEnumeratesBothDirectionsAndRuntimesWithoutMutating()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "time-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server for time-service"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for time-service"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for time-service"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
   void durablePeerRestartDryRunEnumeratesOnlyLocalServerToPeerClientDirections() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -1241,6 +1292,171 @@ final class InteropPeerGateTest {
                     "build/interop/local/reports/g13-durable-ior-peer-client-restart-"
                         + "fixture-peer-jvm-server-local-server-to-peer-client.json"),
             StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
+  void timeServiceLiveRunRequiresExplicitApprovalReport() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-120 must not start peer-server live work before G8-140 implements the live lane");
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"local-server-to-peer-client\""), report);
+    assertTrue(report.contains("\"localServerRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerClientRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"expectedClassification\": \"time-service-checked\""), report);
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.root().resolve("interop/idl/time-service.idl"));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_TIME_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"scenario-idl\""), report);
+    assertTrue(report.contains("Time Service scenario IDL is missing"), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingServerCommand() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_TIME_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"true\""), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingNativeBinary() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_TIME_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "native"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "INTEROP_TIME_SERVICE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "INTEROP_TIME_SERVICE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "PATH",
+                    isolatedBin.toString(),
+                    "INTEROP_TIME_SERVICE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void timeServicePrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("time-service-missing-image", 1, 0);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of(
+                    "CONTAINER_RUNTIME",
+                    runtime.toString(),
+                    "INTEROP_TIME_SERVICE_LIVE_APPROVED",
+                    "true",
+                    "MJO_JVM_SERVER_COMMAND",
+                    "/bin/true",
+                    "INTEROP_JAVA_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(timeServicePrerequisiteReport(fixture, "jvm"), StandardCharsets.UTF_8);
     assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
   }
 
@@ -1551,6 +1767,9 @@ final class InteropPeerGateTest {
     Files.createDirectories(approvals);
     Files.createDirectories(Objects.requireNonNull(cacheEntry.getParent()));
     Files.writeString(cacheEntry, FIXTURE_CONTENT, StandardCharsets.UTF_8);
+    Path timeServiceIdl = root.resolve("interop/idl/time-service.idl");
+    Files.createDirectories(Objects.requireNonNull(timeServiceIdl.getParent()));
+    Files.copy(repoRoot().resolve("interop/idl/time-service.idl"), timeServiceIdl);
 
     Files.writeString(peers.resolve("peer.yaml"), peerManifest(options), StandardCharsets.UTF_8);
     Files.writeString(
@@ -1574,6 +1793,7 @@ final class InteropPeerGateTest {
                 scenarioGroups:
                   - basic-idl
                   - rmi-iiop
+                  - time-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1601,6 +1821,22 @@ final class InteropPeerGateTest {
                     expectedClassifications:
                       - calculator-checked
                       - expected-deferral
+                  time-service:
+                    idl: interop/idl/time-service.idl
+                    support: live-time-service-smoke
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - time-service-checked
+                      - server-ready
+                      - expected-deferral
+                      - missing-prerequisite
+                      - unsupported-scenario
+                      - infrastructure-failure
                   g12-wide-core-types:
                     idl: interop/idl/g12-wide/CoreTypes.idl
                     support: live-mounted-idl-object-reference-smoke
@@ -1701,6 +1937,15 @@ final class InteropPeerGateTest {
       throw new IllegalArgumentException("G12 core capability block not found");
     }
     return manifest.substring(0, start) + replacement + manifest.substring(end);
+  }
+
+  private static Path timeServicePrerequisiteReport(Fixture fixture, String runtime) {
+    return fixture
+        .root()
+        .resolve(
+            "build/interop/local/reports/time-service-fixture-peer-"
+                + runtime
+                + "-server-local-server-to-peer-client.json");
   }
 
   private static String approval(FixtureOptions options) throws NoSuchAlgorithmException {
