@@ -12,4 +12,22 @@ description = 'Time Service implementation module.'
 dependencies {
     // Time Service diagnostics reuse the repository-wide stable diagnostic-code value.
     api project(':modules:corba-common')
+
+    // G8-110 exposes the Time Service through the existing static ORB/IIOP bridge.
+    api project(':modules:corba-iiop')
+
+    // Network Time Service startup owns a local ORB reference for its servant dispatcher.
+    api project(':modules:corba-orb-core')
+
+    // Optional Naming registration binds the Time Service IOR into the network Naming server.
+    api project(':modules:corba-naming-server')
+
+    // Time Service descriptors use the shared static generated-type metadata model.
+    api project(':modules:corba-typecode')
+
+    // TimeBase UtcT and IntervalT fields are encoded directly with bounded CDR primitives.
+    implementation project(':modules:corba-cdr')
+
+    // Repository IDs identify the Time Service interface and TimeBase value shapes.
+    implementation project(':modules:corba-repository-id')
 }

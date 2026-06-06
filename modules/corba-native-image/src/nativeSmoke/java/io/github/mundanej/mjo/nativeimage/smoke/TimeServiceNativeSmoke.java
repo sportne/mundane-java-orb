@@ -1,6 +1,14 @@
 package io.github.mundanej.mjo.nativeimage.smoke;
 
+import io.github.mundanej.mjo.iiop.IiopEndpoint;
+import io.github.mundanej.mjo.iiop.IiopOptions;
+import io.github.mundanej.mjo.naming.NamingName;
+import io.github.mundanej.mjo.naming.server.NetworkNamingClient;
+import io.github.mundanej.mjo.naming.server.NetworkNamingService;
+import io.github.mundanej.mjo.naming.server.RemoteNamingBindingTarget;
 import io.github.mundanej.mjo.time.LocalTimeService;
+import io.github.mundanej.mjo.time.NetworkTimeService;
+import io.github.mundanej.mjo.time.NetworkTimeServiceClient;
 import io.github.mundanej.mjo.time.TimeInterval;
 import io.github.mundanej.mjo.time.TimeServiceDiagnosticCodes;
 import io.github.mundanej.mjo.time.TimeServiceException;
@@ -47,6 +55,33 @@ public final class TimeServiceNativeSmoke {
           TimeServiceDiagnosticCodes.INVALID_INACCURACY,
           expected.code(),
           "invalid inaccuracy diagnostic");
+    }
+
+    try (NetworkTimeService networkService =
+            NetworkTimeService.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), service);
+        NetworkTimeServiceClient client =
+            NetworkTimeServiceClient.connect(
+                networkService.objectReference(), IiopOptions.defaults())) {
+      SmokeAssertions.requireEquals(current, client.universalTime(), "IIOP universal time");
+      SmokeAssertions.requireEquals(
+          new UtcTime(10L, 20L, (short) -60),
+          client.newUniversalTime(10L, 20L, (short) -60),
+          "IIOP explicit time");
+      SmokeAssertions.requireEquals(interval, client.newInterval(3L, 5L), "IIOP interval");
+    }
+
+    try (NetworkNamingService naming =
+            NetworkNamingService.bind(IiopEndpoint.loopback(0), IiopOptions.defaults());
+        NetworkNamingClient namingClient =
+            NetworkNamingClient.connect(naming.ior(), IiopOptions.defaults());
+        NetworkTimeService networkService =
+            NetworkTimeService.bind(IiopEndpoint.loopback(0), IiopOptions.defaults(), service)) {
+      networkService.bindInNaming(namingClient, NamingName.parse("TimeService"));
+      RemoteNamingBindingTarget target = namingClient.resolve(NamingName.parse("TimeService"));
+      try (NetworkTimeServiceClient client =
+          NetworkTimeServiceClient.connect(target.ior(), IiopOptions.defaults())) {
+        SmokeAssertions.requireEquals(current, client.universalTime(), "Naming-resolved time");
+      }
     }
   }
 }
