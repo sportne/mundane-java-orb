@@ -417,8 +417,9 @@ local loopback IIOP/Naming exposure for `universal_time`,
 `new_universal_time`, and `new_interval` using explicit TimeBase field codecs.
 G8-120 adds the `time-service` scenario metadata, approved-peer dry-run matrix,
 and deterministic missing-prerequisite reports for JVM and Native Image local
-lanes. It does not add live peer execution or peer compatibility claims; those
-steps remain staged in G8-130 and G8-140. Other optional services do not yet
+lanes. G8-130 records 2026-06-06 maintainer approval for live Time Service peer
+execution. It does not add live peer execution or peer compatibility claims;
+that step remains staged in G8-140. Other optional services do not yet
 have live peer lanes, structured report schemas, or pass/fail evidence. The
 blocked G8 task groups must add service-specific metadata and
 missing-prerequisite reports before any peer execution is required.

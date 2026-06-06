@@ -225,9 +225,8 @@ JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image local servers.
 Persistent Naming restart evidence resolves for JacORB, GlassFish CORBA ORB,
 and JBoss OpenJDK ORB across JVM and Native Image local servers; ACE/TAO is
 recorded as a durable Naming `profile-mismatch`, not as an opaque-key failure.
-The next ready roadmap task is G8-130, the Time Service live peer approval
-record. That task records the maintainer decision only; it does not execute live
-peers.
+The next ready roadmap task is G8-140, Time Service conformance closure and
+approved live peer execution.
 
 Future live peer expansion beyond the completed G14 durable IOR/Naming
 directions stays out of scope until maintainers record a separate decision.

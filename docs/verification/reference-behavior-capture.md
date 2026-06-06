@@ -60,6 +60,15 @@ images, early local-server exits, and peer command failures as
 `infrastructure-failure` reports instead of treating them as compatibility
 results.
 
+G8-130 records maintainer approval from 2026-06-06 for live Time Service peer
+execution after G8-110 local IIOP/Naming exposure and G8-120 structured
+prerequisite reporting completed. The approved Time Service live claim is
+limited to `universal_time`, `new_universal_time`, `new_interval`, ordinary IOR
+use, and optional Naming resolution through the `time-service` scenario. Raw
+Time Service reports, logs, IORs, peer artifacts, Docker layers, and Native
+Image binaries remain ignored local outputs; G8-140 must commit only clean-room
+summary evidence.
+
 ## Capture fields
 
 ```json
@@ -167,7 +176,7 @@ IOR handling defects remain `our-bug`.
 `infrastructure-failure`, `missing-prerequisite`, `unsupported-scenario`, or
 `expected-deferral`. Approved scenario-specific success classifications also
 include `object-reference-checked`, `server-ready`, `calculator-checked`,
-`durable-ior-invoked`, and `durable-naming-resolved`.
+`time-service-checked`, `durable-ior-invoked`, and `durable-naming-resolved`.
 
 G14-040 live execution on 2026-05-31 accepted these clean-room summaries:
 
