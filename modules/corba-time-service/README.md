@@ -4,8 +4,13 @@ Time Service implementation module.
 
 ## Current status
 
-Design accepted by ADR-0017. Implementation remains blocked behind
-`G8-100-TIME-SERVICE-TASK-GROUP`.
+Design accepted by ADR-0017. `G8-100-TIME-SERVICE-TASK-GROUP` implements the
+first local slice: TimeBase-compatible UTC and interval values, caller-provided
+clock policy, deterministic local query diagnostics, and Native Image smoke
+coverage.
+
+IIOP/Naming exposure, structured interop metadata, live peer execution, and
+conformance closure remain staged in follow-on G8 Time Service tasks.
 
 ## Documentation requirements
 

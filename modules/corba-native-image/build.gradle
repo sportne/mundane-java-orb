@@ -31,6 +31,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-testkit')
     // G7-100 adds a smoke entry point for the approved RMI-IIOP local wire slice.
     nativeSmokeImplementation project(':modules:corba-rmi-iiop')
+    // G8-100 adds the local Time Service value and clock query smoke surface.
+    nativeSmokeImplementation project(':modules:corba-time-service')
     nativeSmokeImplementation project(':modules:corba-typecode')
 
     // Unit tests execute the smoke entry points on the JVM before native compilation.
@@ -108,6 +110,11 @@ def nativeSmokeTargets = [
         name: 'rmiIiop',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke',
         binaryName: 'rmi-iiop-native-smoke'
+    ],
+    [
+        name: 'timeService',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke',
+        binaryName: 'time-service-native-smoke'
     ],
     [
         name: 'interopClient',

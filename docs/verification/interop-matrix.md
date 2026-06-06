@@ -411,7 +411,11 @@ and are not committed.
 ## Optional service lanes
 
 G8 accepts staged designs for Time, Event, Notification, Trading, Transaction,
-and Security/CSIv2 Services through ADR-0016 through ADR-0022. No optional
-service currently has a live peer lane, structured report schema, or pass/fail
-evidence. The blocked G8 task groups must add service-specific metadata and
-missing-prerequisite reports before any peer execution is required.
+and Security/CSIv2 Services through ADR-0016 through ADR-0022. G8-100
+implements only the local Time Service value and clock-query slice. It does not
+add Time Service IIOP/Naming exposure, structured peer metadata, live peer
+execution, or peer compatibility claims. Those steps remain staged in G8-110
+through G8-140. Other optional services do not yet have live peer lanes,
+structured report schemas, or pass/fail evidence. The blocked G8 task groups
+must add service-specific metadata and missing-prerequisite reports before any
+peer execution is required.

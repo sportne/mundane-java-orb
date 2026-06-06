@@ -7,4 +7,9 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Time Service implementation module, initially design-only.'
+description = 'Time Service implementation module.'
+
+dependencies {
+    // Time Service diagnostics reuse the repository-wide stable diagnostic-code value.
+    api project(':modules:corba-common')
+}

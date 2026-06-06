@@ -50,6 +50,9 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
     IIOP, `RmiIiopWireServerHandler`, `RmiIiopWireClient`, normal replies,
     empty user exceptions, unknown object keys, and unknown operations for the
     approved G7 RMI-IIOP slice.
+  - `timeService` exercises G8-100 local Time Service UTC value creation,
+    fixed-clock universal-time query, interval creation, and bounded diagnostic
+    rejection.
   - `interopClient` composes the approved local client-side interop smoke
     entrypoints, including IDL validation, generated client invocation, IOR
     diagnostics, structured report parsing, G12 broad IDL validation, and
@@ -211,6 +214,15 @@ service-loader discovery, runtime bytecode generation, internal JDK APIs, or
 G13-010 adds forked-JVM restart coverage in the normal unit-test lane without
 changing Native Image smoke entrypoints. The existing native smoke remains the
 Native Image parity check for the durable Naming persistence API surface.
+
+## G8-100 Time Service Native Image evidence
+
+G8-100 adds a `timeService` aggregate smoke target covering the local Time
+Service value and clock-query surface. The smoke uses explicit constructors,
+`java.time.Clock`, immutable values, and deterministic exception diagnostics;
+it introduces no reflection metadata, dynamic proxies, Java serialization
+metadata, service-loader discovery, runtime bytecode generation, process
+execution, internal JDK APIs, or `Unsafe`.
 
 ## G13-060 durable POA registry Native Image evidence
 

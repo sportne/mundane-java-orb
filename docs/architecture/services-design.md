@@ -76,16 +76,17 @@ summary.
 
 | Service | Requirement | Spec key | Module boundary | Current posture |
 |---|---|---|---|---|
-| Time Service | REQ-SVC-060 | TIME-11 | `modules/corba-time-service` owns time and interval value models, caller-configured clock policy, local query behavior, and future Naming/IIOP exposure. | Design accepted by ADR-0017; implementation blocked behind `G8-100-TIME-SERVICE-TASK-GROUP`. |
+| Time Service | REQ-SVC-060 | TIME-11 | `modules/corba-time-service` owns time and interval value models, caller-configured clock policy, local query behavior, and future Naming/IIOP exposure. | G8-100 implements local TimeBase value/clock behavior; IIOP/Naming exposure is staged in G8-110. |
 | Event Service | REQ-SVC-020 | EVNT-12 | `modules/corba-event-service` owns event channels, push/pull supplier and consumer surfaces, channel lifecycle, and bounded fan-out/backpressure. | Design accepted by ADR-0018; implementation blocked behind `G8-200-EVENT-SERVICE-TASK-GROUP`. |
 | Notification Service | REQ-SVC-030 | NOT-11 | `modules/corba-notification-service` owns notification channels, structured events, bounded filtering, QoS/admin models, and Event Service compatibility boundaries. | Design accepted by ADR-0019; implementation blocked behind `G8-300-NOTIFICATION-SERVICE-TASK-GROUP`. |
 | Trading Service | REQ-SVC-010 | TRADE-10 | `modules/corba-trading-service` owns service type repositories, offer repositories, constraint parsing/evaluation, local query, and future import/export behavior. | Design accepted by ADR-0020; implementation blocked behind `G8-400-TRADING-SERVICE-TASK-GROUP`. |
 | Transaction Service / OTS | REQ-SVC-040 | TRANS-14 | `modules/corba-transaction-service` owns transaction coordinator, resource, propagation, timeout, and recovery design decisions. | Design accepted by ADR-0021; implementation blocked behind `G8-500-TRANSACTION-SERVICE-TASK-GROUP`. |
 | Security Service / CSIv2 | REQ-SVC-050 | SEC-18, CORBA-IOP-SECURITY | `modules/corba-security-service` owns credentials, trust, policy, CSIv2 metadata, local policy evaluation, and audit/failure disclosure. | Design accepted by ADR-0022; implementation blocked behind `G8-600-SECURITY-SERVICE-TASK-GROUP`. |
 
-Each optional service now has an accepted ADR and blocked task group. Runtime
-implementation still requires a task group or slice to be promoted to
-`ready-for-implementation`.
+Each optional service now has an accepted ADR and blocked task group. Time
+Service local value/clock behavior is the first implemented optional-service
+slice; further runtime behavior still requires a task group or slice to be
+promoted to `ready-for-implementation`.
 
 ## Native Image Policy
 

@@ -116,7 +116,11 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-d40-transaction-service-design-gate.md` - complete
 - `tasks/g8-d50-security-service-design-gate.md` - complete
 - `tasks/g8-d60-time-service-design-gate.md` - complete
-- `tasks/g8-100-time-service-task-group.md` - ready-for-implementation
+- `tasks/g8-100-time-service-task-group.md` - complete
+- `tasks/g8-110-time-service-iiop-naming-exposure.md` - ready-for-implementation
+- `tasks/g8-120-time-service-interop-metadata.md` - blocked
+- `tasks/g8-130-time-service-live-peer-gate.md` - human-gate-blocked
+- `tasks/g8-140-time-service-conformance-closure.md` - blocked
 - `tasks/g8-200-event-service-task-group.md` - blocked
 - `tasks/g8-300-notification-service-task-group.md` - blocked
 - `tasks/g8-400-trading-service-task-group.md` - blocked
