@@ -34,6 +34,7 @@ public abstract class LocalEventProxy {
   /** Destroys this proxy handle. */
   public final void destroy() {
     requireAlive();
+    onDestroy();
     destroyed = true;
   }
 
@@ -49,5 +50,10 @@ public abstract class LocalEventProxy {
       throw new EventServiceException(
           EventServiceDiagnosticCodes.PROXY_DESTROYED, "event proxy is destroyed: " + id);
     }
+  }
+
+  /** Hook for concrete proxies to disconnect local callbacks before destruction. */
+  void onDestroy() {
+    // Default proxy handles have no callback state.
   }
 }

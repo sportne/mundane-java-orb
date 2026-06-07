@@ -234,7 +234,8 @@ claims.
 
 Future live peer expansion beyond the completed G14 durable IOR/Naming
 directions stays out of scope until maintainers record a separate decision.
-Event Service now has a local channel lifecycle model with bounded options,
-stable diagnostics, supplier/consumer admin surfaces, and proxy handles. The
-next ready roadmap task is G8-220, adding local Event Service push and pull
-delivery without IIOP, Native Image, or live peer claims.
+Event Service now has a local channel model with bounded options, stable
+diagnostics, supplier/consumer admin surfaces, proxy handles, and in-JVM push
+and pull delivery. The next ready roadmap task is G8-230, hardening local Event
+Service fan-out and backpressure bounds without IIOP, Native Image, or live peer
+claims.

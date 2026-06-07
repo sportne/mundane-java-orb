@@ -23,5 +23,14 @@ public final class EventServiceDiagnosticCodes {
   /** A null or unsupported event payload was supplied. */
   public static final DiagnosticCode INVALID_PAYLOAD = new DiagnosticCode("EVNT-0006");
 
+  /** A proxy operation required a local callback connection that is absent. */
+  public static final DiagnosticCode PROXY_NOT_CONNECTED = new DiagnosticCode("EVNT-0007");
+
+  /** A proxy connection was attempted while a callback was already connected. */
+  public static final DiagnosticCode CONNECTION_ALREADY_ACTIVE = new DiagnosticCode("EVNT-0008");
+
+  /** A pull operation found no local event payload available. */
+  public static final DiagnosticCode NO_EVENT_AVAILABLE = new DiagnosticCode("EVNT-0009");
+
   private EventServiceDiagnosticCodes() {}
 }

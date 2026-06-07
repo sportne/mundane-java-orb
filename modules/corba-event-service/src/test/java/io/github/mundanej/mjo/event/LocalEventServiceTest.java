@@ -2,9 +2,14 @@ package io.github.mundanej.mjo.event;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.mundanej.mjo.any.AnyValue;
+import io.github.mundanej.mjo.typecode.IdlTypeCode;
+import java.util.ArrayDeque;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 final class LocalEventServiceTest {
@@ -113,11 +118,218 @@ final class LocalEventServiceTest {
     }
   }
 
+  @Test
+  void deliversPushedEventsToConnectedPushConsumers() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy consumerSide = channel.consumerAdmin().obtainPushSupplierProxy();
+      RecordingPushSupplier supplier = new RecordingPushSupplier();
+      RecordingPushConsumer consumer = new RecordingPushConsumer();
+      AnyValue<String> event = stringEvent("alpha");
+
+      supplierSide.connectPushSupplier(supplier);
+      consumerSide.connectPushConsumer(consumer);
+      supplierSide.push(event);
+
+      assertSame(event, consumer.lastEvent);
+      assertTrue(supplierSide.isConnected());
+      assertTrue(consumerSide.isConnected());
+    }
+  }
+
+  @Test
+  void disconnectsPushCallbacksIdempotently() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy consumerSide = channel.consumerAdmin().obtainPushSupplierProxy();
+      RecordingPushSupplier supplier = new RecordingPushSupplier();
+      RecordingPushConsumer consumer = new RecordingPushConsumer();
+
+      supplierSide.connectPushSupplier(supplier);
+      consumerSide.connectPushConsumer(consumer);
+      supplierSide.disconnectPushSupplier();
+      supplierSide.disconnectPushSupplier();
+      consumerSide.disconnectPushConsumer();
+      consumerSide.disconnectPushConsumer();
+
+      assertFalse(supplierSide.isConnected());
+      assertFalse(consumerSide.isConnected());
+      assertEquals(1, supplier.disconnectCount);
+      assertEquals(1, consumer.disconnectCount);
+    }
+  }
+
+  @Test
+  void pullsEventsFromConnectedPullSuppliers() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPullConsumerProxy supplierSide = channel.supplierAdmin().obtainPullConsumerProxy();
+      LocalPullSupplierProxy consumerSide = channel.consumerAdmin().obtainPullSupplierProxy();
+      RecordingPullSupplier supplier = new RecordingPullSupplier();
+      RecordingPullConsumer consumer = new RecordingPullConsumer();
+      AnyValue<String> event = stringEvent("beta");
+
+      supplier.events.add(event);
+      supplierSide.connectPullSupplier(supplier);
+      consumerSide.connectPullConsumer(consumer);
+
+      assertEquals(Optional.of(event), consumerSide.tryPull());
+      supplier.events.add(event);
+      assertSame(event, consumerSide.pull());
+      assertTrue(supplierSide.isConnected());
+      assertTrue(consumerSide.isConnected());
+    }
+  }
+
+  @Test
+  void disconnectsPullCallbacksIdempotently() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPullConsumerProxy supplierSide = channel.supplierAdmin().obtainPullConsumerProxy();
+      LocalPullSupplierProxy consumerSide = channel.consumerAdmin().obtainPullSupplierProxy();
+      RecordingPullSupplier supplier = new RecordingPullSupplier();
+      RecordingPullConsumer consumer = new RecordingPullConsumer();
+
+      supplierSide.connectPullSupplier(supplier);
+      consumerSide.connectPullConsumer(consumer);
+      supplierSide.disconnectPullSupplier();
+      supplierSide.disconnectPullSupplier();
+      consumerSide.disconnectPullConsumer();
+      consumerSide.disconnectPullConsumer();
+
+      assertFalse(supplierSide.isConnected());
+      assertFalse(consumerSide.isConnected());
+      assertEquals(1, supplier.disconnectCount);
+      assertEquals(1, consumer.disconnectCount);
+    }
+  }
+
+  @Test
+  void reportsEmptyPullDeterministically() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPullConsumerProxy supplierSide = channel.supplierAdmin().obtainPullConsumerProxy();
+      LocalPullSupplierProxy consumerSide = channel.consumerAdmin().obtainPullSupplierProxy();
+
+      supplierSide.connectPullSupplier(new RecordingPullSupplier());
+      consumerSide.connectPullConsumer(new RecordingPullConsumer());
+      EventServiceException exception =
+          assertThrows(EventServiceException.class, consumerSide::pull);
+
+      assertEquals(Optional.empty(), consumerSide.tryPull());
+      assertEquals(EventServiceDiagnosticCodes.NO_EVENT_AVAILABLE, exception.code());
+    }
+  }
+
+  @Test
+  void rejectsDisconnectedDeliveryOperations() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy pushProxy = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPullSupplierProxy pullProxy = channel.consumerAdmin().obtainPullSupplierProxy();
+
+      EventServiceException push =
+          assertThrows(EventServiceException.class, () -> pushProxy.push(stringEvent("gamma")));
+      EventServiceException pull = assertThrows(EventServiceException.class, pullProxy::tryPull);
+
+      assertEquals(EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, push.code());
+      assertEquals(EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, pull.code());
+    }
+  }
+
+  @Test
+  void rejectsNullPayloads() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy pushProxy = channel.supplierAdmin().obtainPushConsumerProxy();
+
+      pushProxy.connectPushSupplier(new RecordingPushSupplier());
+      EventServiceException nullPush =
+          assertThrows(EventServiceException.class, () -> pushProxy.push(null));
+
+      assertEquals(EventServiceDiagnosticCodes.INVALID_PAYLOAD, nullPush.code());
+    }
+  }
+
+  @Test
+  void reportsDestroyedChannelDuringDelivery() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy pushProxy = channel.supplierAdmin().obtainPushConsumerProxy();
+      pushProxy.connectPushSupplier(new RecordingPushSupplier());
+      channel.destroy();
+
+      EventServiceException exception =
+          assertThrows(EventServiceException.class, () -> pushProxy.push(stringEvent("delta")));
+
+      assertEquals(EventServiceDiagnosticCodes.CHANNEL_DESTROYED, exception.code());
+    }
+  }
+
   private static void assertProxy(
       LocalEventProxy proxy, long channelId, long proxyId, EventProxyKind kind) {
     assertEquals(channelId, proxy.channelId());
     assertEquals(proxyId, proxy.id());
     assertEquals(kind, proxy.kind());
     assertFalse(proxy.isDestroyed());
+  }
+
+  private static AnyValue<String> stringEvent(String value) {
+    return new AnyValue<>(IdlTypeCode.STRING, value);
+  }
+
+  private static final class RecordingPushConsumer implements EventPushConsumer {
+    private AnyValue<?> lastEvent;
+    private int disconnectCount;
+
+    @Override
+    public void push(AnyValue<?> event) {
+      lastEvent = event;
+    }
+
+    @Override
+    public void disconnectPushConsumer() {
+      disconnectCount++;
+    }
+  }
+
+  private static final class RecordingPushSupplier implements EventPushSupplier {
+    private int disconnectCount;
+
+    @Override
+    public void disconnectPushSupplier() {
+      disconnectCount++;
+    }
+  }
+
+  private static final class RecordingPullSupplier implements EventPullSupplier {
+    private final ArrayDeque<AnyValue<?>> events = new ArrayDeque<>();
+    private int disconnectCount;
+
+    @Override
+    public Optional<AnyValue<?>> pull() {
+      return Optional.ofNullable(events.pollFirst());
+    }
+
+    @Override
+    public Optional<AnyValue<?>> tryPull() {
+      return Optional.ofNullable(events.pollFirst());
+    }
+
+    @Override
+    public void disconnectPullSupplier() {
+      disconnectCount++;
+    }
+  }
+
+  private static final class RecordingPullConsumer implements EventPullConsumer {
+    private int disconnectCount;
+
+    @Override
+    public void disconnectPullConsumer() {
+      disconnectCount++;
+    }
   }
 }

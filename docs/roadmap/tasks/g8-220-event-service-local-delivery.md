@@ -1,7 +1,7 @@
 # G8-220 Event Service Local Delivery
 
 Task ID: G8-220-EVENT-SERVICE-LOCAL-DELIVERY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-020, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0018
@@ -15,3 +15,5 @@ Documentation to update: Services design, optional services conformance/review, 
 Commands to run: ./gradlew :modules:corba-event-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Local push and pull delivery is deterministic and covered; G8-230 is promoted after completion; no network or peer behavior is added.
 Rollback notes: Revert Event Service local delivery code, tests, docs, and roadmap status changes together.
+
+Completion evidence: G8-220 adds local push supplier to push consumer delivery, pull consumer to pull supplier delivery, connect/disconnect behavior, empty pull diagnostics, null/hostile payload rejection, and destroyed-channel delivery diagnostics. G8-230 is promoted to ready-for-implementation.

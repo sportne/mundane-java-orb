@@ -6,9 +6,9 @@ Event Service implementation module.
 
 Design accepted by ADR-0018. G8-210 adds the local channel lifecycle model:
 bounded options, stable diagnostics, supplier/consumer admin surfaces, and
-proxy handles. Local push/pull delivery, backpressure, IIOP/Naming exposure,
-Native Image smoke, interop metadata, and live peer claims remain staged
-follow-on work.
+proxy handles. G8-220 adds local push and pull delivery. Backpressure,
+IIOP/Naming exposure, Native Image smoke, interop metadata, and live peer claims
+remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -16,9 +16,14 @@ follow-on work.
 - `LocalEventService` creates and owns local event channels.
 - `LocalEventChannel` exposes supplier and consumer admin handles.
 - `LocalEventSupplierAdmin` and `LocalEventConsumerAdmin` create proxy handles.
-- `LocalEventProxy` and its concrete proxy types model local channel ownership.
+- `LocalEventProxy` and its concrete proxy types model local channel ownership
+  and callback connection lifecycle.
 - `EventPushConsumer`, `EventPushSupplier`, `EventPullConsumer`, and
-  `EventPullSupplier` define callback shapes for later local delivery slices.
+  `EventPullSupplier` define local push and pull callback shapes.
+- `LocalPushConsumerProxy.push` routes in-JVM push events to connected local
+  push consumers.
+- `LocalPullSupplierProxy.pull` and `tryPull` route in-JVM pull requests to
+  connected local pull suppliers.
 
 ## Documentation requirements
 
