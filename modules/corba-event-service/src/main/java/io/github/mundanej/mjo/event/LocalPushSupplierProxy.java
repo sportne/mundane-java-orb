@@ -6,15 +6,20 @@ import java.util.concurrent.atomic.AtomicReference;
 /** Local proxy that pushes events to a push consumer. */
 public final class LocalPushSupplierProxy extends LocalEventProxy {
 
+  private final LocalEventChannel channel;
   private final AtomicReference<EventPushConsumer> consumer = new AtomicReference<>();
+  private volatile boolean failed;
 
   LocalPushSupplierProxy(LocalEventChannel channel, long id) {
     super(channel, id, EventProxyKind.PUSH_SUPPLIER);
+    this.channel = channel;
   }
 
   /** Connects the local push consumer callback to this proxy. */
   public void connectPushConsumer(EventPushConsumer consumer) {
     requireAlive();
+    channel.requireActive(this);
+    requireUsable();
     if (consumer == null) {
       throw new EventServiceException(
           EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, "push consumer must not be null");
@@ -41,9 +46,23 @@ public final class LocalPushSupplierProxy extends LocalEventProxy {
 
   void deliver(AnyValue<?> event) {
     requireAlive();
+    channel.requireActive(this);
+    requireUsable();
     EventPushConsumer connected = consumer.get();
     if (connected != null) {
       connected.push(LocalEventChannel.requirePayload(event));
+    }
+  }
+
+  void markFailed() {
+    failed = true;
+  }
+
+  private void requireUsable() {
+    if (failed) {
+      throw new EventServiceException(
+          EventServiceDiagnosticCodes.CONSUMER_DELIVERY_FAILED,
+          "push consumer proxy failed previously: " + id());
     }
   }
 

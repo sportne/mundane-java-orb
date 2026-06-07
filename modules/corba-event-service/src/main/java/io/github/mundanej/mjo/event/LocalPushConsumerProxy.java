@@ -17,6 +17,7 @@ public final class LocalPushConsumerProxy extends LocalEventProxy {
   /** Connects the local push supplier callback to this proxy. */
   public void connectPushSupplier(EventPushSupplier supplier) {
     requireAlive();
+    channel.requireActive(this);
     if (supplier == null) {
       throw new EventServiceException(
           EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, "push supplier must not be null");
@@ -31,6 +32,7 @@ public final class LocalPushConsumerProxy extends LocalEventProxy {
   /** Pushes one local event payload through the owning channel. */
   public void push(AnyValue<?> event) {
     requireAlive();
+    channel.requireActive(this);
     if (supplier.get() == null) {
       throw new EventServiceException(
           EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, "push supplier is not connected");

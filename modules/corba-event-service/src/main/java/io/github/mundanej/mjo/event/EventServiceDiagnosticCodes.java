@@ -32,5 +32,20 @@ public final class EventServiceDiagnosticCodes {
   /** A pull operation found no local event payload available. */
   public static final DiagnosticCode NO_EVENT_AVAILABLE = new DiagnosticCode("EVNT-0009");
 
+  /** The configured supplier-side proxy count has been reached. */
+  public static final DiagnosticCode SUPPLIER_LIMIT_EXCEEDED = new DiagnosticCode("EVNT-0010");
+
+  /** The configured consumer-side proxy count has been reached. */
+  public static final DiagnosticCode CONSUMER_LIMIT_EXCEEDED = new DiagnosticCode("EVNT-0011");
+
+  /** A local delivery operation exceeded configured pending-event capacity. */
+  public static final DiagnosticCode EVENT_QUEUE_FULL = new DiagnosticCode("EVNT-0012");
+
+  /** A connected consumer failed while receiving a local event. */
+  public static final DiagnosticCode CONSUMER_DELIVERY_FAILED = new DiagnosticCode("EVNT-0013");
+
+  /** A proxy no longer belongs to this channel's active routing set. */
+  public static final DiagnosticCode STALE_PROXY = new DiagnosticCode("EVNT-0014");
+
   private EventServiceDiagnosticCodes() {}
 }

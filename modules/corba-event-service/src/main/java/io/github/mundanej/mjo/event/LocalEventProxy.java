@@ -36,6 +36,7 @@ public abstract class LocalEventProxy {
     requireAlive();
     onDestroy();
     destroyed = true;
+    channel.removeProxy(this);
   }
 
   /** Returns whether this proxy handle has been destroyed. */

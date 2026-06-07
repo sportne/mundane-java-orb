@@ -1,7 +1,7 @@
 # G8-230 Event Service Backpressure
 
 Task ID: G8-230-EVENT-SERVICE-BACKPRESSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-020, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0018
@@ -15,3 +15,5 @@ Documentation to update: Services design, optional services conformance/review, 
 Commands to run: ./gradlew :modules:corba-event-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Event Service resource limits and backpressure diagnostics are deterministic and covered; G8-240 is promoted after completion; no network or peer behavior is added.
 Rollback notes: Revert Event Service backpressure code, tests, docs, and roadmap status changes together.
+
+Completion evidence: G8-230 enforces configured channel, supplier-side proxy, consumer-side proxy, and pending fan-out limits; removes failed push consumers from active routing; reports stale proxies deterministically; and promotes G8-240 to ready-for-implementation.

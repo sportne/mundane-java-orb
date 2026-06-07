@@ -240,6 +240,133 @@ final class LocalEventServiceTest {
   }
 
   @Test
+  void enforcesConfiguredSupplierAndConsumerProxyLimits() {
+    try (LocalEventService service =
+        LocalEventService.create(new EventServiceOptions(1, 1, 1, 4))) {
+      LocalEventChannel channel = service.createChannel();
+
+      channel.supplierAdmin().obtainPushConsumerProxy();
+      channel.consumerAdmin().obtainPushSupplierProxy();
+      EventServiceException supplierLimit =
+          assertThrows(
+              EventServiceException.class, () -> channel.supplierAdmin().obtainPullConsumerProxy());
+      EventServiceException consumerLimit =
+          assertThrows(
+              EventServiceException.class, () -> channel.consumerAdmin().obtainPullSupplierProxy());
+
+      assertEquals(EventServiceDiagnosticCodes.SUPPLIER_LIMIT_EXCEEDED, supplierLimit.code());
+      assertEquals(EventServiceDiagnosticCodes.CONSUMER_LIMIT_EXCEEDED, consumerLimit.code());
+    }
+  }
+
+  @Test
+  void freesProxyCapacityAfterDestroy() {
+    try (LocalEventService service =
+        LocalEventService.create(new EventServiceOptions(1, 1, 1, 4))) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy consumerSide = channel.consumerAdmin().obtainPushSupplierProxy();
+
+      supplierSide.destroy();
+      consumerSide.destroy();
+
+      assertProxy(
+          channel.supplierAdmin().obtainPullConsumerProxy(),
+          channel.id(),
+          3L,
+          EventProxyKind.PULL_CONSUMER);
+      assertProxy(
+          channel.consumerAdmin().obtainPullSupplierProxy(),
+          channel.id(),
+          4L,
+          EventProxyKind.PULL_SUPPLIER);
+    }
+  }
+
+  @Test
+  void reportsStaleProxyAfterDestroy() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy proxy = channel.supplierAdmin().obtainPushConsumerProxy();
+
+      proxy.destroy();
+      EventServiceException exception =
+          assertThrows(
+              EventServiceException.class,
+              () -> proxy.connectPushSupplier(new RecordingPushSupplier()));
+
+      assertEquals(EventServiceDiagnosticCodes.PROXY_DESTROYED, exception.code());
+    }
+  }
+
+  @Test
+  void enforcesPendingEventFanoutCapacity() {
+    try (LocalEventService service =
+        LocalEventService.create(new EventServiceOptions(1, 2, 2, 1))) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy first = channel.consumerAdmin().obtainPushSupplierProxy();
+      LocalPushSupplierProxy second = channel.consumerAdmin().obtainPushSupplierProxy();
+
+      supplierSide.connectPushSupplier(new RecordingPushSupplier());
+      first.connectPushConsumer(new RecordingPushConsumer());
+      second.connectPushConsumer(new RecordingPushConsumer());
+      EventServiceException exception =
+          assertThrows(
+              EventServiceException.class, () -> supplierSide.push(stringEvent("overflow")));
+
+      assertEquals(EventServiceDiagnosticCodes.EVENT_QUEUE_FULL, exception.code());
+    }
+  }
+
+  @Test
+  void pendingEventFanoutIgnoresDisconnectedConsumers() {
+    try (LocalEventService service =
+        LocalEventService.create(new EventServiceOptions(1, 3, 3, 1))) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy disconnectedOne = channel.consumerAdmin().obtainPushSupplierProxy();
+      LocalPushSupplierProxy disconnectedTwo = channel.consumerAdmin().obtainPushSupplierProxy();
+      LocalPushSupplierProxy connected = channel.consumerAdmin().obtainPushSupplierProxy();
+      RecordingPushConsumer consumer = new RecordingPushConsumer();
+
+      supplierSide.connectPushSupplier(new RecordingPushSupplier());
+      connected.connectPushConsumer(consumer);
+      supplierSide.push(stringEvent("accepted"));
+
+      assertFalse(disconnectedOne.isConnected());
+      assertFalse(disconnectedTwo.isConnected());
+      assertEquals("accepted", consumer.lastEvent.value());
+    }
+  }
+
+  @Test
+  void removesFailingPushConsumersDeterministically() {
+    try (LocalEventService service = LocalEventService.create()) {
+      LocalEventChannel channel = service.createChannel();
+      LocalPushConsumerProxy supplierSide = channel.supplierAdmin().obtainPushConsumerProxy();
+      LocalPushSupplierProxy failing = channel.consumerAdmin().obtainPushSupplierProxy();
+      LocalPushSupplierProxy healthy = channel.consumerAdmin().obtainPushSupplierProxy();
+      RecordingPushConsumer consumer = new RecordingPushConsumer();
+
+      supplierSide.connectPushSupplier(new RecordingPushSupplier());
+      failing.connectPushConsumer(new FailingPushConsumer());
+      healthy.connectPushConsumer(consumer);
+      EventServiceException first =
+          assertThrows(EventServiceException.class, () -> supplierSide.push(stringEvent("first")));
+      supplierSide.push(stringEvent("second"));
+      EventServiceException stale =
+          assertThrows(
+              EventServiceException.class,
+              () -> failing.connectPushConsumer(new RecordingPushConsumer()));
+
+      assertEquals(EventServiceDiagnosticCodes.CONSUMER_DELIVERY_FAILED, first.code());
+      assertEquals(EventServiceDiagnosticCodes.STALE_PROXY, stale.code());
+      assertEquals("second", consumer.lastEvent.value());
+    }
+  }
+
+  @Test
   void rejectsNullPayloads() {
     try (LocalEventService service = LocalEventService.create()) {
       LocalEventChannel channel = service.createChannel();
@@ -293,6 +420,16 @@ final class LocalEventServiceTest {
     public void disconnectPushConsumer() {
       disconnectCount++;
     }
+  }
+
+  private static final class FailingPushConsumer implements EventPushConsumer {
+    @Override
+    public void push(AnyValue<?> event) {
+      throw new IllegalStateException("consumer failed");
+    }
+
+    @Override
+    public void disconnectPushConsumer() {}
   }
 
   private static final class RecordingPushSupplier implements EventPushSupplier {

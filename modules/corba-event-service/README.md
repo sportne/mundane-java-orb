@@ -6,9 +6,10 @@ Event Service implementation module.
 
 Design accepted by ADR-0018. G8-210 adds the local channel lifecycle model:
 bounded options, stable diagnostics, supplier/consumer admin surfaces, and
-proxy handles. G8-220 adds local push and pull delivery. Backpressure,
-IIOP/Naming exposure, Native Image smoke, interop metadata, and live peer claims
-remain staged follow-on work.
+proxy handles. G8-220 adds local push and pull delivery. G8-230 adds local
+backpressure and stale/failed proxy diagnostics while keeping all behavior
+in-JVM. IIOP/Naming exposure, Native Image smoke, interop metadata, and live
+peer claims remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -24,6 +25,10 @@ remain staged follow-on work.
   push consumers.
 - `LocalPullSupplierProxy.pull` and `tryPull` route in-JVM pull requests to
   connected local pull suppliers.
+- Configured channel, proxy, and pending fan-out limits fail with stable
+  diagnostics.
+- Failed push consumers are removed from active local routing and later stale
+  proxy operations fail deterministically.
 
 ## Documentation requirements
 

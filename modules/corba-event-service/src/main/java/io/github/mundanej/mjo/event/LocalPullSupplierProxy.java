@@ -18,6 +18,7 @@ public final class LocalPullSupplierProxy extends LocalEventProxy {
   /** Connects the local pull consumer callback to this proxy. */
   public void connectPullConsumer(EventPullConsumer consumer) {
     requireAlive();
+    channel.requireActive(this);
     if (consumer == null) {
       throw new EventServiceException(
           EventServiceDiagnosticCodes.PROXY_NOT_CONNECTED, "pull consumer must not be null");
@@ -32,6 +33,7 @@ public final class LocalPullSupplierProxy extends LocalEventProxy {
   /** Pulls one local event payload from a connected pull supplier. */
   public AnyValue<?> pull() {
     requireAlive();
+    channel.requireActive(this);
     requireConnected();
     return channel.requirePulledEvent();
   }
@@ -39,6 +41,7 @@ public final class LocalPullSupplierProxy extends LocalEventProxy {
   /** Tries to pull one local event payload from a connected pull supplier. */
   public Optional<AnyValue<?>> tryPull() {
     requireAlive();
+    channel.requireActive(this);
     requireConnected();
     return channel.tryPullFromSupplier();
   }
