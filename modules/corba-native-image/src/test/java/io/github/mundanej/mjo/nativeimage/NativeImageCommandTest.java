@@ -92,8 +92,26 @@ final class NativeImageCommandTest {
             "iorDiagnostics",
             "interopReport",
             "rmiIiop",
+            "timeService",
+            "eventService",
             "interopClient",
             "interopServer"),
         NativeImageTargets.g10Targets().stream().map(NativeImageTarget::name).toList());
+  }
+
+  @Test
+  void g8TargetCatalogIncludesOptionalServiceBinaries() {
+    assertEquals(
+        List.of(
+            "idljValidate",
+            "generatedClient",
+            "generatedServer",
+            "namingServer",
+            "iorDiagnostics",
+            "interopReport",
+            "rmiIiop",
+            "timeService",
+            "eventService"),
+        NativeImageTargets.g8Targets().stream().map(NativeImageTarget::name).toList());
   }
 }

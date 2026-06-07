@@ -239,6 +239,8 @@ diagnostics, supplier/consumer admin surfaces, proxy handles, and in-JVM push
 and pull delivery, including bounded fan-out/backpressure diagnostics.
 Descriptor-backed loopback IIOP/Naming exposure now covers channel admin
 lookup, proxy creation, push, pull, try_pull, disconnect operations, malformed
-request diagnostics, and Naming-resolved EventChannel IORs. The next ready
-roadmap task is G8-250, adding Native Image smoke coverage for that local and
-loopback subset without live peer claims.
+request diagnostics, and Naming-resolved EventChannel IORs. Native Image smoke
+coverage now exercises local channel creation, push and pull delivery, bounded
+rejection, loopback IIOP/Naming exposure, and clean shutdown for that subset.
+The next ready roadmap task is G8-260, adding Event Service interop metadata
+and dry-run prerequisite reporting without live peer claims.

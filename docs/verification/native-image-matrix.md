@@ -53,6 +53,9 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
   - `timeService` exercises G8-100 local Time Service UTC value creation,
     fixed-clock universal-time query, interval creation, bounded diagnostic
     rejection, and G8-110 loopback IIOP/Naming exposure.
+  - `eventService` exercises G8-250 local Event Service channel creation, push
+    and pull delivery, bounded rejection, loopback IIOP/Naming exposure, and
+    clean shutdown.
   - `interopClient` composes the approved local client-side interop smoke
     entrypoints, including IDL validation, generated client invocation, IOR
     diagnostics, structured report parsing, G12 broad IDL validation, and
@@ -227,6 +230,17 @@ server successfully across JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB.
 It introduces no reflection metadata, dynamic proxies, Java serialization
 metadata, service-loader discovery, runtime bytecode generation, process
 execution, internal JDK APIs, or `Unsafe`.
+
+## G8-250 Event Service Native Image evidence
+
+G8-250 adds an `eventService` aggregate smoke target covering the implemented
+local and loopback Event Service subset. The smoke uses explicit constructors,
+bounded local options, primitive project `AnyValue<?>` payloads,
+descriptor-backed IIOP codecs, and optional Naming registration to exercise
+channel creation, push delivery, pull delivery, bounded rejection, loopback
+IIOP/Naming exposure, and clean shutdown. It introduces no reflection metadata,
+dynamic proxies, Java serialization metadata, service-loader discovery, runtime
+bytecode generation, process execution, internal JDK APIs, or `Unsafe`.
 
 ## G13-060 durable POA registry Native Image evidence
 

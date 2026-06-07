@@ -33,6 +33,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-rmi-iiop')
     // G8-100 adds the local Time Service value and clock query smoke surface.
     nativeSmokeImplementation project(':modules:corba-time-service')
+    // G8-250 adds the local and loopback Event Service smoke surface.
+    nativeSmokeImplementation project(':modules:corba-event-service')
     nativeSmokeImplementation project(':modules:corba-typecode')
 
     // Unit tests execute the smoke entry points on the JVM before native compilation.
@@ -115,6 +117,11 @@ def nativeSmokeTargets = [
         name: 'timeService',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke',
         binaryName: 'time-service-native-smoke'
+    ],
+    [
+        name: 'eventService',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.EventServiceNativeSmoke',
+        binaryName: 'event-service-native-smoke'
     ],
     [
         name: 'interopClient',

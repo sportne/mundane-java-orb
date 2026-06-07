@@ -20,6 +20,10 @@ public final class NativeImageTargets {
       target("interopReport", "InteropReportNativeSmoke", "interop-report-native-smoke");
   private static final NativeImageTarget RMI_IIOP =
       target("rmiIiop", "RmiIiopNativeSmoke", "rmi-iiop-native-smoke");
+  private static final NativeImageTarget TIME_SERVICE =
+      target("timeService", "TimeServiceNativeSmoke", "time-service-native-smoke");
+  private static final NativeImageTarget EVENT_SERVICE =
+      target("eventService", "EventServiceNativeSmoke", "event-service-native-smoke");
   private static final NativeImageTarget INTEROP_CLIENT =
       target("interopClient", "InteropClientNativeSmoke", "interop-client-native-smoke");
   private static final NativeImageTarget INTEROP_SERVER =
@@ -32,6 +36,17 @@ public final class NativeImageTargets {
           NAMING_SERVER,
           IOR_DIAGNOSTICS,
           INTEROP_REPORT);
+  private static final List<NativeImageTarget> G8_TARGETS =
+      List.of(
+          IDLJ_VALIDATE,
+          GENERATED_CLIENT,
+          GENERATED_SERVER,
+          NAMING_SERVER,
+          IOR_DIAGNOSTICS,
+          INTEROP_REPORT,
+          RMI_IIOP,
+          TIME_SERVICE,
+          EVENT_SERVICE);
   private static final List<NativeImageTarget> G10_TARGETS =
       List.of(
           IDLJ_VALIDATE,
@@ -41,6 +56,8 @@ public final class NativeImageTargets {
           IOR_DIAGNOSTICS,
           INTEROP_REPORT,
           RMI_IIOP,
+          TIME_SERVICE,
+          EVENT_SERVICE,
           INTEROP_CLIENT,
           INTEROP_SERVER);
 
@@ -49,6 +66,11 @@ public final class NativeImageTargets {
   /** Returns the G6-910 smoke binaries in deterministic execution order. */
   public static List<NativeImageTarget> g6Targets() {
     return G6_TARGETS;
+  }
+
+  /** Returns the G8 optional-service smoke binaries in deterministic execution order. */
+  public static List<NativeImageTarget> g8Targets() {
+    return G8_TARGETS;
   }
 
   /** Returns the G10-100 interop smoke binaries in deterministic execution order. */

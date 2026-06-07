@@ -1,5 +1,6 @@
 package io.github.mundanej.mjo.nativeimage;
 
+import io.github.mundanej.mjo.nativeimage.smoke.EventServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.GeneratedClientNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.GeneratedServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.IdljValidateNativeSmoke;
@@ -10,6 +11,7 @@ import io.github.mundanej.mjo.nativeimage.smoke.IorDiagnosticsNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.LiveInteropLane;
 import io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -28,6 +30,8 @@ final class NativeImageSmokeEntrypointTest {
     IorDiagnosticsNativeSmoke.main(new String[0]);
     InteropReportNativeSmoke.main(new String[0]);
     RmiIiopNativeSmoke.main(new String[0]);
+    TimeServiceNativeSmoke.main(new String[0]);
+    EventServiceNativeSmoke.main(new String[0]);
     InteropClientNativeSmoke.main(new String[0]);
     InteropServerNativeSmoke.main(new String[0]);
   }

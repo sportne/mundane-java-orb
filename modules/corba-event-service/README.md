@@ -11,8 +11,10 @@ backpressure and stale/failed proxy diagnostics while keeping all behavior
 in-JVM. G8-240 adds descriptor-backed loopback IIOP/Naming exposure for channel
 admin lookup, proxy creation, push, pull, try_pull, disconnect operations,
 primitive Any payloads, bounded malformed request diagnostics, and
-Naming-resolved EventChannel IORs. Native Image smoke, interop metadata, and
-live peer claims remain staged follow-on work.
+Naming-resolved EventChannel IORs. G8-250 adds Native Image smoke coverage for
+local channel creation, push and pull delivery, bounded rejection, loopback
+IIOP/Naming exposure, and clean shutdown. Interop metadata and live peer claims
+remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -39,6 +41,9 @@ live peer claims remain staged follow-on work.
   CDR codecs.
 - Event Service IIOP payloads use primitive project `AnyValue<?>` values; broad
   OMG compatibility APIs and live peer claims are not part of this slice.
+- `EventServiceNativeSmoke` covers representative local and loopback behavior
+  without reflection metadata, dynamic proxies, Java serialization metadata,
+  runtime bytecode generation, or live peer execution.
 
 ## Documentation requirements
 
