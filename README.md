@@ -234,6 +234,6 @@ claims.
 
 Future live peer expansion beyond the completed G14 durable IOR/Naming
 directions stays out of scope until maintainers record a separate decision.
-The next ready roadmap task is G8-200, splitting the Event Service task group
-into narrow implementation slices before any Event Service runtime behavior is
-implemented.
+The next ready roadmap task is G8-210, adding the local Event Service channel
+model after G8-200 split the Event Service task group into narrow
+implementation slices.

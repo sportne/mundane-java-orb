@@ -1,7 +1,7 @@
 # G8-200 Event Service Task Group
 
 Task ID: G8-200-EVENT-SERVICE-TASK-GROUP
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-020, REQ-NATIVE-002, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0018
@@ -14,4 +14,5 @@ Tests to add/update: No product tests in the task-group split. Add task-shape va
 Documentation to update: Roadmap index, README, and generated Event Service task files only.
 Commands to run: ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Event Service implementation is split into narrow follow-on tasks; at most the first non-runtime or local-foundation slice is promoted to ready-for-implementation; Notification Service dependencies remain explicit; no durable queue or live peer claim is added early.
+Completion evidence: Completed as the G8-210 through G8-270 split. The sequence stages local channel model, local push/pull delivery, bounded fan-out/backpressure, loopback IIOP/Naming exposure, Native Image smoke, structured interop metadata, and local conformance closure. G8-210 is promoted as the only ready Event Service implementation task; live peer execution remains out of scope and human-gated.
 Rollback notes: Revert Event Service implementation slices, tests, docs, and roadmap status changes together.
