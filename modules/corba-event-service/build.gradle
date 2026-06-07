@@ -7,4 +7,12 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Event Service implementation module, initially design-only.'
+description = 'Event Service implementation module.'
+
+dependencies {
+    // Event Service diagnostics reuse the repository-wide stable diagnostic-code value.
+    api project(':modules:corba-common')
+
+    // Local Event Service push and pull surfaces carry project Any values.
+    api project(':modules:corba-any')
+}

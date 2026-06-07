@@ -1,7 +1,7 @@
 # G8-210 Event Service Channel Model
 
 Task ID: G8-210-EVENT-SERVICE-CHANNEL-MODEL
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-020, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0018
@@ -14,4 +14,5 @@ Tests to add/update: Add focused `modules:corba-event-service` unit tests for op
 Documentation to update: Services design, optional services conformance/review, roadmap index, README, and module README.
 Commands to run: ./gradlew :modules:corba-event-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Local channel lifecycle APIs are explicit, bounded, covered by unit tests, and Native Image compatible; G8-220 is promoted after completion; no runtime network, interop, persistence, or live peer behavior is added.
+Completion evidence: Added the local `io.github.mundanej.mjo.event` channel lifecycle model with bounded options, stable diagnostics, supplier/consumer admin surfaces, proxy handles, and callback interfaces typed with project `AnyValue<?>` payloads. Unit tests cover option bounds, channel creation/destruction, duplicate destroyed-state diagnostics, service shutdown, channel limit rejection, and admin/proxy ownership. G8-220 is promoted for local push/pull delivery.
 Rollback notes: Revert Event Service model code, tests, docs, and roadmap status changes together.
