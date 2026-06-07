@@ -1461,6 +1461,91 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void aceTimeServiceUnsupportedReportsDoNotMaskMissingPrerequisites() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path acePeer = fixture.root().resolve("interop/peers/ace-tao");
+    Files.createDirectories(acePeer);
+    Files.writeString(
+        acePeer.resolve("peer.yaml"),
+        peerManifest(FixtureOptions.valid()).replace("fixture-peer", "ace-tao"),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", "ace-tao"),
+            fixture.environmentWithCache(
+                Map.of(
+                    "INTEROP_TIME_SERVICE_LIVE_APPROVED",
+                    "true",
+                    "INTEROP_NATIVE_BASE_IMAGE",
+                    DIGEST_PINNED_BASE_IMAGE)));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            timeServicePrerequisiteReport(fixture, "ace-tao", "jvm"), StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""), report);
+    assertFalse(report.contains("\"classification\": \"unsupported-scenario\""), report);
+  }
+
+  @Test
+  void timeServiceLiveDirectionMatrixRecordsCheckedReportsWhenPrerequisitesPass() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("time-service-live", 0, 0);
+    Path jvmClient = successfulLaneCommand("time-service-jvm-client");
+    Path nativeClient = successfulLaneCommand("time-service-native-client");
+    Path jvmServer = serverLaneCommand("time-service-jvm-server");
+    Path nativeServer = serverLaneCommand("time-service-native-server");
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "time-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.ofEntries(
+                    Map.entry("CONTAINER_RUNTIME", runtime.toString()),
+                    Map.entry("INTEROP_TIME_SERVICE_LIVE_APPROVED", "true"),
+                    Map.entry("INTEROP_HEALTH_DELAY_SECONDS", "0"),
+                    Map.entry("INTEROP_LOCAL_SERVER_START_DELAY_SECONDS", "1"),
+                    Map.entry("INTEROP_LOCAL_SERVER_IOR_ATTEMPTS", "20"),
+                    Map.entry("INTEROP_LOCAL_SERVER_IOR_DELAY_SECONDS", "0"),
+                    Map.entry("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE),
+                    Map.entry("MJO_JVM_CLIENT_COMMAND", jvmClient.toString()),
+                    Map.entry("MJO_NATIVE_CLIENT_BINARY", nativeClient.toString()),
+                    Map.entry("MJO_JVM_SERVER_COMMAND", jvmServer.toString()),
+                    Map.entry("MJO_NATIVE_SERVER_BINARY", nativeServer.toString()))));
+
+    assertSuccess(result);
+    String jvmClientReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/local/reports/"
+                        + "time-service-fixture-peer-jvm-client-peer-server-to-local-client.json"),
+            StandardCharsets.UTF_8);
+    String peerClientReport =
+        Files.readString(
+            fixture
+                .root()
+                .resolve(
+                    "build/interop/fixture/reports/"
+                        + "time-service-jvm-server-to-peer-client.json"),
+            StandardCharsets.UTF_8);
+    String peerServerReport =
+        Files.readString(
+            fixture.root().resolve("build/interop/fixture/reports/time-service-server.json"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(jvmClientReport.contains("\"classification\": \"time-service-checked\""));
+    assertTrue(peerClientReport.contains("\"classification\": \"time-service-checked\""));
+    assertTrue(
+        peerClientReport.contains(
+            "\"operationSet\": \"universal_time,new_universal_time,new_interval\""));
+    assertTrue(peerServerReport.contains("\"classification\": \"server-ready\""));
+  }
+
+  @Test
   void durablePeerRawEvidencePathsRemainIgnored() throws Exception {
     String gitignore = Files.readString(repoRoot().resolve(".gitignore"));
 
@@ -1940,10 +2025,16 @@ final class InteropPeerGateTest {
   }
 
   private static Path timeServicePrerequisiteReport(Fixture fixture, String runtime) {
+    return timeServicePrerequisiteReport(fixture, FIXTURE_PEER, runtime);
+  }
+
+  private static Path timeServicePrerequisiteReport(Fixture fixture, String peer, String runtime) {
     return fixture
         .root()
         .resolve(
-            "build/interop/local/reports/time-service-fixture-peer-"
+            "build/interop/local/reports/time-service-"
+                + peer
+                + "-"
                 + runtime
                 + "-server-local-server-to-peer-client.json");
   }
@@ -2082,6 +2173,36 @@ final class InteropPeerGateTest {
         StandardCharsets.UTF_8);
     runtime.toFile().setExecutable(true);
     return runtime;
+  }
+
+  private Path successfulLaneCommand(String name) throws IOException {
+    Path command = temporaryDirectory.resolve(name + ".sh");
+    Files.writeString(
+        command,
+        """
+        #!/usr/bin/env bash
+        set -euo pipefail
+        printf 'lane ok\\n'
+        """,
+        StandardCharsets.UTF_8);
+    command.toFile().setExecutable(true);
+    return command;
+  }
+
+  private Path serverLaneCommand(String name) throws IOException {
+    Path command = temporaryDirectory.resolve(name + ".sh");
+    Files.writeString(
+        command,
+        """
+        #!/usr/bin/env bash
+        set -euo pipefail
+        mkdir -p "$(dirname "${MJO_INTEROP_SERVER_IOR}")"
+        printf 'IOR:%s\\n' "${MJO_INTEROP_SCENARIO}" >"${MJO_INTEROP_SERVER_IOR}"
+        sleep 30
+        """,
+        StandardCharsets.UTF_8);
+    command.toFile().setExecutable(true);
+    return command;
   }
 
   private Path isolatedPathWithoutContainerRuntime() throws IOException {

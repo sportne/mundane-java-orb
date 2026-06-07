@@ -15,6 +15,9 @@ COPY interop/container/entrypoint.sh /usr/local/bin/interop-peer-entrypoint
 COPY build/interop/container-build/artifact-cache/source/DOCGroup/ACE_TAO/8.0.6/ACE+TAO-8.0.6.tar.bz2 /tmp/ACE+TAO-8.0.6.tar.bz2
 
 RUN set -eux; \
+  apt-get update; \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bzip2 g++ make perl; \
+  rm -rf /var/lib/apt/lists/*; \
   mkdir -p /opt/ace-tao; \
   tar -xjf /tmp/ACE+TAO-8.0.6.tar.bz2 -C /opt/ace-tao; \
   printf '#include "ace/config-linux.h"\n' > "${ACE_ROOT}/ace/config.h"; \

@@ -221,9 +221,12 @@ G8-100 adds a `timeService` aggregate smoke target covering the local Time
 Service value and clock-query surface. The smoke uses explicit constructors,
 `java.time.Clock`, immutable values, and deterministic exception diagnostics;
 G8-110 extends the same target with descriptor-backed loopback IIOP calls and
-Naming-resolved Time Service IOR calls. It introduces no reflection metadata,
-dynamic proxies, Java serialization metadata, service-loader discovery, runtime
-bytecode generation, process execution, internal JDK APIs, or `Unsafe`.
+Naming-resolved Time Service IOR calls. G8-140 reruns the SDKMAN GraalVM native
+smoke and records live peer clients invoking the Native Image Time Service
+server successfully across JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB.
+It introduces no reflection metadata, dynamic proxies, Java serialization
+metadata, service-loader discovery, runtime bytecode generation, process
+execution, internal JDK APIs, or `Unsafe`.
 
 ## G13-060 durable POA registry Native Image evidence
 

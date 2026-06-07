@@ -120,8 +120,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-110-time-service-iiop-naming-exposure.md` - complete
 - `tasks/g8-120-time-service-interop-metadata.md` - complete
 - `tasks/g8-130-time-service-live-peer-gate.md` - complete
-- `tasks/g8-140-time-service-conformance-closure.md` - ready-for-implementation
-- `tasks/g8-200-event-service-task-group.md` - blocked
+- `tasks/g8-140-time-service-conformance-closure.md` - complete
+- `tasks/g8-200-event-service-task-group.md` - ready-for-implementation
 - `tasks/g8-300-notification-service-task-group.md` - blocked
 - `tasks/g8-400-trading-service-task-group.md` - blocked
 - `tasks/g8-500-transaction-service-task-group.md` - blocked

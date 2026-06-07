@@ -43,6 +43,12 @@ import io.github.mundanej.mjo.rmi.iiop.RmiIiopWireServerHandler;
 import io.github.mundanej.mjo.rmi.iiop.RmiIiopWireUserException;
 import io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdPlan;
 import io.github.mundanej.mjo.rmi.iiop.RmiRepositoryIdValue;
+import io.github.mundanej.mjo.time.LocalTimeService;
+import io.github.mundanej.mjo.time.NetworkTimeService;
+import io.github.mundanej.mjo.time.NetworkTimeServiceClient;
+import io.github.mundanej.mjo.time.TimeInterval;
+import io.github.mundanej.mjo.time.TimeServiceOptions;
+import io.github.mundanej.mjo.time.UtcTime;
 import io.github.mundanej.mjo.typecode.IdlGeneratedTypeDescriptor;
 import io.github.mundanej.mjo.typecode.IdlOperationDescriptor;
 import io.github.mundanej.mjo.typecode.IdlParameterDescriptor;
@@ -53,6 +59,10 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -70,6 +80,12 @@ public final class LiveInteropLane {
   private static final String DURABLE_RESTART_POA_PATH = "/RootPOA/g13/persistent";
   private static final byte[] DURABLE_RESTART_OBJECT_ID =
       "fixture-object".getBytes(StandardCharsets.US_ASCII);
+  private static final Instant TIME_SERVICE_FIXED_INSTANT =
+      Instant.parse("1582-10-15T00:00:04.000000101Z");
+  private static final UtcTime TIME_SERVICE_CURRENT = new UtcTime(40_000_001L, 2L, (short) 0);
+  private static final UtcTime TIME_SERVICE_EXPLICIT =
+      new UtcTime(1_234_567_890L, (1L << 40) + 7L, (short) -60);
+  private static final TimeInterval TIME_SERVICE_INTERVAL = new TimeInterval(7L, 12L);
   private static final String CALCULATOR_REPOSITORY_ID = "IDL:example/calc/Calculator:1.0";
   private static final String PROBLEM_REPOSITORY_ID = "IDL:example/calc/CalculatorProblem:1.0";
   private static final IdlTypeReference LONG_TYPE =
@@ -123,6 +139,8 @@ public final class LiveInteropLane {
     IiopObjectReference reference = endpointOverride(readReference(serverIorPath(env)), env);
     if ("rmi-iiop".equals(scenario)) {
       invokeCalculator(reference, env);
+    } else if ("time-service".equals(scenario)) {
+      invokeTimeService(reference);
     } else {
       invokeObjectLiveness(reference);
     }
@@ -142,6 +160,9 @@ public final class LiveInteropLane {
     }
     if ("g13-durable-naming-peer-client-restart".equals(scenario)) {
       return startDurableNamingServer(bindHost, advertisedHost, port, env);
+    }
+    if ("time-service".equals(scenario)) {
+      return startTimeServiceServer(bindHost, advertisedHost, port, serverIorPath(env));
     }
     return startLivenessServer(bindHost, advertisedHost, port, serverIorPath(env));
   }
@@ -264,6 +285,23 @@ public final class LiveInteropLane {
     return new RunningServer(naming, objectServer);
   }
 
+  private static RunningServer startTimeServiceServer(
+      String bindHost, String advertisedHost, int port, Path serverIorPath) throws IOException {
+    LocalTimeService service =
+        LocalTimeService.create(
+            new TimeServiceOptions(
+                Clock.fixed(TIME_SERVICE_FIXED_INSTANT, ZoneOffset.UTC),
+                Duration.ofNanos(101),
+                ZoneOffset.UTC));
+    NetworkTimeService network =
+        NetworkTimeService.bind(new IiopEndpoint(bindHost, port), IiopOptions.defaults(), service);
+    IiopObjectReference advertised =
+        IiopObjectReference.fromLocal(
+            new IiopEndpoint(advertisedHost, network.endpoint().port()), network.localReference());
+    writeIor(serverIorPath, advertised.ior());
+    return new RunningServer(network);
+  }
+
   private static void seedNamingStore(NetworkNamingService naming, Ior objectIor) {
     try (NetworkNamingClient root =
         NetworkNamingClient.connect(naming.ior(), IiopOptions.defaults())) {
@@ -350,6 +388,26 @@ public final class LiveInteropLane {
       if (nonExistent) {
         throw new IllegalStateException("remote object reported non-existence");
       }
+    }
+  }
+
+  private static void invokeTimeService(IiopObjectReference reference) {
+    try (NetworkTimeServiceClient client =
+        NetworkTimeServiceClient.connect(reference, IiopOptions.defaults())) {
+      SmokeAssertions.requireEquals(
+          TIME_SERVICE_CURRENT, client.universalTime(), "live Time Service universal_time");
+      SmokeAssertions.requireEquals(
+          TIME_SERVICE_EXPLICIT,
+          client.newUniversalTime(
+              TIME_SERVICE_EXPLICIT.timeTicks(),
+              TIME_SERVICE_EXPLICIT.inaccuracyTicks(),
+              TIME_SERVICE_EXPLICIT.tdfMinutes()),
+          "live Time Service new_universal_time");
+      SmokeAssertions.requireEquals(
+          TIME_SERVICE_INTERVAL,
+          client.newInterval(
+              TIME_SERVICE_INTERVAL.lowerBoundTicks(), TIME_SERVICE_INTERVAL.upperBoundTicks()),
+          "live Time Service new_interval");
     }
   }
 

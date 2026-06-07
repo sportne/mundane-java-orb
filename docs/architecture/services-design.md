@@ -76,7 +76,7 @@ summary.
 
 | Service | Requirement | Spec key | Module boundary | Current posture |
 |---|---|---|---|---|
-| Time Service | REQ-SVC-060 | TIME-11 | `modules/corba-time-service` owns time and interval value models, caller-configured clock policy, local query behavior, Naming/IIOP exposure, and service-specific interop metadata. | G8-100 implements local TimeBase value/clock behavior; G8-110 implements descriptor-backed loopback IIOP and optional Naming registration; G8-120 adds approved-peer scenario metadata and dry-run prerequisite reporting without live execution. |
+| Time Service | REQ-SVC-060 | TIME-11 | `modules/corba-time-service` owns time and interval value models, caller-configured clock policy, local query behavior, Naming/IIOP exposure, and service-specific interop metadata. | G8-100 implements local TimeBase value/clock behavior; G8-110 implements descriptor-backed loopback IIOP and optional Naming registration; G8-120 adds approved-peer scenario metadata and dry-run prerequisite reporting; G8-140 records approved live peer evidence for peer clients invoking our JVM and Native Image Time Service servers across JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB. |
 | Event Service | REQ-SVC-020 | EVNT-12 | `modules/corba-event-service` owns event channels, push/pull supplier and consumer surfaces, channel lifecycle, and bounded fan-out/backpressure. | Design accepted by ADR-0018; implementation blocked behind `G8-200-EVENT-SERVICE-TASK-GROUP`. |
 | Notification Service | REQ-SVC-030 | NOT-11 | `modules/corba-notification-service` owns notification channels, structured events, bounded filtering, QoS/admin models, and Event Service compatibility boundaries. | Design accepted by ADR-0019; implementation blocked behind `G8-300-NOTIFICATION-SERVICE-TASK-GROUP`. |
 | Trading Service | REQ-SVC-010 | TRADE-10 | `modules/corba-trading-service` owns service type repositories, offer repositories, constraint parsing/evaluation, local query, and future import/export behavior. | Design accepted by ADR-0020; implementation blocked behind `G8-400-TRADING-SERVICE-TASK-GROUP`. |
@@ -84,9 +84,9 @@ summary.
 | Security Service / CSIv2 | REQ-SVC-050 | SEC-18, CORBA-IOP-SECURITY | `modules/corba-security-service` owns credentials, trust, policy, CSIv2 metadata, local policy evaluation, and audit/failure disclosure. | Design accepted by ADR-0022; implementation blocked behind `G8-600-SECURITY-SERVICE-TASK-GROUP`. |
 
 Each optional service now has an accepted ADR and blocked task group. Time
-Service local value/clock behavior, loopback IIOP/Naming exposure, and peer
-metadata are the first implemented optional-service slices; live evidence still
-requires the human-gated approval record and conformance closure tasks.
+Service local value/clock behavior, loopback IIOP/Naming exposure, peer
+metadata, and scoped live peer-client evidence are the first implemented
+optional-service slices.
 
 ## Native Image Policy
 
@@ -98,11 +98,14 @@ documents the exact metadata, risk, and test evidence.
 
 ## Interop Posture
 
-No optional service currently claims live peer interoperability. A service gate
-must name the peer scenarios, object keys, IDL fixtures, report schema, and
-missing-prerequisite behavior before any live peer execution is required.
-Default evidence may remain structured-report-only until approved caches,
-digest-pinned base images, and container runtime inputs are available.
+Time Service currently claims only the implemented value-returning subset for
+peer clients invoking our JVM and Native Image servers. Reverse peer-server
+Time Service lanes and ACE/TAO are recorded as unsupported for that subset.
+Every other optional service must name the peer scenarios, object keys, IDL
+fixtures, report schema, and missing-prerequisite behavior before any live peer
+execution is required. Default evidence may remain structured-report-only until
+approved caches, digest-pinned base images, and container runtime inputs are
+available.
 
 ## Security Review Expectations
 

@@ -23,6 +23,19 @@ public final class PeerSmoke {
   private static final String LEGACY_REPOSITORY_ID = "IDL:interop/Smoke:1.0";
   private static final String CALCULATOR_REPOSITORY_ID = "IDL:example/calc/Calculator:1.0";
   private static final String PROBLEM_REPOSITORY_ID = "IDL:example/calc/CalculatorProblem:1.0";
+  private static final String TIME_SERVICE_REPOSITORY_ID = "IDL:omg.org/CosTime/TimeService:1.0";
+  private static final String UTC_TIME_REPOSITORY_ID = "IDL:omg.org/TimeBase/UtcT:1.0";
+  private static final String INTERVAL_REPOSITORY_ID = "IDL:omg.org/TimeBase/IntervalT:1.0";
+  private static final long TIME_SERVICE_CURRENT_TICKS = 40_000_001L;
+  private static final long TIME_SERVICE_CURRENT_INACCLO = 2L;
+  private static final int TIME_SERVICE_CURRENT_INACCHI = 0;
+  private static final short TIME_SERVICE_CURRENT_TDF = 0;
+  private static final long TIME_SERVICE_EXPLICIT_TICKS = 1_234_567_890L;
+  private static final long TIME_SERVICE_EXPLICIT_INACCLO = 7L;
+  private static final int TIME_SERVICE_EXPLICIT_INACCHI = 256;
+  private static final short TIME_SERVICE_EXPLICIT_TDF = -60;
+  private static final long TIME_SERVICE_INTERVAL_LOWER = 7L;
+  private static final long TIME_SERVICE_INTERVAL_UPPER = 12L;
 
   private PeerSmoke() {}
 
@@ -45,7 +58,11 @@ public final class PeerSmoke {
     root.the_POAManager().activate();
     org.omg.CORBA.Object ref =
         root.servant_to_reference(
-            "rmi-iiop".equals(scenario()) ? new CalculatorServant(orb) : new SmokeServant(orb));
+            switch (scenario()) {
+              case "rmi-iiop" -> new CalculatorServant(orb);
+              case "time-service" -> new TimeServiceServant(orb);
+              default -> new SmokeServant(orb);
+            });
     Path ior = iorPath("server");
     Files.createDirectories(ior.getParent());
     Files.writeString(ior, orb.object_to_string(ref) + System.lineSeparator());
@@ -62,6 +79,10 @@ public final class PeerSmoke {
         isDurableNamingScenario() ? resolveCorbanameTarget(orb, value) : orb.string_to_object(value);
     if ("rmi-iiop".equals(scenario())) {
       verifyCalculator(orb, ref);
+      return;
+    }
+    if ("time-service".equals(scenario())) {
+      verifyTimeService(orb, ref);
       return;
     }
     boolean exists = !ref._non_existent();
@@ -217,6 +238,131 @@ public final class PeerSmoke {
     System.out.println("peer smoke calculator client completed");
   }
 
+  private static void verifyTimeService(ORB orb, org.omg.CORBA.Object ref) {
+    Request universalTime = ref._request("universal_time");
+    universalTime.set_return_type(utcType(orb));
+    universalTime.invoke();
+    assertNoException(universalTime, "universal_time");
+    assertUtc(
+        universalTime.return_value(),
+        TIME_SERVICE_CURRENT_TICKS,
+        TIME_SERVICE_CURRENT_INACCLO,
+        TIME_SERVICE_CURRENT_INACCHI,
+        TIME_SERVICE_CURRENT_TDF,
+        "universal_time");
+
+    Request newUniversalTime = ref._request("new_universal_time");
+    putUnsignedLongLong(newUniversalTime.add_in_arg(), TIME_SERVICE_EXPLICIT_TICKS, orb);
+    putUnsignedLong(newUniversalTime.add_in_arg(), TIME_SERVICE_EXPLICIT_INACCLO, orb);
+    putUnsignedShort(newUniversalTime.add_in_arg(), TIME_SERVICE_EXPLICIT_INACCHI, orb);
+    newUniversalTime.add_in_arg().insert_short(TIME_SERVICE_EXPLICIT_TDF);
+    newUniversalTime.set_return_type(utcType(orb));
+    newUniversalTime.invoke();
+    assertNoException(newUniversalTime, "new_universal_time");
+    assertUtc(
+        newUniversalTime.return_value(),
+        TIME_SERVICE_EXPLICIT_TICKS,
+        TIME_SERVICE_EXPLICIT_INACCLO,
+        TIME_SERVICE_EXPLICIT_INACCHI,
+        TIME_SERVICE_EXPLICIT_TDF,
+        "new_universal_time");
+
+    Request newInterval = ref._request("new_interval");
+    putUnsignedLongLong(newInterval.add_in_arg(), TIME_SERVICE_INTERVAL_LOWER, orb);
+    putUnsignedLongLong(newInterval.add_in_arg(), TIME_SERVICE_INTERVAL_UPPER, orb);
+    newInterval.set_return_type(intervalType(orb));
+    newInterval.invoke();
+    assertNoException(newInterval, "new_interval");
+    assertInterval(newInterval.return_value(), TIME_SERVICE_INTERVAL_LOWER, TIME_SERVICE_INTERVAL_UPPER);
+    System.out.println("peer smoke Time Service client completed");
+  }
+
+  private static void assertNoException(Request request, String operation) {
+    if (request.env().exception() != null) {
+      throw new IllegalStateException(operation + " failed", request.env().exception());
+    }
+  }
+
+  private static void assertUtc(
+      Any value, long time, long inacclo, int inacchi, short tdf, String operation) {
+    org.omg.CORBA.portable.InputStream input = value.create_input_stream();
+    long actualTime = input.read_ulonglong();
+    long actualInacclo = input.read_ulong();
+    int actualInacchi = input.read_ushort();
+    short actualTdf = input.read_short();
+    if (actualTime != time
+        || actualInacclo != inacclo
+        || actualInacchi != inacchi
+        || actualTdf != tdf) {
+      throw new IllegalStateException(
+          operation
+              + " returned unexpected UtcT: time="
+              + actualTime
+              + ", inacclo="
+              + actualInacclo
+              + ", inacchi="
+              + actualInacchi
+              + ", tdf="
+              + actualTdf);
+    }
+  }
+
+  private static void assertInterval(Any value, long lower, long upper) {
+    org.omg.CORBA.portable.InputStream input = value.create_input_stream();
+    long actualLower = input.read_ulonglong();
+    long actualUpper = input.read_ulonglong();
+    if (actualLower != lower || actualUpper != upper) {
+      throw new IllegalStateException(
+          "new_interval returned unexpected IntervalT: lower="
+              + actualLower
+              + ", upper="
+              + actualUpper);
+    }
+  }
+
+  private static void putUnsignedLongLong(Any any, long value, ORB orb) {
+    any.type(orb.get_primitive_tc(TCKind.tk_ulonglong));
+    org.omg.CORBA.portable.OutputStream output = any.create_output_stream();
+    output.write_ulonglong(value);
+    any.read_value(output.create_input_stream(), any.type());
+  }
+
+  private static void putUnsignedLong(Any any, long value, ORB orb) {
+    any.type(orb.get_primitive_tc(TCKind.tk_ulong));
+    org.omg.CORBA.portable.OutputStream output = any.create_output_stream();
+    output.write_ulong((int) value);
+    any.read_value(output.create_input_stream(), any.type());
+  }
+
+  private static void putUnsignedShort(Any any, int value, ORB orb) {
+    any.type(orb.get_primitive_tc(TCKind.tk_ushort));
+    org.omg.CORBA.portable.OutputStream output = any.create_output_stream();
+    output.write_ushort((short) value);
+    any.read_value(output.create_input_stream(), any.type());
+  }
+
+  private static TypeCode utcType(ORB orb) {
+    return orb.create_struct_tc(
+        UTC_TIME_REPOSITORY_ID,
+        "UtcT",
+        new StructMember[] {
+          new StructMember("time", orb.get_primitive_tc(TCKind.tk_ulonglong), null),
+          new StructMember("inacclo", orb.get_primitive_tc(TCKind.tk_ulong), null),
+          new StructMember("inacchi", orb.get_primitive_tc(TCKind.tk_ushort), null),
+          new StructMember("tdf", orb.get_primitive_tc(TCKind.tk_short), null)
+        });
+  }
+
+  private static TypeCode intervalType(ORB orb) {
+    return orb.create_struct_tc(
+        INTERVAL_REPOSITORY_ID,
+        "IntervalT",
+        new StructMember[] {
+          new StructMember("lower_bound", orb.get_primitive_tc(TCKind.tk_ulonglong), null),
+          new StructMember("upper_bound", orb.get_primitive_tc(TCKind.tk_ulonglong), null)
+        });
+  }
+
   private static final class SmokeServant extends DynamicImplementation {
     private final ORB orb;
 
@@ -257,6 +403,112 @@ public final class PeerSmoke {
     @Override
     public String[] _all_interfaces(POA poa, byte[] objectId) {
       return new String[] {BASIC_REPOSITORY_ID, LEGACY_REPOSITORY_ID};
+    }
+  }
+
+  private static final class TimeServiceServant extends DynamicImplementation {
+    private final ORB orb;
+
+    private TimeServiceServant(ORB orb) {
+      this.orb = orb;
+    }
+
+    @Override
+    public void invoke(ServerRequest request) {
+      switch (request.operation()) {
+        case "universal_time" ->
+            request.set_result(
+                utcAny(
+                    TIME_SERVICE_CURRENT_TICKS,
+                    TIME_SERVICE_CURRENT_INACCLO,
+                    TIME_SERVICE_CURRENT_INACCHI,
+                    TIME_SERVICE_CURRENT_TDF));
+        case "new_universal_time" -> newUniversalTime(request);
+        case "new_interval" -> newInterval(request);
+        case "_is_a" -> isA(request);
+        case "_non_existent" -> nonExistent(request);
+        default -> throw new org.omg.CORBA.BAD_OPERATION(request.operation());
+      }
+    }
+
+    private void newUniversalTime(ServerRequest request) {
+      NVList arguments = orb.create_list(0);
+      Any time = typedAny(orb.get_primitive_tc(TCKind.tk_ulonglong));
+      Any inacclo = typedAny(orb.get_primitive_tc(TCKind.tk_ulong));
+      Any inacchi = typedAny(orb.get_primitive_tc(TCKind.tk_ushort));
+      Any tdf = typedAny(orb.get_primitive_tc(TCKind.tk_short));
+      arguments.add_value("time", time, ARG_IN.value);
+      arguments.add_value("inacclo", inacclo, ARG_IN.value);
+      arguments.add_value("inacchi", inacchi, ARG_IN.value);
+      arguments.add_value("tdf", tdf, ARG_IN.value);
+      request.arguments(arguments);
+      org.omg.CORBA.portable.InputStream timeIn = time.create_input_stream();
+      org.omg.CORBA.portable.InputStream inaccloIn = inacclo.create_input_stream();
+      org.omg.CORBA.portable.InputStream inacchiIn = inacchi.create_input_stream();
+      request.set_result(
+          utcAny(
+              timeIn.read_ulonglong(),
+              inaccloIn.read_ulong(),
+              inacchiIn.read_ushort(),
+              tdf.extract_short()));
+    }
+
+    private void newInterval(ServerRequest request) {
+      NVList arguments = orb.create_list(0);
+      Any lower = typedAny(orb.get_primitive_tc(TCKind.tk_ulonglong));
+      Any upper = typedAny(orb.get_primitive_tc(TCKind.tk_ulonglong));
+      arguments.add_value("lower_bound", lower, ARG_IN.value);
+      arguments.add_value("upper_bound", upper, ARG_IN.value);
+      request.arguments(arguments);
+      org.omg.CORBA.portable.InputStream lowerIn = lower.create_input_stream();
+      org.omg.CORBA.portable.InputStream upperIn = upper.create_input_stream();
+      Any result = orb.create_any();
+      result.type(intervalType(orb));
+      org.omg.CORBA.portable.OutputStream output = result.create_output_stream();
+      output.write_ulonglong(lowerIn.read_ulonglong());
+      output.write_ulonglong(upperIn.read_ulonglong());
+      result.read_value(output.create_input_stream(), result.type());
+      request.set_result(result);
+    }
+
+    private Any utcAny(long time, long inacclo, int inacchi, short tdf) {
+      Any result = orb.create_any();
+      result.type(utcType(orb));
+      org.omg.CORBA.portable.OutputStream output = result.create_output_stream();
+      output.write_ulonglong(time);
+      output.write_ulong((int) inacclo);
+      output.write_ushort((short) inacchi);
+      output.write_short(tdf);
+      result.read_value(output.create_input_stream(), result.type());
+      return result;
+    }
+
+    private Any typedAny(TypeCode type) {
+      Any value = orb.create_any();
+      value.type(type);
+      return value;
+    }
+
+    private void isA(ServerRequest request) {
+      NVList arguments = orb.create_list(0);
+      Any repositoryId = orb.create_any();
+      repositoryId.type(orb.get_primitive_tc(TCKind.tk_string));
+      arguments.add_value("repository_id", repositoryId, ARG_IN.value);
+      request.arguments(arguments);
+      Any result = orb.create_any();
+      result.insert_boolean(TIME_SERVICE_REPOSITORY_ID.equals(repositoryId.extract_string()));
+      request.set_result(result);
+    }
+
+    private void nonExistent(ServerRequest request) {
+      Any result = orb.create_any();
+      result.insert_boolean(false);
+      request.set_result(result);
+    }
+
+    @Override
+    public String[] _all_interfaces(POA poa, byte[] objectId) {
+      return new String[] {TIME_SERVICE_REPOSITORY_ID};
     }
   }
 

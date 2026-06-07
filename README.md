@@ -215,8 +215,8 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 ## Ready roadmap tasks
 
 G8 optional-service design gates are complete, and the Time Service local
-value/clock, loopback IIOP/Naming exposure, and structured interop metadata
-slices are implemented.
+value/clock, loopback IIOP/Naming exposure, structured interop metadata, and
+approved live peer conformance closure slices are implemented.
 Remaining optional service implementation stays blocked behind service-specific
 task groups. G13-000
 through G13-090 and G14-000 through G14-040 are complete. G14 live durable peer
@@ -225,8 +225,15 @@ JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image local servers.
 Persistent Naming restart evidence resolves for JacORB, GlassFish CORBA ORB,
 and JBoss OpenJDK ORB across JVM and Native Image local servers; ACE/TAO is
 recorded as a durable Naming `profile-mismatch`, not as an opaque-key failure.
-The next ready roadmap task is G8-140, Time Service conformance closure and
-approved live peer execution.
+Time Service live peer evidence covers peer clients invoking our JVM and Native
+Image Time Service servers for `universal_time`, `new_universal_time`, and
+`new_interval` across JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB.
+ACE/TAO and reverse peer-server Time Service lanes are recorded as
+`unsupported-scenario` for this value-returning subset, not as compatibility
+claims.
 
 Future live peer expansion beyond the completed G14 durable IOR/Naming
 directions stays out of scope until maintainers record a separate decision.
+The next ready roadmap task is G8-200, splitting the Event Service task group
+into narrow implementation slices before any Event Service runtime behavior is
+implemented.

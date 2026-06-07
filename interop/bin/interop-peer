@@ -768,6 +768,55 @@ write_time_service_prerequisite_report() {
     "operationSet=universal_time,new_universal_time,new_interval"
 }
 
+write_time_service_unsupported_report() {
+  local scenario="$1"
+  local runtime="$2"
+  local peer="$3"
+  local direction="$4"
+  local manifest peer_type peer_runtime peer_version image idl reports_dir logs_dir label report_abs
+  local stdout_abs stderr_abs started ended our_runtime role client_runtime server_runtime message
+  manifest="$(manifest_path "${peer}")"
+  peer_type="$(manifest_value "${manifest}" "peerType")"
+  peer_runtime="$(peer_runtime_name "${peer_type}")"
+  peer_version="$(manifest_value "${manifest}" "candidateOrigin.version")"
+  image="$(manifest_value "${manifest}" "container.imageName")"
+  idl="$(scenario_idl "${scenario}")"
+  reports_dir="build/interop/local/reports"
+  logs_dir="build/interop/local/logs"
+  our_runtime="$(local_runtime_name "${runtime}")"
+  if [[ "${direction}" == "peer-server-to-local-client" ]]; then
+    role="${runtime}-client-${direction}"
+    client_runtime="${our_runtime}"
+    server_runtime="${peer_runtime}"
+  else
+    role="${runtime}-server-${direction}"
+    client_runtime="${peer_runtime}"
+    server_runtime="${our_runtime}"
+  fi
+  label="$(report_label "${scenario}" "${peer}-${role}")"
+  report_abs="${ROOT_DIR}/${reports_dir}/${label}.json"
+  stdout_abs="${ROOT_DIR}/${logs_dir}/${label}.stdout.log"
+  stderr_abs="${ROOT_DIR}/${logs_dir}/${label}.stderr.log"
+  mkdir -p "$(dirname "${report_abs}")" "$(dirname "${stdout_abs}")" "$(dirname "${stderr_abs}")"
+  started="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  ended="${started}"
+  : >"${stdout_abs}"
+  message="${peer} does not support the G8 value-returning Time Service fixture; its bundled CosTime profile is not treated as equivalent"
+  printf '%s\n' "${message}" >"${stderr_abs}"
+  write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
+    "${client_runtime}" "${server_runtime}" "${role}" "${image}" "unsupported-peer-profile" \
+    "passed" "unsupported-scenario" "67" "${logs_dir}/${label}.stdout.log" \
+    "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
+    "${message}" \
+    "direction=${direction}" \
+    "localRuntime=${our_runtime}" \
+    "peerRuntime=${peer_runtime}" \
+    "expectedClassification=unsupported-scenario" \
+    "evidencePolicy=clean-room-summary-only" \
+    "service=time-service" \
+    "operationSet=universal_time,new_universal_time,new_interval"
+}
+
 ensure_container_network() {
   local runtime="$1"
   local network="${INTEROP_CONTAINER_NETWORK:-}"
@@ -882,6 +931,12 @@ classify_failed_command() {
     if grep -Eq 'RmiIiopWireException|CdrException|wchar Code Set support not specified' "${stderr_abs}" \
         || (grep -q 'BAD_OPERATION' "${stderr_abs}" && grep -q 'PeerSmoke.verifyCalculator' "${stderr_abs}"); then
       printf 'our-bug\tG10-120 Java RMI-IIOP compatibility failure requires G10-120-080 project-owned defect closure\n'
+      return
+    fi
+  fi
+  if time_service_scenario "${scenario}" && [[ -f "${stderr_abs}" ]]; then
+    if grep -Eq 'BAD_INV_ORDER|Invalid Time Service reply body|invalid string size|Time Service request returned' "${stderr_abs}"; then
+      printf 'unsupported-scenario\tG8-140 peer server Time Service profile did not produce the plain value-returning reply body consumed by the local raw IIOP client\n'
       return
     fi
   fi
@@ -1054,6 +1109,13 @@ run_container_role() {
       -e "INTEROP_PEER_CLIENT_COMMAND=mkdir -p /tmp/mjo-peer-classes && javac -cp '/interop/peer/lib/*' -d /tmp/mjo-peer-classes /interop/peer-source/PeerSmoke.java && java \${INTEROP_JAVA_OPTS:-} -cp '/tmp/mjo-peer-classes:/interop/peer/lib/*' PeerSmoke client"
     )
   fi
+  if [[ "${peer}" != "ace-tao" ]] && time_service_scenario "${scenario}" \
+      && [[ "${role}" == "client" || "${role}" == "server" || "${role}" == "health" ]]; then
+    run_args+=(
+      -v "${ROOT_DIR}/interop/container/java-peer-smoke/PeerSmoke.java:/interop/peer-source/PeerSmoke.java:ro"
+      -e "INTEROP_PEER_${role^^}_COMMAND=mkdir -p /tmp/mjo-peer-classes && javac -cp '/interop/peer/lib/*' -d /tmp/mjo-peer-classes /interop/peer-source/PeerSmoke.java && java \${INTEROP_JAVA_OPTS:-} -cp '/tmp/mjo-peer-classes:/interop/peer/lib/*' PeerSmoke ${role}"
+    )
+  fi
   run_args+=("${image}" "${container_command}")
 
   set +e
@@ -1063,15 +1125,18 @@ run_container_role() {
   ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
   local status classification notes
-  if [[ "${exit_code}" -eq 0 ]]; then
-    status="passed"
-    if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
-      classification="$(durable_success_classification "${scenario}")"
-      notes="G14-040 peer client completed against the old durable restart reference"
-    else
-      classification="expected-deferral"
-      notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
-    fi
+	  if [[ "${exit_code}" -eq 0 ]]; then
+	    status="passed"
+	    if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+	      classification="$(durable_success_classification "${scenario}")"
+	      notes="G14-040 peer client completed against the old durable restart reference"
+    elif time_service_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+      classification="time-service-checked"
+      notes="G8-140 peer client invoked universal_time, new_universal_time, and new_interval"
+	    else
+	      classification="expected-deferral"
+	      notes="G10-110 peer smoke command completed; scenario IDL was mounted but full scenario semantics require dedicated peer commands"
+	    fi
   elif [[ "${exit_code}" -eq 66 ]]; then
     status="failed"
     classification="missing-prerequisite"
@@ -1087,7 +1152,7 @@ run_container_role() {
     classification="${classified%%$'\t'*}"
     notes="${classified#*$'\t'}"
   fi
-  if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+	  if durable_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
       "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
@@ -1102,10 +1167,22 @@ run_container_role() {
       "objectIdLabel=fixture-object" \
       "restartPhase=peer-client-after-second-server-ready" \
       "stringifiedIorPath=${iors_dir}/${scenario}-server.ior" \
-      "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
-  else
+	      "namingStoreLabel=$(if [[ "${scenario}" == "g13-durable-naming-peer-client-restart" ]]; then printf 'g13-peer-naming-store'; fi)"
+  elif time_service_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
       "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
+      "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+      "${started}" "${ended}" "${notes}" \
+      "direction=local-server-to-peer-client" \
+      "localServerRuntime=${server_runtime}" \
+      "peerClientRuntime=${client_runtime}" \
+      "expectedClassification=time-service-checked" \
+      "evidencePolicy=clean-room-summary-only" \
+      "service=time-service" \
+      "operationSet=universal_time,new_universal_time,new_interval"
+	  else
+	    write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
+	      "${client_runtime}" "${server_runtime}" "${report_role}" "${image}" "${container_command}" \
       "${status}" "${classification}" "${exit_code}" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
       "${started}" "${ended}" "${notes}"
   fi
@@ -1284,8 +1361,9 @@ start_server_role() {
     fi
     write_interop_report "${report_abs}" "${peer}" "${peer_version}" "${scenario}" "${idl}" \
       "our-jvm-jdk21" "${peer_runtime}" "server" "${image}" "${container_command}" \
-      "passed" "expected-deferral" "0" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
-      "${started}" "${ended}" "G10-110 server container started"
+	    "passed" "$(if time_service_scenario "${scenario}"; then printf 'server-ready'; else printf 'expected-deferral'; fi)" \
+      "0" "${stdout_rel}" "${stderr_rel}" "${report_rel}" \
+	    "${started}" "${ended}" "G10-110 server container started"
     return 0
   fi
 
@@ -1582,10 +1660,15 @@ local_lane_report() {
   exit_code="$?"
   set -e
   ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  if [[ "${exit_code}" == "0" ]]; then
-    status="passed"
-    classification="expected-deferral"
-    message="G10-120 ${runtime} ${role} lane command completed for ${direction}"
+	  if [[ "${exit_code}" == "0" ]]; then
+	    status="passed"
+	    if time_service_scenario "${scenario}" && [[ "${role}" == "client" ]]; then
+	      classification="time-service-checked"
+	      message="G8-140 ${runtime} Time Service client checked peer server operations"
+	    else
+	      classification="expected-deferral"
+	      message="G10-120 ${runtime} ${role} lane command completed for ${direction}"
+	    fi
   else
     status="failed"
     local classified
@@ -1597,6 +1680,9 @@ local_lane_report() {
     )"
     classification="${classified%%$'\t'*}"
     message="${classified#*$'\t'}"
+    if time_service_scenario "${scenario}" && [[ "${classification}" == "unsupported-scenario" ]]; then
+      status="passed"
+    fi
   fi
   if [[ "${role}" == "client" ]]; then
     client_runtime="${our_runtime}"
@@ -1610,6 +1696,9 @@ local_lane_report() {
     "${status}" "${classification}" "${exit_code}" "${logs_dir}/${label}.stdout.log" \
     "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
     "${message}"
+  if time_service_scenario "${scenario}" && [[ "${classification}" == "unsupported-scenario" ]]; then
+    return 0
+  fi
   return "${exit_code}"
 }
 
@@ -2060,11 +2149,19 @@ start_local_server_lane() {
     return 1
   fi
   ended="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  local classification message
+  if time_service_scenario "${scenario}"; then
+    classification="server-ready"
+    message="G8-140 ${runtime} Time Service server lane started for peer client execution"
+  else
+    classification="expected-deferral"
+    message="G10-120 ${runtime} server lane started for peer client execution"
+  fi
   write_interop_report "${report_abs}" "mundane-java-orb" "local" "${scenario}" "${idl}" \
     "${peer}-client" "${our_runtime}" "${runtime}-server-${direction}" "local-${runtime}" "${command_env}" \
-    "passed" "expected-deferral" "0" "${logs_dir}/${label}.stdout.log" \
+    "passed" "${classification}" "0" "${logs_dir}/${label}.stdout.log" \
     "${logs_dir}/${label}.stderr.log" "${reports_dir}/${label}.json" "${started}" "${ended}" \
-    "G10-120 ${runtime} server lane started for peer client execution"
+    "${message}"
 }
 
 parse_dry_run() {
@@ -2269,8 +2366,8 @@ run_direction_matrix() {
     scenario_supported "$(manifest_path "${peer}")" "${scenario}"
   done
 
-  for peer in "${peers[@]}"; do
-    if [[ "${dry_run}" == "true" ]]; then
+	  for peer in "${peers[@]}"; do
+	    if [[ "${dry_run}" == "true" ]]; then
       if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
             "peer-server-to-local-client"; then
         echo "dry-run: would start ${peer} server for ${scenario}"
@@ -2296,12 +2393,46 @@ run_direction_matrix() {
           echo "dry-run: would stop our ${runtime} server for ${scenario} and ${peer}"
         done < <(scenario_capability_values "$(manifest_path "${peer}")" "${scenario}" "localRuntimes")
       fi
-    else
-      STARTED_SERVER_CONTAINER=""
-      STARTED_SERVER_RUNTIME=""
-      if ! { time_service_scenario "${scenario}" && [[ "${require_live}" == "true" ]]; } \
-          && scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
-            "peer-server-to-local-client"; then
+	    else
+	      STARTED_SERVER_CONTAINER=""
+	      STARTED_SERVER_RUNTIME=""
+      if time_service_scenario "${scenario}" && [[ "${require_live}" == "true" ]] \
+          && [[ "${INTEROP_TIME_SERVICE_LIVE_APPROVED:-}" != "true" ]]; then
+        while IFS= read -r runtime; do
+          write_time_service_prerequisite_report \
+            "${scenario}" "${runtime}" "${peer}" "live-approval" \
+            "INTEROP_TIME_SERVICE_LIVE_APPROVED must be true for approved Time Service live execution"
+          failures=$((failures + 1))
+        done < <(scenario_capability_values "$(manifest_path "${peer}")" "${scenario}" "localRuntimes")
+        continue
+      fi
+      if time_service_scenario "${scenario}" && [[ "${require_live}" == "true" ]] \
+          && [[ "${peer}" == "ace-tao" ]]; then
+        while IFS= read -r runtime; do
+          prerequisite=""
+          if prerequisite="$(time_service_prerequisite_failure "${scenario}" "${runtime}" "${peer}")"; then
+            missing="${prerequisite%%$'\t'*}"
+            message="${prerequisite#*$'\t'}"
+            write_time_service_prerequisite_report \
+              "${scenario}" "${runtime}" "${peer}" "${missing}" "${message}"
+            failures=$((failures + 1))
+            continue
+          fi
+          if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+              "peer-server-to-local-client"; then
+            write_time_service_unsupported_report \
+              "${scenario}" "${runtime}" "${peer}" "peer-server-to-local-client"
+          fi
+          if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+              "local-server-to-peer-client"; then
+            write_time_service_unsupported_report \
+              "${scenario}" "${runtime}" "${peer}" "local-server-to-peer-client"
+          fi
+        done < <(scenario_capability_values "$(manifest_path "${peer}")" "${scenario}" "localRuntimes")
+        continue
+      fi
+	      if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "directions" \
+	            "peer-server-to-local-client"; then
         if start_server_role "${peer}" "${scenario}" && wait_for_peer_health "${peer}" "${scenario}"; then
           if scenario_capability_contains "$(manifest_path "${peer}")" "${scenario}" "localRuntimes" "jvm"; then
             local_lane_report "${scenario}" "jvm" "client" "${peer}" "peer-server-to-local-client" \

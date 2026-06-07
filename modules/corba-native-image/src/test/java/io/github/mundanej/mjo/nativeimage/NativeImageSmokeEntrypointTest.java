@@ -109,4 +109,26 @@ final class NativeImageSmokeEntrypointTest {
       server.close();
     }
   }
+
+  @Test
+  void liveTimeServiceLaneRunsOnJvmAgainstLocalServer() throws Exception {
+    Path ior = temporaryDirectory.resolve("time-service-server.ior");
+    Map<String, String> env =
+        Map.of(
+            "MJO_INTEROP_SCENARIO",
+            "time-service",
+            "MJO_INTEROP_SERVER_IOR",
+            ior.toString(),
+            "MJO_INTEROP_BIND_HOST",
+            "127.0.0.1",
+            "MJO_INTEROP_ADVERTISE_HOST",
+            "127.0.0.1");
+
+    LiveInteropLane.RunningServer server = LiveInteropLane.startServer(env);
+    try {
+      LiveInteropLane.runClient(env);
+    } finally {
+      server.close();
+    }
+  }
 }
