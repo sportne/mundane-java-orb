@@ -8,8 +8,11 @@ Design accepted by ADR-0018. G8-210 adds the local channel lifecycle model:
 bounded options, stable diagnostics, supplier/consumer admin surfaces, and
 proxy handles. G8-220 adds local push and pull delivery. G8-230 adds local
 backpressure and stale/failed proxy diagnostics while keeping all behavior
-in-JVM. IIOP/Naming exposure, Native Image smoke, interop metadata, and live
-peer claims remain staged follow-on work.
+in-JVM. G8-240 adds descriptor-backed loopback IIOP/Naming exposure for channel
+admin lookup, proxy creation, push, pull, try_pull, disconnect operations,
+primitive Any payloads, bounded malformed request diagnostics, and
+Naming-resolved EventChannel IORs. Native Image smoke, interop metadata, and
+live peer claims remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -29,6 +32,13 @@ peer claims remain staged follow-on work.
   diagnostics.
 - Failed push consumers are removed from active local routing and later stale
   proxy operations fail deterministically.
+- `NetworkEventService` exposes the default EventChannel over loopback IIOP and
+  can bind that IOR into `NetworkNamingService`.
+- `NetworkEventServiceClient` invokes the supported EventChannel, admin, push,
+  pull, try_pull, and disconnect operations through explicit descriptors and
+  CDR codecs.
+- Event Service IIOP payloads use primitive project `AnyValue<?>` values; broad
+  OMG compatibility APIs and live peer claims are not part of this slice.
 
 ## Documentation requirements
 

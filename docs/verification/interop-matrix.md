@@ -422,7 +422,10 @@ execution. G8-140 records the approved live matrix: JacORB, GlassFish CORBA
 ORB, and JBoss OpenJDK ORB peer clients invoke our JVM and Native Image Time
 Service servers successfully for `universal_time`, `new_universal_time`, and
 `new_interval`; ACE/TAO and reverse peer-server directions are recorded as
-`unsupported-scenario` for this value-returning subset. Other optional services
-do not yet have live peer lanes, structured report schemas, or pass/fail
+`unsupported-scenario` for this value-returning subset. G8-240 adds local
+loopback IIOP/Naming evidence for EventChannel admin lookup, proxy creation,
+push, pull, try_pull, disconnect operations, primitive Any payloads, malformed
+request diagnostics, and Naming-resolved EventChannel IORs. Event Service does
+not yet have live peer lanes, structured report schemas, or pass/fail peer
 evidence. The blocked G8 task groups must add service-specific metadata and
 missing-prerequisite reports before any peer execution is required.

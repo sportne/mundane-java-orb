@@ -1,7 +1,7 @@
 # G8-240 Event Service IIOP Naming Exposure
 
 Task ID: G8-240-EVENT-SERVICE-IIOP-NAMING-EXPOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-020, REQ-NATIVE-002, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0018
@@ -15,3 +15,5 @@ Documentation to update: Services design, optional services conformance/review, 
 Commands to run: ./gradlew :modules:corba-event-service:test :modules:corba-iiop:test :modules:corba-naming-server:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Event Service loopback IIOP/Naming exposure works through explicit descriptors/codecs with no reflection or dynamic dispatch; G8-250 is promoted after completion; no live peer execution is claimed.
 Rollback notes: Revert Event Service IIOP/Naming exposure, tests, docs, and roadmap status changes together.
+
+Completion evidence: G8-240 adds descriptor-backed EventChannel, SupplierAdmin, ConsumerAdmin, ProxyPushConsumer, ProxyPullConsumer, ProxyPushSupplier, and ProxyPullSupplier IIOP bindings; a bounded Event Service CDR codec for object references, primitive Any payloads, pull, try_pull, and void disconnect operations; loopback `NetworkEventService` and `NetworkEventServiceClient` helpers; optional Naming registration; and tests for loopback push/pull, Naming resolve, malformed object keys, unknown operations, invalid CDR bodies, disconnected proxy diagnostics, unsupported Any payloads, and clean shutdown.

@@ -125,8 +125,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-210-event-service-channel-model.md` - complete
 - `tasks/g8-220-event-service-local-delivery.md` - complete
 - `tasks/g8-230-event-service-backpressure.md` - complete
-- `tasks/g8-240-event-service-iiop-naming-exposure.md` - ready-for-implementation
-- `tasks/g8-250-event-service-native-smoke.md` - blocked
+- `tasks/g8-240-event-service-iiop-naming-exposure.md` - complete
+- `tasks/g8-250-event-service-native-smoke.md` - ready-for-implementation
 - `tasks/g8-260-event-service-interop-metadata.md` - blocked
 - `tasks/g8-270-event-service-conformance-closure.md` - blocked
 - `tasks/g8-300-notification-service-task-group.md` - blocked
