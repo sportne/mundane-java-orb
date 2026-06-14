@@ -22,8 +22,10 @@ behavior. G8-360 adds descriptor-backed loopback IIOP/Naming exposure for
 channel/admin lookup, structured proxy creation, structured push/pull
 operations, local filter/QoS rejection diagnostics, malformed request
 diagnostics, Naming-resolved NotificationChannel IORs, and clean shutdown.
-Native Image, interop metadata, and conformance closure remain staged follow-on
-work.
+G8-370 adds representative Native Image smoke coverage for channel creation,
+structured-event validation, filter validation, QoS rejection, local delivery,
+loopback IIOP/Naming exposure, and clean shutdown. Interop metadata and
+conformance closure remain staged follow-on work.
 
 ## Implemented local surface
 

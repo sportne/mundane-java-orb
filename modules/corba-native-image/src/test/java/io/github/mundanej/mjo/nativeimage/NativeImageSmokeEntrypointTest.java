@@ -10,6 +10,7 @@ import io.github.mundanej.mjo.nativeimage.smoke.InteropServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.IorDiagnosticsNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.LiveInteropLane;
 import io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.NotificationServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke;
 import java.nio.file.Path;
@@ -32,6 +33,7 @@ final class NativeImageSmokeEntrypointTest {
     RmiIiopNativeSmoke.main(new String[0]);
     TimeServiceNativeSmoke.main(new String[0]);
     EventServiceNativeSmoke.main(new String[0]);
+    NotificationServiceNativeSmoke.main(new String[0]);
     InteropClientNativeSmoke.main(new String[0]);
     InteropServerNativeSmoke.main(new String[0]);
   }

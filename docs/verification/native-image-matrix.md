@@ -56,6 +56,9 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
   - `eventService` exercises G8-250 local Event Service channel creation, push
     and pull delivery, bounded rejection, loopback IIOP/Naming exposure, and
     clean shutdown.
+  - `notificationService` exercises G8-370 local Notification Service channel
+    creation, structured event validation, filter validation, QoS rejection,
+    local delivery, loopback IIOP/Naming exposure, and clean shutdown.
   - `interopClient` composes the approved local client-side interop smoke
     entrypoints, including IDL validation, generated client invocation, IOR
     diagnostics, structured report parsing, G12 broad IDL validation, and
@@ -245,14 +248,19 @@ closes the Event Service conformance record using that smoke evidence together
 with the local unit, loopback IIOP/Naming, and dry-run interop metadata lanes;
 it adds no new Native Image metadata or live peer execution.
 
-## Planned G8-370 Notification Service Native Image evidence
+## G8-370 Notification Service Native Image evidence
 
-G8-300 splits Notification Service into staged implementation slices. The
-planned G8-370 Native Image smoke must cover channel creation, structured event
-validation, filter validation, QoS rejection, local delivery, loopback
-IIOP/Naming exposure, and clean shutdown for the supported local subset. The
-accepted metadata set remains empty unless that task records a reviewed source
-need for explicit metadata.
+G8-370 adds a `notificationService` aggregate smoke target covering the
+implemented local and loopback Notification Service subset. The smoke uses
+explicit constructors, immutable structured-event values, bounded filter and
+policy validators, descriptor-backed IIOP codecs, and optional Naming
+registration to exercise channel creation, structured-event validation, filter
+validation, QoS rejection, local delivery, loopback IIOP/Naming exposure, and
+clean shutdown. The source-level Native Image audit now includes
+`modules/corba-notification-service/src/main`. The accepted metadata set
+remains empty: no reflection metadata, dynamic proxies, Java serialization
+metadata, service-loader discovery, runtime bytecode generation, process
+execution, internal JDK APIs, or `Unsafe` are introduced.
 
 ## G13-060 durable POA registry Native Image evidence
 

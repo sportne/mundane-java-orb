@@ -33,6 +33,9 @@ The smoke tasks pass `--no-fallback` and `-H:+ReportExceptionStackTraces`.
 - `iorDiagnostics`: deterministic `corbaloc`, `corbaname`, and stringified IOR
   parsing.
 - `interopReport`: structured G6 interop report JSON serialization and parsing.
+- `notificationService`: local Notification Service channel creation,
+  structured event validation, filter validation, QoS rejection, local
+  delivery, loopback IIOP/Naming exposure, and clean shutdown.
 
 Run all binaries with:
 

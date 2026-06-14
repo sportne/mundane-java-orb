@@ -24,6 +24,11 @@ public final class NativeImageTargets {
       target("timeService", "TimeServiceNativeSmoke", "time-service-native-smoke");
   private static final NativeImageTarget EVENT_SERVICE =
       target("eventService", "EventServiceNativeSmoke", "event-service-native-smoke");
+  private static final NativeImageTarget NOTIFICATION_SERVICE =
+      target(
+          "notificationService",
+          "NotificationServiceNativeSmoke",
+          "notification-service-native-smoke");
   private static final NativeImageTarget INTEROP_CLIENT =
       target("interopClient", "InteropClientNativeSmoke", "interop-client-native-smoke");
   private static final NativeImageTarget INTEROP_SERVER =
@@ -46,7 +51,8 @@ public final class NativeImageTargets {
           INTEROP_REPORT,
           RMI_IIOP,
           TIME_SERVICE,
-          EVENT_SERVICE);
+          EVENT_SERVICE,
+          NOTIFICATION_SERVICE);
   private static final List<NativeImageTarget> G10_TARGETS =
       List.of(
           IDLJ_VALIDATE,
@@ -58,6 +64,7 @@ public final class NativeImageTargets {
           RMI_IIOP,
           TIME_SERVICE,
           EVENT_SERVICE,
+          NOTIFICATION_SERVICE,
           INTEROP_CLIENT,
           INTEROP_SERVER);
 

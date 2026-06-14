@@ -94,6 +94,7 @@ final class NativeImageCommandTest {
             "rmiIiop",
             "timeService",
             "eventService",
+            "notificationService",
             "interopClient",
             "interopServer"),
         NativeImageTargets.g10Targets().stream().map(NativeImageTarget::name).toList());
@@ -111,7 +112,8 @@ final class NativeImageCommandTest {
             "interopReport",
             "rmiIiop",
             "timeService",
-            "eventService"),
+            "eventService",
+            "notificationService"),
         NativeImageTargets.g8Targets().stream().map(NativeImageTarget::name).toList());
   }
 }

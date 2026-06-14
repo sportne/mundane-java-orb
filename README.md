@@ -259,6 +259,8 @@ bounded filters, queues, failed-consumer handling, and stale-proxy diagnostics.
 G8-360 adds descriptor-backed loopback IIOP/Naming exposure for channel/admin
 lookup, structured proxy creation, structured push/pull operations, local
 filter/QoS rejection diagnostics, malformed request diagnostics, and
-Naming-resolved NotificationChannel IORs. The next ready roadmap task is
-G8-370, adding Native Image smoke coverage for the supported Notification
-Service subset.
+Naming-resolved NotificationChannel IORs. G8-370 adds Native Image smoke
+coverage for channel creation, structured event validation, filter validation,
+QoS rejection, local delivery, loopback IIOP/Naming exposure, and clean
+shutdown. The next ready roadmap task is G8-380, adding metadata-only
+Notification Service interop discovery and deterministic dry-run reporting.
