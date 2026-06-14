@@ -248,8 +248,8 @@ dry-run directions, and writes deterministic missing-prerequisite reports
 without live peer claims. G8-270 closes the local/IIOP/Native Image/dry-run
 Event Service conformance record for that subset. G8-300 splits Notification
 Service into narrow implementation slices. G8-310 adds the Notification Service
-local channel lifecycle and Event Service compatibility boundary, including
-bounded options, stable diagnostics, supplier/consumer admin handles, structured
-proxy lifecycle handles, and proxy-role mapping back to Event Service roles.
-The next ready roadmap task is G8-320, adding the bounded structured-event
-model.
+local channel lifecycle and Event Service compatibility boundary, while G8-320
+adds the immutable structured-event model with fixed identity fields, primitive
+named properties, bounded header/body sections, and deterministic validation.
+The next ready roadmap task is G8-330, adding bounded filter parsing and
+evaluation for that local model.

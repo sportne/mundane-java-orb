@@ -8,9 +8,12 @@ Design accepted by ADR-0019. G8-300 splits implementation into narrow promoted
 slices. G8-310 adds the local channel lifecycle and Event Service compatibility
 boundary: bounded options, stable diagnostics, supplier/consumer admin handles,
 structured proxy handles, channel destruction behavior, and explicit proxy-role
-mapping back to Event Service roles. Structured events, filters, QoS/admin
-policy, delivery, IIOP/Naming, Native Image, interop metadata, and conformance
-closure remain staged follow-on work.
+mapping back to Event Service roles. G8-320 adds immutable structured events
+with fixed identity fields, primitive named properties, bounded variable
+header/body sections, duplicate-field rejection, unsupported-value rejection,
+and oversized-data diagnostics. Filters, QoS/admin policy, delivery,
+IIOP/Naming, Native Image, interop metadata, and conformance closure remain
+staged follow-on work.
 
 ## Implemented local surface
 
@@ -27,6 +30,10 @@ closure remain staged follow-on work.
 - `NotificationEventCompatibility` records the local compatibility boundary
   between `CosNotification::EventChannel` and
   `CosEventChannelAdmin::EventChannel`.
+- `NotificationStructuredEvent`, `NotificationEventIdentity`,
+  `NotificationEventType`, `NotificationProperty`, and
+  `NotificationPrimitiveValue` define the immutable local structured-event
+  value model.
 
 ## Documentation requirements
 
