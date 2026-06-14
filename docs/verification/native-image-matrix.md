@@ -231,7 +231,7 @@ It introduces no reflection metadata, dynamic proxies, Java serialization
 metadata, service-loader discovery, runtime bytecode generation, process
 execution, internal JDK APIs, or `Unsafe`.
 
-## G8-250 Event Service Native Image evidence
+## G8-250/G8-270 Event Service Native Image evidence
 
 G8-250 adds an `eventService` aggregate smoke target covering the implemented
 local and loopback Event Service subset. The smoke uses explicit constructors,
@@ -240,7 +240,10 @@ descriptor-backed IIOP codecs, and optional Naming registration to exercise
 channel creation, push delivery, pull delivery, bounded rejection, loopback
 IIOP/Naming exposure, and clean shutdown. It introduces no reflection metadata,
 dynamic proxies, Java serialization metadata, service-loader discovery, runtime
-bytecode generation, process execution, internal JDK APIs, or `Unsafe`.
+bytecode generation, process execution, internal JDK APIs, or `Unsafe`. G8-270
+closes the Event Service conformance record using that smoke evidence together
+with the local unit, loopback IIOP/Naming, and dry-run interop metadata lanes;
+it adds no new Native Image metadata or live peer execution.
 
 ## G13-060 durable POA registry Native Image evidence
 

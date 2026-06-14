@@ -425,10 +425,11 @@ Service servers successfully for `universal_time`, `new_universal_time`, and
 `unsupported-scenario` for this value-returning subset. G8-240 adds local
 loopback IIOP/Naming evidence for EventChannel admin lookup, proxy creation,
 push, pull, try_pull, disconnect operations, primitive Any payloads, malformed
-request diagnostics, and Naming-resolved EventChannel IORs. Event Service does
-not yet have live peer lanes or pass/fail peer evidence. G8-260 adds the
-`event-service` peer metadata, `interop/idl/event-service.idl`, JVM/native
-dry-run direction enumeration, and structured missing-prerequisite reports; it
-does not run peer containers or local live lanes. The blocked G8 task groups
-must add service-specific metadata and missing-prerequisite reports before any
-peer execution is required.
+request diagnostics, and Naming-resolved EventChannel IORs. G8-270 closes the
+Event Service local/IIOP/Native Image/dry-run conformance record for that
+subset. The `event-service` peer metadata, `interop/idl/event-service.idl`,
+JVM/native dry-run direction enumeration, and structured missing-prerequisite
+reports remain metadata-only; Event Service does not have live peer lanes or
+pass/fail peer evidence. The remaining G8 task groups must add
+service-specific metadata and missing-prerequisite reports before any peer
+execution is required.

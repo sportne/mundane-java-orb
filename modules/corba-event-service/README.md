@@ -15,8 +15,9 @@ Naming-resolved EventChannel IORs. G8-250 adds Native Image smoke coverage for
 local channel creation, push and pull delivery, bounded rejection, loopback
 IIOP/Naming exposure, and clean shutdown. G8-260 adds approved-peer
 `event-service` metadata, an IDL fixture, dry-run direction enumeration, and
-structured missing-prerequisite reports. Live peer execution and compatibility
-claims remain staged follow-on work.
+structured missing-prerequisite reports. G8-270 closes the implemented
+local/IIOP/Native Image/dry-run conformance record for that subset. Live peer
+execution and compatibility claims remain staged follow-on work.
 
 ## Implemented local surface
 
