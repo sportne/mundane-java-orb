@@ -254,5 +254,7 @@ named properties, bounded header/body sections, and deterministic validation.
 G8-330 adds bounded filter parsing/evaluation over identity fields and primitive
 filter properties without delivery routing. G8-340 adds bounded QoS/admin
 policy validation for channel, admin, proxy, queue, filter, durable, and
-transaction policy keys. The next ready roadmap task is G8-350, adding local
-structured delivery.
+transaction policy keys. G8-350 adds in-JVM structured push/pull delivery with
+bounded filters, queues, failed-consumer handling, and stale-proxy diagnostics.
+The next ready roadmap task is G8-360, adding loopback IIOP/Naming exposure for
+the supported local Notification Service subset.

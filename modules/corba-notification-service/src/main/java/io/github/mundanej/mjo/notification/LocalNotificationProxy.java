@@ -41,6 +41,7 @@ public abstract class LocalNotificationProxy {
   public final void destroy() {
     requireAlive();
     destroyed = true;
+    onDestroy();
     channel.removeProxy(this);
   }
 
@@ -58,4 +59,6 @@ public abstract class LocalNotificationProxy {
           "notification proxy is destroyed: " + id);
     }
   }
+
+  void onDestroy() {}
 }

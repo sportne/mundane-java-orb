@@ -15,8 +15,11 @@ and oversized-data diagnostics. G8-330 adds bounded filter parsing and
 evaluation for boolean constants, identity equality/inequality, primitive named
 filter properties, and boolean composition. G8-340 adds bounded QoS/admin
 policy validation for channel, admin, proxy, queue, filter, durable, and
-transaction policy keys. Delivery, IIOP/Naming, Native Image, interop metadata,
-and conformance closure remain staged follow-on work.
+transaction policy keys. G8-350 adds in-JVM structured push/pull delivery with
+bounded filters and queues, deterministic queue-limit diagnostics,
+failed-consumer removal, stale-proxy diagnostics, and destroyed-channel
+behavior. IIOP/Naming, Native Image, interop metadata, and conformance closure
+remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -26,8 +29,8 @@ and conformance closure remain staged follow-on work.
 - `LocalNotificationSupplierAdmin` and `LocalNotificationConsumerAdmin` create
   structured proxy handles.
 - `LocalNotificationProxy` and its concrete proxy types model local channel
-  ownership and lifecycle only; no structured-event delivery is implemented in
-  this slice.
+  ownership, lifecycle, local push/pull connections, bounded delivery queues,
+  failed-consumer removal, and stale-proxy diagnostics.
 - `NotificationProxyKind` maps each local Notification proxy role to its
   compatible Event Service proxy role.
 - `NotificationEventCompatibility` records the local compatibility boundary
@@ -42,6 +45,9 @@ and conformance closure remain staged follow-on work.
 - `NotificationPolicies`, `NotificationPolicyKey`, and
   `NotificationPolicyProperty` validate supported local QoS/admin policy
   settings without adding delivery guarantees.
+- `NotificationPushConsumer`, `NotificationPushSupplier`,
+  `NotificationPullConsumer`, and `NotificationPullSupplier` define the local
+  structured callback surface for in-JVM delivery.
 
 ## Documentation requirements
 

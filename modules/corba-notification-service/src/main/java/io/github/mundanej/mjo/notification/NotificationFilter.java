@@ -17,10 +17,14 @@ public final class NotificationFilter {
 
   private final String expression;
   private final Node root;
+  private final int maxDepth;
+  private final int termCount;
 
-  private NotificationFilter(String expression, Node root) {
+  private NotificationFilter(String expression, Node root, int maxDepth, int termCount) {
     this.expression = expression;
     this.root = root;
+    this.maxDepth = maxDepth;
+    this.termCount = termCount;
   }
 
   /** Parses a bounded local Notification Service filter expression. */
@@ -36,12 +40,23 @@ public final class NotificationFilter {
           "filter expression exceeds " + MAX_EXPRESSION_LENGTH + " characters");
     }
     Parser parser = new Parser(expression);
-    return new NotificationFilter(expression, parser.parse());
+    Node root = parser.parse();
+    return new NotificationFilter(expression, root, parser.maxDepth(), parser.termCount());
   }
 
   /** Returns the original filter expression. */
   public String expression() {
     return expression;
+  }
+
+  /** Returns the maximum parsed nested-expression depth. */
+  public int maxDepth() {
+    return maxDepth;
+  }
+
+  /** Returns the parsed boolean/comparison term count. */
+  public int termCount() {
+    return termCount;
   }
 
   /** Evaluates this filter against a structured event. */
@@ -140,6 +155,7 @@ public final class NotificationFilter {
     private final String input;
     private int position;
     private int terms;
+    private int maxDepth;
 
     Parser(String input) {
       this.input = input;
@@ -152,6 +168,14 @@ public final class NotificationFilter {
         throw malformed("unexpected token at position " + position);
       }
       return node;
+    }
+
+    int maxDepth() {
+      return maxDepth;
+    }
+
+    int termCount() {
+      return terms;
     }
 
     private Node parseOr(int depth) {
@@ -378,6 +402,7 @@ public final class NotificationFilter {
             NotificationServiceDiagnosticCodes.FILTER_LIMIT_EXCEEDED,
             "filter expression exceeds depth " + MAX_DEPTH);
       }
+      maxDepth = Math.max(maxDepth, depth);
     }
 
     private void bumpTerms() {

@@ -71,5 +71,23 @@ public final class NotificationServiceDiagnosticCodes {
   /** A Notification Service policy set contained conflicting values. */
   public static final DiagnosticCode CONFLICTING_POLICY = new DiagnosticCode("NOTF-0022");
 
+  /** A Notification Service proxy requires a connected local counterpart. */
+  public static final DiagnosticCode PROXY_NOT_CONNECTED = new DiagnosticCode("NOTF-0023");
+
+  /** A Notification Service proxy already has an active local connection. */
+  public static final DiagnosticCode CONNECTION_ALREADY_ACTIVE = new DiagnosticCode("NOTF-0024");
+
+  /** A bounded local Notification Service queue is full. */
+  public static final DiagnosticCode EVENT_QUEUE_FULL = new DiagnosticCode("NOTF-0025");
+
+  /** No local Notification Service event is available for pull delivery. */
+  public static final DiagnosticCode NO_EVENT_AVAILABLE = new DiagnosticCode("NOTF-0026");
+
+  /** A local Notification Service consumer failed while receiving an event. */
+  public static final DiagnosticCode CONSUMER_DELIVERY_FAILED = new DiagnosticCode("NOTF-0027");
+
+  /** A Notification Service proxy is no longer active on its channel. */
+  public static final DiagnosticCode STALE_PROXY = new DiagnosticCode("NOTF-0028");
+
   private NotificationServiceDiagnosticCodes() {}
 }
