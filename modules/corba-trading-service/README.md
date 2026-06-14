@@ -21,9 +21,13 @@ comparison operators, `and`/`or`/`not`, parentheses, and explicit hostile-input
 limits. `G8-440` adds bounded local type-scoped offer query using that
 constraint evaluator, deterministic offer-ID result ordering, configured result
 and query-cost limits, and clear malformed/unknown/type-mismatch diagnostics.
-It does not add import/export behavior, IIOP/Naming exposure, Native Image
-smoke, interop metadata, durable persistence, or live peer claims. `G8-450` is
-the next ready implementation slice.
+`G8-450` adds bounded import/export boundary metadata for future federation:
+link names, directions, peer trader names, fan-out limits, duplicate/missing
+link diagnostics, disabled remote-federation diagnostics, wrong-direction
+diagnostics, and local-query isolation from import/export metadata. It does not
+add remote federation execution, IIOP/Naming exposure, Native Image smoke,
+interop metadata, durable persistence, or live peer claims. `G8-460` is the
+next ready implementation slice.
 
 ## Documentation requirements
 

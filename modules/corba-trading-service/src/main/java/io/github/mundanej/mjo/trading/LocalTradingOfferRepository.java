@@ -11,6 +11,7 @@ public final class LocalTradingOfferRepository {
 
   private final LocalTradingTypeRepository typeRepository;
   private final TradingOfferRepositoryOptions options;
+  private final LocalTradingImportExportBoundary importExportBoundary;
   private final Map<String, TradingOffer> offers = new LinkedHashMap<>();
 
   /** Creates an offer repository with default local Trading Service limits. */
@@ -21,8 +22,19 @@ public final class LocalTradingOfferRepository {
   /** Creates an offer repository with caller-provided local Trading Service limits. */
   public LocalTradingOfferRepository(
       LocalTradingTypeRepository typeRepository, TradingOfferRepositoryOptions options) {
+    this(typeRepository, options, TradingImportExportOptions.defaults());
+  }
+
+  /** Creates an offer repository with caller-provided offer and import/export limits. */
+  public LocalTradingOfferRepository(
+      LocalTradingTypeRepository typeRepository,
+      TradingOfferRepositoryOptions options,
+      TradingImportExportOptions importExportOptions) {
     this.typeRepository = java.util.Objects.requireNonNull(typeRepository, "typeRepository");
     this.options = java.util.Objects.requireNonNull(options, "options");
+    this.importExportBoundary =
+        new LocalTradingImportExportBoundary(
+            java.util.Objects.requireNonNull(importExportOptions, "importExportOptions"));
   }
 
   /** Registers a new offer. */
@@ -109,6 +121,37 @@ public final class LocalTradingOfferRepository {
   /** Returns the configured repository limits. */
   public TradingOfferRepositoryOptions options() {
     return options;
+  }
+
+  /** Registers import/export boundary metadata without changing local query behavior. */
+  public TradingImportExportLink registerImportExportLink(TradingImportExportLink link) {
+    return importExportBoundary.register(link);
+  }
+
+  /** Removes import/export boundary metadata without changing local query behavior. */
+  public TradingImportExportLink removeImportExportLink(String linkName) {
+    return importExportBoundary.remove(linkName);
+  }
+
+  /** Looks up import/export boundary metadata by link name. */
+  public Optional<TradingImportExportLink> lookupImportExportLink(String linkName) {
+    return importExportBoundary.lookup(linkName);
+  }
+
+  /** Lists import/export boundary metadata in deterministic registration order. */
+  public List<TradingImportExportLink> listImportExportLinks() {
+    return importExportBoundary.list();
+  }
+
+  /** Lists import/export boundary metadata for one direction. */
+  public List<TradingImportExportLink> listImportExportLinks(
+      TradingImportExportDirection direction) {
+    return importExportBoundary.list(direction);
+  }
+
+  /** Rejects remote query traversal for the metadata-only local subset. */
+  public void rejectRemoteImportQuery(String linkName) {
+    importExportBoundary.rejectRemoteQuery(linkName);
   }
 
   private TradingOffer validatedOffer(TradingOffer offer) {

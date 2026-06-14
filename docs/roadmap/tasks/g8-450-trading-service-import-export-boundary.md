@@ -1,7 +1,7 @@
 # G8-450 Trading Service Import Export Boundary
 
 Task ID: G8-450-TRADING-SERVICE-IMPORT-EXPORT-BOUNDARY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for import/export link registration, duplica
 Documentation to update: Trading Service README, services design, optional services conformance/review, roadmap index, README, and G8-460 status.
 Commands to run: ./gradlew :modules:corba-trading-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Trading Service records and validates a bounded import/export boundary without remote federation, persistence, IIOP/Naming, Native Image, interop, or live peer claim; G8-460 is promoted after completion.
+Completion evidence: Added `LocalTradingImportExportBoundary`, `TradingImportExportLink`, `TradingImportExportDirection`, and `TradingImportExportOptions` for bounded import/export metadata. The boundary validates link names, peer trader names, directions, duplicate links, missing links, configured fan-out limits, disabled remote-federation attempts, and wrong-direction remote-query attempts with stable `TRAD-*` diagnostics. `LocalTradingOfferRepository` records import/export metadata through delegated methods while keeping local query isolated from import/export metadata. Unit tests cover link registration/listing, direction filtering, duplicate/missing/malformed/oversized/fan-out diagnostics, disabled remote federation, wrong-direction diagnostics, and local-query isolation. G8-460 is promoted as the only ready Trading Service implementation task.
 Rollback notes: Revert Trading Service import/export boundary sources, tests, docs, and roadmap status together.

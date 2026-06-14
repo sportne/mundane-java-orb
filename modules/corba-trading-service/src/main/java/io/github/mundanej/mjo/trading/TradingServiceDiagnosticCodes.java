@@ -69,5 +69,23 @@ public final class TradingServiceDiagnosticCodes {
   /** A local Trading Service query exceeded configured result or cost limits. */
   public static final DiagnosticCode QUERY_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0021");
 
+  /** An import/export link registration used a name that already exists. */
+  public static final DiagnosticCode LINK_ALREADY_EXISTS = new DiagnosticCode("TRAD-0022");
+
+  /** An import/export link lookup, update, or removal referenced an unknown link. */
+  public static final DiagnosticCode LINK_NOT_FOUND = new DiagnosticCode("TRAD-0023");
+
+  /** The configured import/export link count has been reached. */
+  public static final DiagnosticCode LINK_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0024");
+
+  /** An import/export link was null or internally inconsistent. */
+  public static final DiagnosticCode MALFORMED_LINK = new DiagnosticCode("TRAD-0025");
+
+  /** Remote Trading Service federation is not implemented in the supported local subset. */
+  public static final DiagnosticCode REMOTE_FEDERATION_DISABLED = new DiagnosticCode("TRAD-0026");
+
+  /** An import/export operation referenced a link with the wrong direction. */
+  public static final DiagnosticCode LINK_DIRECTION_MISMATCH = new DiagnosticCode("TRAD-0027");
+
   private TradingServiceDiagnosticCodes() {}
 }
