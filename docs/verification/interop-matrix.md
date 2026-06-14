@@ -134,6 +134,18 @@ roadmap task promotes a dedicated live scenario. Optional services require
 service-specific human gates before any scenario, report fields, cache
 requirements, or live execution prerequisites are added.
 
+## G8 Trading Service planned dry-run lane
+
+G8-400 splits Trading Service into local behavior, loopback IIOP/Naming, Native
+Image smoke, and metadata-only interop slices. The planned G8-480 scenario name
+is `trading-service`. It must cover only the implemented TRADE-10 subset and
+must remain dry-run/report-only until a later human-gated task approves live
+peer execution. Expected peer-facing metadata includes type registration, offer
+registration, local query, import/export boundary diagnostics, JVM/native local
+lanes, and structured missing-prerequisite reports for absent approval, IDL,
+local commands, native binaries, cache, digest-pinned base image, container
+runtime, and prepared peer image.
+
 G10-080 records deterministic local Portable Interceptor evidence for the
 implemented ORB/IIOP loopback path: client/server request-flow ordering,
 service-context propagation, and callback failure diagnostics. Live peer
@@ -443,5 +455,7 @@ local commands/binaries, artifact cache, digest-pinned base image, container
 runtime, peer image, and unapproved live execution. Notification Service has no
 live peer lanes or pass/fail peer evidence. G8-390 closes that
 local/IIOP/Native Image/dry-run conformance record without approving live peer
-execution. The remaining G8 task groups must add service-specific metadata and
-missing-prerequisite reports before any peer execution is required.
+execution. G8-400 splits Trading Service so G8-480 can later add the
+metadata-only `trading-service` scenario and deterministic missing-prerequisite
+reports before any peer execution is required. Transaction and Security/CSIv2
+remain blocked behind their task groups.

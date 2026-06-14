@@ -274,6 +274,19 @@ evidence together with the local unit, loopback IIOP/Naming, and dry-run
 interop metadata lanes. It adds no new Native Image metadata or live peer
 execution.
 
+## G8-470 Trading Service Native Image plan
+
+G8-400 splits Trading Service so Native Image evidence lands after local
+type/offer repositories, bounded constraints, local query, import/export
+boundary metadata, and loopback IIOP/Naming exposure are implemented. The
+planned `tradingService` aggregate smoke target must cover type registration,
+offer registration, constraint rejection, local query, loopback exposure,
+import/export disabled diagnostics, and clean shutdown. It must keep the
+accepted metadata set empty: no reflection metadata, dynamic proxy metadata,
+Java serialization metadata, service-loader discovery, runtime bytecode
+generation, scripting engines, process execution in production sources,
+internal JDK APIs, or `Unsafe`.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path

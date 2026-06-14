@@ -136,9 +136,9 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
 - optional Time, Event, and Notification Service implementation subsets now
-  have closed G8 conformance records, Trading Service is ready for slice
-  planning, and Transaction and Security/CSIv2 Services remain blocked behind
-  their accepted G8 ADR designs;
+  have closed G8 conformance records, Trading Service is split into ready
+  implementation slices starting with the type repository, and Transaction and
+  Security/CSIv2 Services remain blocked behind their accepted G8 ADR designs;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -219,8 +219,9 @@ G8 optional-service design gates are complete, and the Time Service local
 value/clock, loopback IIOP/Naming exposure, structured interop metadata, and
 approved live peer conformance closure slices are implemented.
 Event Service and Notification Service local/IIOP/Native Image/dry-run
-conformance records are also closed. Trading Service is the next ready
-optional-service task group; Transaction and Security/CSIv2 remain blocked.
+conformance records are also closed. Trading Service is split into narrow
+implementation slices with the type repository as the next ready task;
+Transaction and Security/CSIv2 remain blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -270,5 +271,8 @@ metadata, JVM/native dry-run direction enumeration,
 `InteropScenario.notificationService()`, and structured missing-prerequisite
 reports without starting peer containers or claiming live peer compatibility.
 G8-390 closes the Notification Service local/IIOP/Native Image/dry-run
-conformance record for that subset. The next ready roadmap task is G8-400,
-splitting Trading Service implementation into narrow slices.
+conformance record for that subset. G8-400 splits Trading Service into narrow
+implementation slices covering type repository, offer repository, bounded
+constraints, local query, import/export boundary metadata, loopback IIOP/Naming,
+Native Image smoke, interop metadata, and conformance closure. The next ready
+roadmap task is G8-410, the Trading Service type repository slice.
