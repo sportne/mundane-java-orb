@@ -1,7 +1,7 @@
 # G8-490 Trading Service Conformance Closure
 
 Task ID: G8-490-TRADING-SERVICE-CONFORMANCE-CLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-NATIVE-002, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020
@@ -15,3 +15,5 @@ Documentation to update: Trading Service README, services design, optional servi
 Commands to run: ./gradlew :modules:corba-trading-service:test :modules:corba-services-core:test :modules:corba-native-image:test :modules:corba-interop-testkit:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run trading-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Trading Service conformance documentation matches implemented local/IIOP/Native Image/dry-run behavior, live peer claims remain unapproved, and the next existing roadmap task is promoted only if design-control rules require a ready successor.
 Rollback notes: Revert Trading Service conformance documentation and roadmap status updates together.
+
+Completion notes: Closed the Trading Service conformance record for the implemented TRADE-10 subset across bounded type repository behavior, offer repository behavior, constraint parsing/evaluation, local query, import/export boundary metadata, loopback IIOP/Naming exposure, Native Image smoke, and dry-run interop metadata. Live peer execution and pass/fail compatibility claims remain unapproved. G8-500 is promoted as the next ready task group.

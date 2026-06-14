@@ -39,8 +39,9 @@ persistence, remote federation execution, or live peer claims. `G8-480` is the
 metadata-only interop slice: it adds the `trading-service` IDL fixture,
 approved-peer declarations, `InteropScenario.tradingService()`, JVM/native
 dry-run direction enumeration, and structured missing-prerequisite reports
-without starting peer containers or local live lanes. `G8-490` is the next
-ready implementation slice.
+without starting peer containers or local live lanes. `G8-490` closes the
+Trading Service conformance record for the implemented local/IIOP/Native
+Image/dry-run subset and keeps live peer pass/fail claims unapproved.
 
 ## Documentation requirements
 

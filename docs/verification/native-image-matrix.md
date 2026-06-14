@@ -292,6 +292,12 @@ serialization metadata, service-loader discovery, runtime bytecode generation,
 scripting engines, process execution in production sources, internal JDK APIs,
 or `Unsafe` are introduced.
 
+G8-490 closes the Trading Service conformance record with this Native Image
+evidence as the closed-world execution proof for the implemented local/IIOP
+subset. The closure does not add reflection metadata, dynamic proxies, Java
+serialization metadata, service-loader discovery, runtime bytecode generation,
+or live peer execution claims.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path
