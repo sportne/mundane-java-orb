@@ -431,7 +431,11 @@ subset. The `event-service` peer metadata, `interop/idl/event-service.idl`,
 JVM/native dry-run direction enumeration, and structured missing-prerequisite
 reports remain metadata-only; Event Service does not have live peer lanes or
 pass/fail peer evidence. G8-300 splits Notification Service into staged local,
-Native Image, and metadata-only interop slices. The future G8-380
+Native Image, and metadata-only interop slices. G8-360 adds local loopback
+IIOP/Naming evidence for NotificationChannel admin lookup, structured proxy
+creation, structured push/pull/try-pull operations, filter/QoS rejection
+diagnostics, malformed request diagnostics, and Naming-resolved
+NotificationChannel IORs without peer execution. The future G8-380
 `notification-service` scenario must remain dry-run/report-only until a later
 task explicitly approves live peer execution. The remaining G8 task groups must
 add service-specific metadata and missing-prerequisite reports before any peer

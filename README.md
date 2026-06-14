@@ -256,5 +256,9 @@ filter properties without delivery routing. G8-340 adds bounded QoS/admin
 policy validation for channel, admin, proxy, queue, filter, durable, and
 transaction policy keys. G8-350 adds in-JVM structured push/pull delivery with
 bounded filters, queues, failed-consumer handling, and stale-proxy diagnostics.
-The next ready roadmap task is G8-360, adding loopback IIOP/Naming exposure for
-the supported local Notification Service subset.
+G8-360 adds descriptor-backed loopback IIOP/Naming exposure for channel/admin
+lookup, structured proxy creation, structured push/pull operations, local
+filter/QoS rejection diagnostics, malformed request diagnostics, and
+Naming-resolved NotificationChannel IORs. The next ready roadmap task is
+G8-370, adding Native Image smoke coverage for the supported Notification
+Service subset.

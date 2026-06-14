@@ -18,8 +18,12 @@ policy validation for channel, admin, proxy, queue, filter, durable, and
 transaction policy keys. G8-350 adds in-JVM structured push/pull delivery with
 bounded filters and queues, deterministic queue-limit diagnostics,
 failed-consumer removal, stale-proxy diagnostics, and destroyed-channel
-behavior. IIOP/Naming, Native Image, interop metadata, and conformance closure
-remain staged follow-on work.
+behavior. G8-360 adds descriptor-backed loopback IIOP/Naming exposure for
+channel/admin lookup, structured proxy creation, structured push/pull
+operations, local filter/QoS rejection diagnostics, malformed request
+diagnostics, Naming-resolved NotificationChannel IORs, and clean shutdown.
+Native Image, interop metadata, and conformance closure remain staged follow-on
+work.
 
 ## Implemented local surface
 
@@ -44,10 +48,13 @@ remain staged follow-on work.
   with expression length, depth, and term limits.
 - `NotificationPolicies`, `NotificationPolicyKey`, and
   `NotificationPolicyProperty` validate supported local QoS/admin policy
-  settings without adding delivery guarantees.
+  settings used by local delivery and loopback diagnostics.
 - `NotificationPushConsumer`, `NotificationPushSupplier`,
   `NotificationPullConsumer`, and `NotificationPullSupplier` define the local
   structured callback surface for in-JVM delivery.
+- `NotificationServiceDescriptors`, `NotificationServiceIiopCodec`,
+  `NetworkNotificationService`, and `NetworkNotificationServiceClient` expose
+  the supported subset over loopback IIOP and optional Naming.
 
 ## Documentation requirements
 

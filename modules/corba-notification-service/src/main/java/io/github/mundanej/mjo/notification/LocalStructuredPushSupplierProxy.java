@@ -75,6 +75,22 @@ public final class LocalStructuredPushSupplierProxy extends LocalNotificationPro
     }
   }
 
+  void configureFilter(NotificationFilter filter) {
+    requireAlive();
+    channel.requireActive(this);
+    NotificationFilter checkedFilter = requireFilter(filter);
+    requireFilterWithinPolicy(checkedFilter, policies);
+    this.filter = checkedFilter;
+  }
+
+  void configurePolicies(NotificationPolicies policies) {
+    requireAlive();
+    channel.requireActive(this);
+    NotificationPolicies checkedPolicies = requirePolicies(policies);
+    requireFilterWithinPolicy(filter, checkedPolicies);
+    this.policies = checkedPolicies;
+  }
+
   void markFailed() {
     failed = true;
   }

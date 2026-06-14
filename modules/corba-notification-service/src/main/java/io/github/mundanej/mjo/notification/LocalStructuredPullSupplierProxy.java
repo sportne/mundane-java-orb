@@ -128,6 +128,22 @@ public final class LocalStructuredPullSupplierProxy extends LocalNotificationPro
     }
   }
 
+  void configureFilter(NotificationFilter filter) {
+    requireAlive();
+    channel.requireActive(this);
+    NotificationFilter checkedFilter = requireFilter(filter);
+    requireFilterWithinPolicy(checkedFilter, policies);
+    this.filter = checkedFilter;
+  }
+
+  void configurePolicies(NotificationPolicies policies) {
+    requireAlive();
+    channel.requireActive(this);
+    NotificationPolicies checkedPolicies = requirePolicies(policies);
+    requireFilterWithinPolicy(filter, checkedPolicies);
+    this.policies = checkedPolicies;
+  }
+
   private Optional<NotificationStructuredEvent> pollQueued() {
     synchronized (queue) {
       return Optional.ofNullable(queue.pollFirst());

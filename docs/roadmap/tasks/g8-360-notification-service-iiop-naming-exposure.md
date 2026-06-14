@@ -1,7 +1,7 @@
 # G8-360 Notification Service IIOP And Naming Exposure
 
 Task ID: G8-360-NOTIFICATION-SERVICE-IIOP-NAMING-EXPOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-030, REQ-SVC-020, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0019
@@ -14,4 +14,5 @@ Tests to add/update: Add loopback IIOP/Naming tests for supported operations, ma
 Documentation to update: Notification/Event READMEs as needed, services design, optional services conformance/review, interop matrix, roadmap index, README, and G8-370 status.
 Commands to run: ./gradlew :modules:corba-notification-service:test :modules:corba-event-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: The supported Notification Service subset is reachable through local loopback IIOP/Naming with deterministic diagnostics; no Native Image smoke, peer metadata, live peer execution, or pass/fail peer claim is added; G8-370 is promoted after completion.
+Completion evidence: Completed with descriptor-backed loopback IIOP/Naming exposure for the supported local Notification Service subset. Coverage exercises channel admin lookup, structured proxy creation, structured push/pull/try-pull delivery, disconnect operations, local filter and QoS rejection diagnostics, malformed request bodies, unknown object keys, unknown operations, stale proxy behavior after channel destroy, Naming-resolved NotificationChannel IORs, structured-event CDR round trips, and clean shutdown. Native Image smoke, peer metadata, live peer execution, persistence, transactions, generated OMG APIs, reflection metadata, dynamic proxies, serialization metadata, and pass/fail peer claims remain excluded.
 Rollback notes: Revert loopback IIOP/Naming sources, tests, docs, and roadmap status together.
