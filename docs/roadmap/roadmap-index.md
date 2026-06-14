@@ -142,8 +142,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-400-trading-service-task-group.md` - complete
 - `tasks/g8-410-trading-service-type-repository.md` - complete
 - `tasks/g8-420-trading-service-offer-repository.md` - complete
-- `tasks/g8-430-trading-service-bounded-constraint-model.md` - ready-for-implementation
-- `tasks/g8-440-trading-service-local-query.md` - blocked
+- `tasks/g8-430-trading-service-bounded-constraint-model.md` - complete
+- `tasks/g8-440-trading-service-local-query.md` - ready-for-implementation
 - `tasks/g8-450-trading-service-import-export-boundary.md` - blocked
 - `tasks/g8-460-trading-service-iiop-naming-exposure.md` - blocked
 - `tasks/g8-470-trading-service-native-smoke.md` - blocked

@@ -50,5 +50,21 @@ public final class TradingServiceDiagnosticCodes {
   /** An offer property value exceeded a configured bound. */
   public static final DiagnosticCode VALUE_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0015");
 
+  /** A Trading Service constraint expression was malformed. */
+  public static final DiagnosticCode MALFORMED_CONSTRAINT = new DiagnosticCode("TRAD-0016");
+
+  /** A Trading Service constraint expression exceeded a configured parser bound. */
+  public static final DiagnosticCode CONSTRAINT_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0017");
+
+  /** A Trading Service constraint expression used unsupported syntax or operators. */
+  public static final DiagnosticCode UNSUPPORTED_CONSTRAINT_OPERATOR =
+      new DiagnosticCode("TRAD-0018");
+
+  /** Constraint evaluation referenced a property that was not present. */
+  public static final DiagnosticCode UNKNOWN_CONSTRAINT_PROPERTY = new DiagnosticCode("TRAD-0019");
+
+  /** Constraint evaluation compared incompatible primitive value kinds. */
+  public static final DiagnosticCode CONSTRAINT_TYPE_MISMATCH = new DiagnosticCode("TRAD-0020");
+
   private TradingServiceDiagnosticCodes() {}
 }

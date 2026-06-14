@@ -1,7 +1,7 @@
 # G8-440 Trading Service Local Query
 
 Task ID: G8-440-TRADING-SERVICE-LOCAL-QUERY
-Status: blocked
+Status: ready-for-implementation
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020

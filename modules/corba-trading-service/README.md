@@ -15,10 +15,13 @@ bounded names, primitive property definitions, immutable snapshots, stable
 in-memory offer CRUD over registered service types, primitive property values,
 immutable offer snapshots, list-by-type ordering, and deterministic diagnostics
 for missing types, duplicate or missing offers, property mismatches, unsupported
-values, and configured limits. It does not add constraints, query behavior,
-import/export behavior, IIOP/Naming exposure, Native Image smoke, interop
-metadata, durable persistence, or live peer claims. `G8-430` is the next ready
-implementation slice.
+values, and configured limits. `G8-430` adds a closed-world bounded constraint
+parser/evaluator over primitive property maps with boolean constants,
+comparison operators, `and`/`or`/`not`, parentheses, and explicit hostile-input
+limits. It does not integrate repository query behavior, import/export
+behavior, IIOP/Naming exposure, Native Image smoke, interop metadata, durable
+persistence, or live peer claims. `G8-440` is the next ready implementation
+slice.
 
 ## Documentation requirements
 

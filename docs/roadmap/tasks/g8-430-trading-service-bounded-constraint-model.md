@@ -1,7 +1,7 @@
 # G8-430 Trading Service Bounded Constraint Model
 
 Task ID: G8-430-TRADING-SERVICE-BOUNDED-CONSTRAINT-MODEL
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for accepted boolean/property expressions, n
 Documentation to update: Trading Service README, services design, optional services conformance/review, roadmap index, README, and G8-440 status.
 Commands to run: ./gradlew :modules:corba-trading-service:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Trading Service has a closed-world bounded constraint parser/evaluator with deterministic diagnostics and no query integration, import/export, IIOP/Naming, Native Image, interop, or live peer claim; G8-440 is promoted after completion.
+Completion evidence: Added `TradingConstraint` with a closed-world recursive-descent parser/evaluator over primitive property maps. The supported subset covers boolean constants, string/boolean/signed-long/floating-point equality and inequality, numeric ordered comparisons, `and`, `or`, `not`, and parentheses with explicit expression length, token count, term count, nesting-depth, and string-literal limits. Unit tests cover accepted expressions, numeric comparisons, boolean composition, parentheses, unknown properties, type mismatches, malformed syntax, unsupported functions, wildcards, regex-like syntax, arithmetic operators, non-finite numbers, and hostile limit inputs. G8-440 is promoted as the only ready Trading Service implementation task.
 Rollback notes: Revert Trading Service constraint model sources, tests, docs, and roadmap status together.
