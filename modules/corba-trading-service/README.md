@@ -36,7 +36,11 @@ smoke coverage for type registration, offer registration, bounded constraint
 rejection, local query, import/export disabled diagnostics, loopback IIOP/Naming
 exposure, and clean shutdown. It does not add interop metadata, durable
 persistence, remote federation execution, or live peer claims. `G8-480` is the
-next ready implementation slice.
+metadata-only interop slice: it adds the `trading-service` IDL fixture,
+approved-peer declarations, `InteropScenario.tradingService()`, JVM/native
+dry-run direction enumeration, and structured missing-prerequisite reports
+without starting peer containers or local live lanes. `G8-490` is the next
+ready implementation slice.
 
 ## Documentation requirements
 

@@ -22,6 +22,11 @@ public record InteropScenario(String name, String idlPath) {
     return new InteropScenario("notification-service", "interop/idl/notification-service.idl");
   }
 
+  /** Returns the approved G8 Trading Service peer metadata scenario. */
+  public static InteropScenario tradingService() {
+    return new InteropScenario("trading-service", "interop/idl/trading-service.idl");
+  }
+
   private static String requireScenarioName(String value) {
     requireNotBlank(value, "name");
     if (!value.matches("[A-Za-z0-9._-]+")) {

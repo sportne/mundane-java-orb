@@ -67,6 +67,10 @@ final class InteropPeerGateTest {
       assertTrue(manifest.contains("notification-service:"), manifest);
       assertTrue(manifest.contains("idl: interop/idl/notification-service.idl"), manifest);
       assertTrue(manifest.contains("support: notification-service-metadata-dry-run"), manifest);
+      assertTrue(manifest.contains("  - trading-service"), manifest);
+      assertTrue(manifest.contains("trading-service:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/trading-service.idl"), manifest);
+      assertTrue(manifest.contains("support: trading-service-metadata-dry-run"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -91,6 +95,12 @@ final class InteropPeerGateTest {
     assertTrue(
         Files.isRegularFile(repoRoot().resolve(notificationService.idlPath())),
         "Notification Service IDL fixture must be present for metadata dry runs");
+    InteropScenario tradingService = InteropScenario.tradingService();
+    assertEquals("trading-service", tradingService.name());
+    assertEquals("interop/idl/trading-service.idl", tradingService.idlPath());
+    assertTrue(
+        Files.isRegularFile(repoRoot().resolve(tradingService.idlPath())),
+        "Trading Service IDL fixture must be present for metadata dry runs");
   }
 
   @Test
@@ -219,6 +229,30 @@ final class InteropPeerGateTest {
             .output()
             .contains(
                 "dry-run: would run scenario notification-service role server for " + FIXTURE_PEER),
+        result.output());
+    assertFalse(result.output().contains("for other-peer"), result.output());
+  }
+
+  @Test
+  void runScenarioAllFiltersPeersByDeclaredTradingServiceCapability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path otherPeer = fixture.root().resolve("interop/peers/other-peer");
+    Files.createDirectories(otherPeer);
+    Files.writeString(
+        otherPeer.resolve("peer.yaml"),
+        removeTradingServiceCapability(
+            peerManifest(FixtureOptions.valid()).replace("fixture-peer", "other-peer")),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(command("run-scenario", "--dry-run", "trading-service", "all"), fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run scenario trading-service role server for " + FIXTURE_PEER),
         result.output());
     assertFalse(result.output().contains("for other-peer"), result.output());
   }
@@ -462,6 +496,7 @@ final class InteropPeerGateTest {
                   - time-service
                   - event-service
                   - notification-service
+                  - trading-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1206,6 +1241,76 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void tradingServiceDirectionMatrixDryRunEnumeratesBothDirectionsAndRuntimesWithoutMutating()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "trading-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server for trading-service"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for "
+                    + "trading-service"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for "
+                    + "trading-service"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void tradingServiceDirectionMatrixRequiresRequireLiveBeforeWritingReports() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "trading-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertFailure(result, "trading-service live execution requires --require-live");
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void tradingServiceRunScenarioRequiresRequireLiveBeforeWritingReports() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("run-scenario", "trading-service", FIXTURE_PEER), fixture.environment());
+
+    assertFailure(result, "trading-service live execution requires --require-live");
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
   void durablePeerRestartDryRunEnumeratesOnlyLocalServerToPeerClientDirections() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -1895,6 +2000,224 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void tradingServiceLiveRunRequiresExplicitApprovalReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-480 must not start peer-server live work");
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"peer-server-to-local-client\""), report);
+    assertTrue(report.contains("\"localRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"service\": \"trading-service\""), report);
+    assertTrue(
+        report.contains(
+            "\"operationSet\": \"type-repository,offer-repository,query,"
+                + "import-export-boundary\""));
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void tradingServiceRunScenarioRequireLiveReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-480 direct scenario execution must not start peer roles");
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"service\": \"trading-service\""), report);
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.root().resolve("interop/idl/trading-service.idl"));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_TRADING_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"scenario-idl\""), report);
+    assertTrue(report.contains("Trading Service scenario IDL is missing"), report);
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportsNameMissingLocalLaneCommands() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_TRADING_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String jvmClient =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String nativeClient =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String jvmServer =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+    String nativeServer =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(jvmClient.contains("\"missingPrerequisite\": \"MJO_JVM_CLIENT_COMMAND\""));
+    assertTrue(nativeClient.contains("\"missingPrerequisite\": \"MJO_NATIVE_CLIENT_BINARY\""));
+    assertTrue(jvmServer.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""));
+    assertTrue(nativeServer.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""));
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(tradingServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(tradingServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+    Map<String, String> environment = tradingServiceApprovedCommandEnvironment();
+    environment.put("PATH", isolatedBin.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void tradingServicePrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("trading-service-missing-image", 1, 0);
+    Map<String, String> environment = tradingServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
+  void tradingServiceDoesNotExecuteLiveLanesEvenWhenPrerequisitesPass() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("trading-service-live-blocked", 0, 0);
+    Map<String, String> environment = tradingServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "trading-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+    String report =
+        Files.readString(
+            tradingServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-execution\""), report);
+    assertTrue(report.contains("G8-480 records Trading Service prerequisites only"), report);
+  }
+
+  @Test
   void timeServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Files.delete(fixture.root().resolve("interop/idl/time-service.idl"));
@@ -2435,6 +2758,9 @@ final class InteropPeerGateTest {
     Files.copy(
         repoRoot().resolve("interop/idl/notification-service.idl"),
         root.resolve("interop/idl/notification-service.idl"));
+    Files.copy(
+        repoRoot().resolve("interop/idl/trading-service.idl"),
+        root.resolve("interop/idl/trading-service.idl"));
 
     Files.writeString(peers.resolve("peer.yaml"), peerManifest(options), StandardCharsets.UTF_8);
     Files.writeString(
@@ -2461,6 +2787,7 @@ final class InteropPeerGateTest {
                   - time-service
                   - event-service
                   - notification-service
+                  - trading-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -2521,6 +2848,20 @@ final class InteropPeerGateTest {
                   notification-service:
                     idl: interop/idl/notification-service.idl
                     support: notification-service-metadata-dry-run
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - expected-deferral
+                      - missing-prerequisite
+                      - unsupported-scenario
+                      - infrastructure-failure
+                  trading-service:
+                    idl: interop/idl/trading-service.idl
+                    support: trading-service-metadata-dry-run
                     directions:
                       - peer-server-to-local-client
                       - local-server-to-peer-client
@@ -2647,9 +2988,19 @@ final class InteropPeerGateTest {
   private static String removeNotificationServiceCapability(String manifest) {
     String withoutGroup = manifest.replace("  - notification-service\n", "");
     int start = withoutGroup.indexOf("  notification-service:\n");
-    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    int end = withoutGroup.indexOf("  trading-service:\n", start);
     if (start < 0 || end < 0) {
       throw new IllegalArgumentException("Notification Service capability block not found");
+    }
+    return withoutGroup.substring(0, start) + withoutGroup.substring(end);
+  }
+
+  private static String removeTradingServiceCapability(String manifest) {
+    String withoutGroup = manifest.replace("  - trading-service\n", "");
+    int start = withoutGroup.indexOf("  trading-service:\n");
+    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    if (start < 0 || end < 0) {
+      throw new IllegalArgumentException("Trading Service capability block not found");
     }
     return withoutGroup.substring(0, start) + withoutGroup.substring(end);
   }
@@ -2667,6 +3018,16 @@ final class InteropPeerGateTest {
   private static Map<String, String> notificationServiceApprovedCommandEnvironment() {
     java.util.HashMap<String, String> environment = new java.util.HashMap<>();
     environment.put("INTEROP_NOTIFICATION_SERVICE_LIVE_APPROVED", "true");
+    environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
+    environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
+    environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
+    environment.put("MJO_NATIVE_SERVER_BINARY", "/bin/true");
+    return environment;
+  }
+
+  private static Map<String, String> tradingServiceApprovedCommandEnvironment() {
+    java.util.HashMap<String, String> environment = new java.util.HashMap<>();
+    environment.put("INTEROP_TRADING_SERVICE_LIVE_APPROVED", "true");
     environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
     environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
     environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
@@ -2696,6 +3057,22 @@ final class InteropPeerGateTest {
         .root()
         .resolve(
             "build/interop/local/reports/notification-service-"
+                + peer
+                + "-"
+                + runtime
+                + "-"
+                + role
+                + "-"
+                + direction
+                + ".json");
+  }
+
+  private static Path tradingServicePrerequisiteReport(
+      Fixture fixture, String peer, String runtime, String role, String direction) {
+    return fixture
+        .root()
+        .resolve(
+            "build/interop/local/reports/trading-service-"
                 + peer
                 + "-"
                 + runtime

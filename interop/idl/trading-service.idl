@@ -1,0 +1,67 @@
+module CosTrading {
+  enum PropertyKind {
+    pk_string,
+    pk_boolean,
+    pk_signed_long,
+    pk_floating_point
+  };
+
+  struct PropertyDefinition {
+    string name;
+    PropertyKind kind;
+    boolean required;
+  };
+
+  typedef sequence<PropertyDefinition> PropertyDefinitionSeq;
+
+  struct ServiceType {
+    string name;
+    PropertyDefinitionSeq properties;
+  };
+
+  struct Property {
+    string name;
+    any value;
+  };
+
+  typedef sequence<Property> PropertySeq;
+
+  struct Offer {
+    string id;
+    string type_name;
+    PropertySeq properties;
+  };
+
+  typedef sequence<ServiceType> ServiceTypeSeq;
+  typedef sequence<Offer> OfferSeq;
+
+  enum LinkDirection {
+    import_link,
+    export_link
+  };
+
+  struct ImportExportLink {
+    string name;
+    LinkDirection direction;
+    string peer_trader_name;
+  };
+
+  typedef sequence<ImportExportLink> ImportExportLinkSeq;
+
+  interface Lookup {
+    void register_type(in ServiceType type);
+    void update_type(in ServiceType type);
+    ServiceType delete_type(in string name);
+    ServiceType lookup_type(in string name);
+    ServiceTypeSeq list_types();
+
+    void register_offer(in Offer offer);
+    Offer withdraw_offer(in string offer_id);
+    OfferSeq query_offers(in string type_name, in string constraint_expression);
+
+    void register_import_link(in string name, in string peer_trader_name);
+    void register_export_link(in string name, in string peer_trader_name);
+    ImportExportLinkSeq list_import_export_links();
+    void reject_remote_import_query(in string link_name);
+  };
+};

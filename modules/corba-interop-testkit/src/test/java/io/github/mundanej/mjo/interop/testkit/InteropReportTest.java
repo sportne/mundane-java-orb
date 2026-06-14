@@ -166,6 +166,9 @@ final class InteropReportTest {
         new InteropScenario("rmi-iiop", "interop/idl/rmi-iiop/Calculator.idl"),
         InteropScenario.rmiIiop());
     assertEquals(
+        new InteropScenario("trading-service", "interop/idl/trading-service.idl"),
+        InteropScenario.tradingService());
+    assertEquals(
         List.of(
             new InteropScenario("g12-wide-core-types", "interop/idl/g12-wide/CoreTypes.idl"),
             new InteropScenario(

@@ -1,7 +1,7 @@
 # G8-480 Trading Service Interop Metadata
 
 Task ID: G8-480-TRADING-SERVICE-INTEROP-METADATA
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020
@@ -15,3 +15,5 @@ Documentation to update: Trading Service README, services design, optional servi
 Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-trading-service:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run trading-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Trading Service is discoverable as metadata-only interop scenario with deterministic dry-run and missing-prerequisite reports and no live peer execution, prepared peer artifacts, committed reports, or compatibility claim; G8-490 is promoted after completion.
 Rollback notes: Revert Trading Service interop metadata, tests, docs, peer manifest declarations, and roadmap status together.
+
+Completion notes: Added the `trading-service` TRADE-10 IDL fixture, approved-peer manifest declarations, stable `InteropScenario.tradingService()` identity, dry-run direction enumeration for JVM/native local runtimes, and deterministic structured missing-prerequisite reports. `--require-live` remains report-only and does not start peer containers, local live lanes, or claim live peer compatibility. G8-490 is promoted for conformance closure.
