@@ -137,9 +137,9 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   started under approved roadmap tasks;
 - optional Time, Event, and Notification Service implementation subsets now
   have closed G8 conformance records, Trading Service has started with bounded
-  local type and offer repositories, constraint evaluation, local query, and
-  import/export boundary metadata and is ready for the loopback IIOP/Naming
-  slice, and Transaction and
+  local type and offer repositories, constraint evaluation, local query,
+  import/export boundary metadata, and loopback IIOP/Naming exposure and is
+  ready for the Native Image smoke slice, and Transaction and
   Security/CSIv2 Services remain blocked behind their accepted G8 ADR designs;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
@@ -223,8 +223,9 @@ approved live peer conformance closure slices are implemented.
 Event Service and Notification Service local/IIOP/Native Image/dry-run
 conformance records are also closed. Trading Service has started with bounded
 local type and offer repositories, constraint evaluation, local query, and
-import/export boundary metadata and is ready for the loopback IIOP/Naming
-slice; Transaction and Security/CSIv2 remain blocked.
+import/export boundary metadata, and loopback IIOP/Naming exposure and is ready
+for the Native Image smoke slice; Transaction and Security/CSIv2 remain
+blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -288,5 +289,11 @@ diagnostics. G8-440 adds bounded local type-scoped offer query with
 deterministic offer-ID ordering, result/cost limits, and clear constraint
 diagnostics. G8-450 adds bounded import/export link metadata with direction,
 fan-out, duplicate/missing link, disabled-federation, and wrong-direction
-diagnostics while preserving local-query isolation. The next ready roadmap task
-is G8-460, the Trading Service loopback IIOP/Naming exposure slice.
+diagnostics while preserving local-query isolation. G8-460 adds
+descriptor-backed loopback IIOP/Naming exposure for the supported local Trader
+facade: type registration/update/delete/lookup/list, offer registration and
+withdrawal, local query, import/export metadata listing, disabled import
+diagnostics, malformed request diagnostics, stale/unknown object-key and
+unknown-operation diagnostics, Naming-resolved Trader IORs, and clean shutdown.
+The next ready roadmap task is G8-470, the Trading Service Native Image smoke
+slice.

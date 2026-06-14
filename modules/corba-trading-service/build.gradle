@@ -12,4 +12,22 @@ description = 'Trading Service implementation module.'
 dependencies {
     // Trading Service diagnostics reuse the repository-wide stable diagnostic-code value.
     api project(':modules:corba-common')
+
+    // G8-460 exposes the supported Trading Service subset through the static ORB/IIOP bridge.
+    api project(':modules:corba-iiop')
+
+    // Network Trading Service startup owns local ORB references for trader dispatch.
+    api project(':modules:corba-orb-core')
+
+    // Optional Naming registration binds the Trader IOR into the network Naming server.
+    api project(':modules:corba-naming-server')
+
+    // Trading Service descriptors use the shared static generated-type metadata model.
+    api project(':modules:corba-typecode')
+
+    // Trading request and reply bodies are encoded with bounded CDR primitives.
+    implementation project(':modules:corba-cdr')
+
+    // Repository IDs identify the supported CosTrading Trader interface.
+    implementation project(':modules:corba-repository-id')
 }

@@ -26,8 +26,14 @@ link names, directions, peer trader names, fan-out limits, duplicate/missing
 link diagnostics, disabled remote-federation diagnostics, wrong-direction
 diagnostics, and local-query isolation from import/export metadata. It does not
 add remote federation execution, IIOP/Naming exposure, Native Image smoke,
-interop metadata, durable persistence, or live peer claims. `G8-460` is the
-next ready implementation slice.
+interop metadata, durable persistence, or live peer claims. `G8-460` adds
+descriptor-backed loopback IIOP/Naming exposure for the supported local Trader
+facade, including type operations, offer registration and withdrawal, local
+query, import/export metadata listing, disabled import diagnostics, malformed
+request diagnostics, stale object-key and unknown-operation diagnostics,
+Naming-resolved Trader IORs, and clean shutdown. It does not add Native Image
+smoke, interop metadata, durable persistence, remote federation execution, or
+live peer claims. `G8-470` is the next ready implementation slice.
 
 ## Documentation requirements
 
