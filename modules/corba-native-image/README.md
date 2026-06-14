@@ -36,6 +36,9 @@ The smoke tasks pass `--no-fallback` and `-H:+ReportExceptionStackTraces`.
 - `notificationService`: local Notification Service channel creation,
   structured event validation, filter validation, QoS rejection, local
   delivery, loopback IIOP/Naming exposure, and clean shutdown.
+- `tradingService`: local Trading Service type and offer registration,
+  bounded constraint rejection, local query, import/export disabled diagnostics,
+  loopback IIOP/Naming exposure, and clean shutdown.
 
 Run all binaries with:
 

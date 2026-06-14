@@ -37,6 +37,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-event-service')
     // G8-370 adds the local and loopback Notification Service smoke surface.
     nativeSmokeImplementation project(':modules:corba-notification-service')
+    // G8-470 adds the local and loopback Trading Service smoke surface.
+    nativeSmokeImplementation project(':modules:corba-trading-service')
     nativeSmokeImplementation project(':modules:corba-typecode')
 
     // Unit tests execute the smoke entry points on the JVM before native compilation.
@@ -129,6 +131,11 @@ def nativeSmokeTargets = [
         name: 'notificationService',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.NotificationServiceNativeSmoke',
         binaryName: 'notification-service-native-smoke'
+    ],
+    [
+        name: 'tradingService',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.TradingServiceNativeSmoke',
+        binaryName: 'trading-service-native-smoke'
     ],
     [
         name: 'interopClient',

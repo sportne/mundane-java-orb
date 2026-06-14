@@ -31,9 +31,12 @@ descriptor-backed loopback IIOP/Naming exposure for the supported local Trader
 facade, including type operations, offer registration and withdrawal, local
 query, import/export metadata listing, disabled import diagnostics, malformed
 request diagnostics, stale object-key and unknown-operation diagnostics,
-Naming-resolved Trader IORs, and clean shutdown. It does not add Native Image
-smoke, interop metadata, durable persistence, remote federation execution, or
-live peer claims. `G8-470` is the next ready implementation slice.
+Naming-resolved Trader IORs, and clean shutdown. `G8-470` adds Native Image
+smoke coverage for type registration, offer registration, bounded constraint
+rejection, local query, import/export disabled diagnostics, loopback IIOP/Naming
+exposure, and clean shutdown. It does not add interop metadata, durable
+persistence, remote federation execution, or live peer claims. `G8-480` is the
+next ready implementation slice.
 
 ## Documentation requirements
 

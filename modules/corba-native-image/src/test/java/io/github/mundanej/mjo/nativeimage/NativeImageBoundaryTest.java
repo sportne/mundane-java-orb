@@ -21,7 +21,8 @@ final class NativeImageBoundaryTest {
             module.resolve("src/main"),
             module.resolve("src/nativeSmoke"),
             repository.resolve("modules/corba-rmi-iiop/src/main"),
-            repository.resolve("modules/corba-notification-service/src/main"));
+            repository.resolve("modules/corba-notification-service/src/main"),
+            repository.resolve("modules/corba-trading-service/src/main"));
     List<String> forbiddenTokens =
         List.of(
             "reflect-config.json",
@@ -33,6 +34,8 @@ final class NativeImageBoundaryTest {
             "ClassLoader",
             "ProcessBuilder",
             "Runtime.getRuntime",
+            "javax.script",
+            "ScriptEngine",
             "ObjectInputStream",
             "ObjectOutputStream",
             "java.io.Serializable",
@@ -40,7 +43,8 @@ final class NativeImageBoundaryTest {
             "org.objectweb.asm",
             "org.cglib",
             "jdk.internal",
-            "sun.misc.Unsafe");
+            "sun.",
+            "Unsafe");
 
     for (Path root : sourceRoots) {
       try (var paths = Files.walk(root)) {

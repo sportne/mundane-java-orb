@@ -138,8 +138,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
 - optional Time, Event, and Notification Service implementation subsets now
   have closed G8 conformance records, Trading Service has started with bounded
   local type and offer repositories, constraint evaluation, local query,
-  import/export boundary metadata, and loopback IIOP/Naming exposure and is
-  ready for the Native Image smoke slice, and Transaction and
+  import/export boundary metadata, loopback IIOP/Naming exposure, and Native
+  Image smoke and is ready for interop metadata, and Transaction and
   Security/CSIv2 Services remain blocked behind their accepted G8 ADR designs;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
@@ -223,9 +223,9 @@ approved live peer conformance closure slices are implemented.
 Event Service and Notification Service local/IIOP/Native Image/dry-run
 conformance records are also closed. Trading Service has started with bounded
 local type and offer repositories, constraint evaluation, local query, and
-import/export boundary metadata, and loopback IIOP/Naming exposure and is ready
-for the Native Image smoke slice; Transaction and Security/CSIv2 remain
-blocked.
+import/export boundary metadata, loopback IIOP/Naming exposure, and Native
+Image smoke and is ready for interop metadata; Transaction and Security/CSIv2
+remain blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -295,5 +295,7 @@ facade: type registration/update/delete/lookup/list, offer registration and
 withdrawal, local query, import/export metadata listing, disabled import
 diagnostics, malformed request diagnostics, stale/unknown object-key and
 unknown-operation diagnostics, Naming-resolved Trader IORs, and clean shutdown.
-The next ready roadmap task is G8-470, the Trading Service Native Image smoke
-slice.
+G8-470 adds Native Image smoke coverage for type registration, offer
+registration, bounded constraint rejection, local query, import/export disabled
+diagnostics, loopback IIOP/Naming exposure, and clean shutdown. The next ready
+roadmap task is G8-480, the Trading Service interop metadata slice.
