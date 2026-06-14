@@ -13,9 +13,10 @@ with fixed identity fields, primitive named properties, bounded variable
 header/body sections, duplicate-field rejection, unsupported-value rejection,
 and oversized-data diagnostics. G8-330 adds bounded filter parsing and
 evaluation for boolean constants, identity equality/inequality, primitive named
-filter properties, and boolean composition. QoS/admin policy, delivery,
-IIOP/Naming, Native Image, interop metadata, and conformance closure remain
-staged follow-on work.
+filter properties, and boolean composition. G8-340 adds bounded QoS/admin
+policy validation for channel, admin, proxy, queue, filter, durable, and
+transaction policy keys. Delivery, IIOP/Naming, Native Image, interop metadata,
+and conformance closure remain staged follow-on work.
 
 ## Implemented local surface
 
@@ -38,6 +39,9 @@ staged follow-on work.
   value model.
 - `NotificationFilter` parses and evaluates the supported local filter subset
   with expression length, depth, and term limits.
+- `NotificationPolicies`, `NotificationPolicyKey`, and
+  `NotificationPolicyProperty` validate supported local QoS/admin policy
+  settings without adding delivery guarantees.
 
 ## Documentation requirements
 

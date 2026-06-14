@@ -1,7 +1,7 @@
 # G8-350 Notification Service Local Delivery
 
 Task ID: G8-350-NOTIFICATION-SERVICE-LOCAL-DELIVERY
-Status: blocked
+Status: ready-for-implementation
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-030, REQ-SVC-020, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0019

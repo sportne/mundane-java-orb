@@ -56,5 +56,20 @@ public final class NotificationServiceDiagnosticCodes {
   /** A Notification Service filter compared incompatible primitive types. */
   public static final DiagnosticCode FILTER_TYPE_MISMATCH = new DiagnosticCode("NOTF-0017");
 
+  /** A Notification Service policy key is not supported by the local subset. */
+  public static final DiagnosticCode UNSUPPORTED_POLICY = new DiagnosticCode("NOTF-0018");
+
+  /** A Notification Service policy list repeated a key. */
+  public static final DiagnosticCode DUPLICATE_POLICY = new DiagnosticCode("NOTF-0019");
+
+  /** A Notification Service policy value was malformed or unsupported. */
+  public static final DiagnosticCode MALFORMED_POLICY = new DiagnosticCode("NOTF-0020");
+
+  /** A Notification Service policy value exceeded supported bounds. */
+  public static final DiagnosticCode POLICY_LIMIT_EXCEEDED = new DiagnosticCode("NOTF-0021");
+
+  /** A Notification Service policy set contained conflicting values. */
+  public static final DiagnosticCode CONFLICTING_POLICY = new DiagnosticCode("NOTF-0022");
+
   private NotificationServiceDiagnosticCodes() {}
 }

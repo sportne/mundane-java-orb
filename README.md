@@ -252,5 +252,7 @@ local channel lifecycle and Event Service compatibility boundary, while G8-320
 adds the immutable structured-event model with fixed identity fields, primitive
 named properties, bounded header/body sections, and deterministic validation.
 G8-330 adds bounded filter parsing/evaluation over identity fields and primitive
-filter properties without delivery routing. The next ready roadmap task is
-G8-340, adding QoS/admin policy validation.
+filter properties without delivery routing. G8-340 adds bounded QoS/admin
+policy validation for channel, admin, proxy, queue, filter, durable, and
+transaction policy keys. The next ready roadmap task is G8-350, adding local
+structured delivery.
