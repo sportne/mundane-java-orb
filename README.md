@@ -242,5 +242,8 @@ lookup, proxy creation, push, pull, try_pull, disconnect operations, malformed
 request diagnostics, and Naming-resolved EventChannel IORs. Native Image smoke
 coverage now exercises local channel creation, push and pull delivery, bounded
 rejection, loopback IIOP/Naming exposure, and clean shutdown for that subset.
-The next ready roadmap task is G8-260, adding Event Service interop metadata
-and dry-run prerequisite reporting without live peer claims.
+Event Service interop metadata now declares the `event-service` scenario for
+approved peers, mounts `interop/idl/event-service.idl`, enumerates JVM/native
+dry-run directions, and writes deterministic missing-prerequisite reports
+without live peer claims. The next ready roadmap task is G8-270, closing the
+local/IIOP/Native Image/dry-run Event Service conformance record.

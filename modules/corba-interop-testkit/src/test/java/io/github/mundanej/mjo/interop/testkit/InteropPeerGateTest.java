@@ -59,6 +59,10 @@ final class InteropPeerGateTest {
       assertTrue(manifest.contains("idl: interop/idl/time-service.idl"), manifest);
       assertTrue(manifest.contains("support: live-time-service-smoke"), manifest);
       assertTrue(manifest.contains("time-service-checked"), manifest);
+      assertTrue(manifest.contains("  - event-service"), manifest);
+      assertTrue(manifest.contains("event-service:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/event-service.idl"), manifest);
+      assertTrue(manifest.contains("support: event-service-metadata-dry-run"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -71,6 +75,12 @@ final class InteropPeerGateTest {
     assertTrue(
         Files.isRegularFile(repoRoot().resolve("interop/idl/time-service.idl")),
         "Time Service IDL fixture must be present for live matrix mounting");
+    InteropScenario eventService = InteropScenario.eventService();
+    assertEquals("event-service", eventService.name());
+    assertEquals("interop/idl/event-service.idl", eventService.idlPath());
+    assertTrue(
+        Files.isRegularFile(repoRoot().resolve(eventService.idlPath())),
+        "Event Service IDL fixture must be present for metadata dry runs");
   }
 
   @Test
@@ -150,6 +160,29 @@ final class InteropPeerGateTest {
             .output()
             .contains(
                 "dry-run: would run scenario g12-wide-core-types role server for fixture-peer"),
+        result.output());
+    assertFalse(result.output().contains("for other-peer"), result.output());
+  }
+
+  @Test
+  void runScenarioAllFiltersPeersByDeclaredEventServiceCapability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path otherPeer = fixture.root().resolve("interop/peers/other-peer");
+    Files.createDirectories(otherPeer);
+    Files.writeString(
+        otherPeer.resolve("peer.yaml"),
+        removeEventServiceCapability(
+            peerManifest(FixtureOptions.valid()).replace("fixture-peer", "other-peer")),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(command("run-scenario", "--dry-run", "event-service", "all"), fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains("dry-run: would run scenario event-service role server for " + FIXTURE_PEER),
         result.output());
     assertFalse(result.output().contains("for other-peer"), result.output());
   }
@@ -391,6 +424,7 @@ final class InteropPeerGateTest {
                   - basic-idl
                   - rmi-iiop
                   - time-service
+                  - event-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1046,6 +1080,49 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void eventServiceDirectionMatrixDryRunEnumeratesBothDirectionsAndRuntimesWithoutMutating()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "event-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server for event-service"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for event-service"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for "
+                    + "event-service"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
   void durablePeerRestartDryRunEnumeratesOnlyLocalServerToPeerClientDirections() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -1318,6 +1395,199 @@ final class InteropPeerGateTest {
     assertTrue(report.contains("\"peerClientRuntime\": \"peer-jvm\""), report);
     assertTrue(report.contains("\"expectedClassification\": \"time-service-checked\""), report);
     assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void eventServiceLiveRunRequiresExplicitApprovalReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-260 must not start peer-server live work");
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"peer-server-to-local-client\""), report);
+    assertTrue(report.contains("\"localRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"service\": \"event-service\""), report);
+    assertTrue(
+        report.contains("\"operationSet\": \"channel-admin,push,pull,try_pull,disconnect\""));
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void eventServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.root().resolve("interop/idl/event-service.idl"));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_EVENT_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"scenario-idl\""), report);
+    assertTrue(report.contains("Event Service scenario IDL is missing"), report);
+  }
+
+  @Test
+  void eventServicePrerequisiteReportsNameMissingLocalLaneCommands() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_EVENT_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String jvmClient =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String nativeClient =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String jvmServer =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+    String nativeServer =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(jvmClient.contains("\"missingPrerequisite\": \"MJO_JVM_CLIENT_COMMAND\""));
+    assertTrue(nativeClient.contains("\"missingPrerequisite\": \"MJO_NATIVE_CLIENT_BINARY\""));
+    assertTrue(jvmServer.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""));
+    assertTrue(nativeServer.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""));
+  }
+
+  @Test
+  void eventServicePrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(eventServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void eventServicePrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(eventServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void eventServicePrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+    Map<String, String> environment = eventServiceApprovedCommandEnvironment();
+    environment.put("PATH", isolatedBin.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void eventServicePrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("event-service-missing-image", 1, 0);
+    Map<String, String> environment = eventServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
+  void eventServiceDoesNotExecuteLiveLanesEvenWhenPrerequisitesPass() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("event-service-live-blocked", 0, 0);
+    Map<String, String> environment = eventServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "event-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+    String report =
+        Files.readString(
+            eventServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-execution\""), report);
+    assertTrue(report.contains("G8-260 records Event Service prerequisites only"), report);
   }
 
   @Test
@@ -1855,6 +2125,9 @@ final class InteropPeerGateTest {
     Path timeServiceIdl = root.resolve("interop/idl/time-service.idl");
     Files.createDirectories(Objects.requireNonNull(timeServiceIdl.getParent()));
     Files.copy(repoRoot().resolve("interop/idl/time-service.idl"), timeServiceIdl);
+    Files.copy(
+        repoRoot().resolve("interop/idl/event-service.idl"),
+        root.resolve("interop/idl/event-service.idl"));
 
     Files.writeString(peers.resolve("peer.yaml"), peerManifest(options), StandardCharsets.UTF_8);
     Files.writeString(
@@ -1879,6 +2152,7 @@ final class InteropPeerGateTest {
                   - basic-idl
                   - rmi-iiop
                   - time-service
+                  - event-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1918,6 +2192,20 @@ final class InteropPeerGateTest {
                     expectedClassifications:
                       - time-service-checked
                       - server-ready
+                      - expected-deferral
+                      - missing-prerequisite
+                      - unsupported-scenario
+                      - infrastructure-failure
+                  event-service:
+                    idl: interop/idl/event-service.idl
+                    support: event-service-metadata-dry-run
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
                       - expected-deferral
                       - missing-prerequisite
                       - unsupported-scenario
@@ -2022,6 +2310,42 @@ final class InteropPeerGateTest {
       throw new IllegalArgumentException("G12 core capability block not found");
     }
     return manifest.substring(0, start) + replacement + manifest.substring(end);
+  }
+
+  private static String removeEventServiceCapability(String manifest) {
+    String withoutGroup = manifest.replace("  - event-service\n", "");
+    int start = withoutGroup.indexOf("  event-service:\n");
+    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    if (start < 0 || end < 0) {
+      throw new IllegalArgumentException("Event Service capability block not found");
+    }
+    return withoutGroup.substring(0, start) + withoutGroup.substring(end);
+  }
+
+  private static Map<String, String> eventServiceApprovedCommandEnvironment() {
+    java.util.HashMap<String, String> environment = new java.util.HashMap<>();
+    environment.put("INTEROP_EVENT_SERVICE_LIVE_APPROVED", "true");
+    environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
+    environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
+    environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
+    environment.put("MJO_NATIVE_SERVER_BINARY", "/bin/true");
+    return environment;
+  }
+
+  private static Path eventServicePrerequisiteReport(
+      Fixture fixture, String peer, String runtime, String role, String direction) {
+    return fixture
+        .root()
+        .resolve(
+            "build/interop/local/reports/event-service-"
+                + peer
+                + "-"
+                + runtime
+                + "-"
+                + role
+                + "-"
+                + direction
+                + ".json");
   }
 
   private static Path timeServicePrerequisiteReport(Fixture fixture, String runtime) {

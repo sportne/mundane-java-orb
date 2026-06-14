@@ -13,8 +13,10 @@ admin lookup, proxy creation, push, pull, try_pull, disconnect operations,
 primitive Any payloads, bounded malformed request diagnostics, and
 Naming-resolved EventChannel IORs. G8-250 adds Native Image smoke coverage for
 local channel creation, push and pull delivery, bounded rejection, loopback
-IIOP/Naming exposure, and clean shutdown. Interop metadata and live peer claims
-remain staged follow-on work.
+IIOP/Naming exposure, and clean shutdown. G8-260 adds approved-peer
+`event-service` metadata, an IDL fixture, dry-run direction enumeration, and
+structured missing-prerequisite reports. Live peer execution and compatibility
+claims remain staged follow-on work.
 
 ## Implemented local surface
 

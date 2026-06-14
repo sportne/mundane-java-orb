@@ -12,6 +12,11 @@ public record InteropScenario(String name, String idlPath) {
     return new InteropScenario("rmi-iiop", "interop/idl/rmi-iiop/Calculator.idl");
   }
 
+  /** Returns the approved G8 Event Service peer metadata scenario. */
+  public static InteropScenario eventService() {
+    return new InteropScenario("event-service", "interop/idl/event-service.idl");
+  }
+
   private static String requireScenarioName(String value) {
     requireNotBlank(value, "name");
     if (!value.matches("[A-Za-z0-9._-]+")) {

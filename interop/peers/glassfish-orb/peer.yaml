@@ -24,6 +24,7 @@ scenarioGroups:
   - iiop
   - rmi-iiop
   - time-service
+  - event-service
   - g12-wide-core-types
   - g13-durable-ior-peer-client-restart
   - g13-durable-naming-peer-client-restart
@@ -107,6 +108,20 @@ scenarioCapabilities:
     expectedClassifications:
       - time-service-checked
       - server-ready
+      - expected-deferral
+      - missing-prerequisite
+      - unsupported-scenario
+      - infrastructure-failure
+  event-service:
+    idl: interop/idl/event-service.idl
+    support: event-service-metadata-dry-run
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
       - expected-deferral
       - missing-prerequisite
       - unsupported-scenario
