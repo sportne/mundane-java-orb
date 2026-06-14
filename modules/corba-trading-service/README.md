@@ -18,10 +18,12 @@ for missing types, duplicate or missing offers, property mismatches, unsupported
 values, and configured limits. `G8-430` adds a closed-world bounded constraint
 parser/evaluator over primitive property maps with boolean constants,
 comparison operators, `and`/`or`/`not`, parentheses, and explicit hostile-input
-limits. It does not integrate repository query behavior, import/export
-behavior, IIOP/Naming exposure, Native Image smoke, interop metadata, durable
-persistence, or live peer claims. `G8-440` is the next ready implementation
-slice.
+limits. `G8-440` adds bounded local type-scoped offer query using that
+constraint evaluator, deterministic offer-ID result ordering, configured result
+and query-cost limits, and clear malformed/unknown/type-mismatch diagnostics.
+It does not add import/export behavior, IIOP/Naming exposure, Native Image
+smoke, interop metadata, durable persistence, or live peer claims. `G8-450` is
+the next ready implementation slice.
 
 ## Documentation requirements
 

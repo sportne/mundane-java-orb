@@ -79,42 +79,104 @@ public final class TradingConstraint {
           TradingServiceDiagnosticCodes.MALFORMED_CONSTRAINT,
           "constraint properties must not be null");
     }
-    return root.evaluate(snapshot(properties));
+    return root.evaluate(snapshot(properties), null);
+  }
+
+  /** Validates this constraint against a registered service type schema. */
+  public TradingConstraint validateAgainst(TradingServiceType type) {
+    root.validate(schema(type));
+    return this;
+  }
+
+  /** Evaluates this constraint against a registered service type schema and offer properties. */
+  public boolean evaluate(TradingServiceType type, Map<String, ?> properties) {
+    if (properties == null) {
+      throw new TradingServiceException(
+          TradingServiceDiagnosticCodes.MALFORMED_CONSTRAINT,
+          "constraint properties must not be null");
+    }
+    Map<String, TradingPrimitiveKind> schema = schema(type);
+    root.validate(schema);
+    return root.evaluate(snapshot(properties), schema);
   }
 
   private interface Node {
-    boolean evaluate(Map<String, Object> properties);
+    boolean evaluate(Map<String, Object> properties, Map<String, TradingPrimitiveKind> schema);
+
+    void validate(Map<String, TradingPrimitiveKind> schema);
   }
 
   private record ConstantNode(boolean value) implements Node {
     @Override
-    public boolean evaluate(Map<String, Object> properties) {
+    public boolean evaluate(
+        Map<String, Object> properties, Map<String, TradingPrimitiveKind> schema) {
       return value;
     }
+
+    @Override
+    public void validate(Map<String, TradingPrimitiveKind> schema) {}
   }
 
   private record NotNode(Node child) implements Node {
     @Override
-    public boolean evaluate(Map<String, Object> properties) {
-      return !child.evaluate(properties);
+    public boolean evaluate(
+        Map<String, Object> properties, Map<String, TradingPrimitiveKind> schema) {
+      return !child.evaluate(properties, schema);
+    }
+
+    @Override
+    public void validate(Map<String, TradingPrimitiveKind> schema) {
+      child.validate(schema);
     }
   }
 
   private record BinaryNode(Node left, Node right, boolean conjunction) implements Node {
     @Override
-    public boolean evaluate(Map<String, Object> properties) {
-      boolean leftValue = left.evaluate(properties);
-      boolean rightValue = right.evaluate(properties);
+    public boolean evaluate(
+        Map<String, Object> properties, Map<String, TradingPrimitiveKind> schema) {
+      boolean leftValue = left.evaluate(properties, schema);
+      boolean rightValue = right.evaluate(properties, schema);
       return conjunction ? leftValue && rightValue : leftValue || rightValue;
+    }
+
+    @Override
+    public void validate(Map<String, TradingPrimitiveKind> schema) {
+      left.validate(schema);
+      right.validate(schema);
     }
   }
 
   private record ComparisonNode(String propertyName, Operator operator, Literal literal)
       implements Node {
     @Override
-    public boolean evaluate(Map<String, Object> properties) {
-      Literal actual = resolve(properties, propertyName);
+    public boolean evaluate(
+        Map<String, Object> properties, Map<String, TradingPrimitiveKind> schema) {
+      Literal actual = resolve(properties, propertyName, schema);
       return actual.compare(operator, literal);
+    }
+
+    @Override
+    public void validate(Map<String, TradingPrimitiveKind> schema) {
+      TradingPrimitiveKind propertyKind = schema.get(propertyName);
+      if (propertyKind == null) {
+        throw new TradingServiceException(
+            TradingServiceDiagnosticCodes.UNKNOWN_CONSTRAINT_PROPERTY,
+            "constraint property is not defined by service type: " + propertyName);
+      }
+      if (propertyKind != literal.kind()) {
+        throw new TradingServiceException(
+            TradingServiceDiagnosticCodes.CONSTRAINT_TYPE_MISMATCH,
+            "constraint compares " + propertyKind + " with " + literal.kind());
+      }
+      if (!isOrderedKind(propertyKind)
+          && (operator == Operator.GREATER_THAN
+              || operator == Operator.GREATER_THAN_OR_EQUAL
+              || operator == Operator.LESS_THAN
+              || operator == Operator.LESS_THAN_OR_EQUAL)) {
+        throw new TradingServiceException(
+            TradingServiceDiagnosticCodes.CONSTRAINT_TYPE_MISMATCH,
+            "ordered constraint comparisons require numeric values");
+      }
     }
   }
 
@@ -133,6 +195,9 @@ public final class TradingConstraint {
         throw new TradingServiceException(
             TradingServiceDiagnosticCodes.CONSTRAINT_TYPE_MISMATCH,
             "constraint compares " + kind + " with " + other.kind);
+      }
+      if (value == null) {
+        return false;
       }
       return switch (operator) {
         case EQUAL -> value.equals(other.value);
@@ -156,8 +221,14 @@ public final class TradingConstraint {
     }
   }
 
-  private static Literal resolve(Map<String, Object> properties, String propertyName) {
+  private static Literal resolve(
+      Map<String, Object> properties,
+      String propertyName,
+      Map<String, TradingPrimitiveKind> schema) {
     if (!properties.containsKey(propertyName)) {
+      if (schema != null && schema.containsKey(propertyName)) {
+        return new Literal(schema.get(propertyName), null);
+      }
       throw new TradingServiceException(
           TradingServiceDiagnosticCodes.UNKNOWN_CONSTRAINT_PROPERTY,
           "constraint property is not present: " + propertyName);
@@ -193,6 +264,23 @@ public final class TradingConstraint {
       copy.put(propertyName, entry.getValue());
     }
     return Collections.unmodifiableMap(copy);
+  }
+
+  private static Map<String, TradingPrimitiveKind> schema(TradingServiceType type) {
+    if (type == null) {
+      throw new TradingServiceException(
+          TradingServiceDiagnosticCodes.MALFORMED_CONSTRAINT,
+          "constraint service type must not be null");
+    }
+    Map<String, TradingPrimitiveKind> schema = new LinkedHashMap<>();
+    for (TradingPropertyDefinition definition : type.properties()) {
+      schema.put(definition.name(), definition.kind());
+    }
+    return Collections.unmodifiableMap(schema);
+  }
+
+  private static boolean isOrderedKind(TradingPrimitiveKind kind) {
+    return kind == TradingPrimitiveKind.SIGNED_LONG || kind == TradingPrimitiveKind.FLOATING_POINT;
   }
 
   private static TradingServiceException malformed(String message) {

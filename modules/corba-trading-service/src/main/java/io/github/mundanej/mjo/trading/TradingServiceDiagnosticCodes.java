@@ -66,5 +66,8 @@ public final class TradingServiceDiagnosticCodes {
   /** Constraint evaluation compared incompatible primitive value kinds. */
   public static final DiagnosticCode CONSTRAINT_TYPE_MISMATCH = new DiagnosticCode("TRAD-0020");
 
+  /** A local Trading Service query exceeded configured result or cost limits. */
+  public static final DiagnosticCode QUERY_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0021");
+
   private TradingServiceDiagnosticCodes() {}
 }
