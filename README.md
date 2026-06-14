@@ -135,9 +135,10 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
-- optional Time, Event, Notification, Trading, Transaction, and Security/CSIv2
-  Services now have accepted G8 ADR designs and blocked task groups, with no
-  service behavior implemented by that design pass;
+- optional Time, Event, and Notification Service implementation subsets now
+  have closed G8 conformance records, Trading Service is ready for slice
+  planning, and Transaction and Security/CSIv2 Services remain blocked behind
+  their accepted G8 ADR designs;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -217,11 +218,13 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 G8 optional-service design gates are complete, and the Time Service local
 value/clock, loopback IIOP/Naming exposure, structured interop metadata, and
 approved live peer conformance closure slices are implemented.
-Remaining optional service implementation stays blocked behind service-specific
-task groups. G13-000
-through G13-090 and G14-000 through G14-040 are complete. G14 live durable peer
-evidence covers old durable IOR invocation across JacORB, GlassFish CORBA ORB,
-JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image local servers.
+Event Service and Notification Service local/IIOP/Native Image/dry-run
+conformance records are also closed. Trading Service is the next ready
+optional-service task group; Transaction and Security/CSIv2 remain blocked.
+G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
+durable peer evidence covers old durable IOR invocation across JacORB,
+GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
+local servers.
 Persistent Naming restart evidence resolves for JacORB, GlassFish CORBA ORB,
 and JBoss OpenJDK ORB across JVM and Native Image local servers; ACE/TAO is
 recorded as a durable Naming `profile-mismatch`, not as an opaque-key failure.
@@ -266,5 +269,6 @@ shutdown. G8-380 adds the `notification-service` IDL fixture, approved-peer
 metadata, JVM/native dry-run direction enumeration,
 `InteropScenario.notificationService()`, and structured missing-prerequisite
 reports without starting peer containers or claiming live peer compatibility.
-The next ready roadmap task is G8-390, closing the Notification Service local
-conformance record.
+G8-390 closes the Notification Service local/IIOP/Native Image/dry-run
+conformance record for that subset. The next ready roadmap task is G8-400,
+splitting Trading Service implementation into narrow slices.

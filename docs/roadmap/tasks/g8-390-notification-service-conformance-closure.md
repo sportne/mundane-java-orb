@@ -1,7 +1,7 @@
 # G8-390 Notification Service Conformance Closure
 
 Task ID: G8-390-NOTIFICATION-SERVICE-CONFORMANCE-CLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-030, REQ-SVC-020, REQ-NATIVE-002, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0019

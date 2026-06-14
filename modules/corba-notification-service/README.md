@@ -24,12 +24,13 @@ operations, local filter/QoS rejection diagnostics, malformed request
 diagnostics, Naming-resolved NotificationChannel IORs, and clean shutdown.
 G8-370 adds representative Native Image smoke coverage for channel creation,
 structured-event validation, filter validation, QoS rejection, local delivery,
-loopback IIOP/Naming exposure, and clean shutdown. Interop metadata and
-conformance closure remain staged follow-on work. G8-380 adds metadata-only
+loopback IIOP/Naming exposure, and clean shutdown. G8-380 adds metadata-only
 interop discovery for the `notification-service` scenario: an IDL fixture,
 approved-peer manifest declarations, deterministic JVM/native dry-run direction
-enumeration, and structured missing-prerequisite reports. Live peer execution
-and pass/fail peer compatibility claims remain out of scope.
+enumeration, and structured missing-prerequisite reports. G8-390 closes the
+local/IIOP/Native Image/dry-run conformance record for the implemented subset.
+Live peer execution and pass/fail peer compatibility claims remain out of
+scope.
 
 ## Implemented local surface
 

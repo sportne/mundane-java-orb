@@ -441,6 +441,7 @@ approved-peer manifest declarations, JVM/native dry-run direction enumeration,
 and structured missing-prerequisite reports for live approval, scenario IDL,
 local commands/binaries, artifact cache, digest-pinned base image, container
 runtime, peer image, and unapproved live execution. Notification Service has no
-live peer lanes or pass/fail peer evidence. The remaining G8 task groups must
-add service-specific metadata and missing-prerequisite reports before any peer
-execution is required.
+live peer lanes or pass/fail peer evidence. G8-390 closes that
+local/IIOP/Native Image/dry-run conformance record without approving live peer
+execution. The remaining G8 task groups must add service-specific metadata and
+missing-prerequisite reports before any peer execution is required.

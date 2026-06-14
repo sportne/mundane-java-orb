@@ -269,6 +269,11 @@ overrides, reflection, dynamic proxies, Java serialization metadata,
 service-loader discovery, runtime bytecode generation, internal JDK APIs, or
 `Unsafe`.
 
+G8-390 closes the Notification Service conformance record using that smoke
+evidence together with the local unit, loopback IIOP/Naming, and dry-run
+interop metadata lanes. It adds no new Native Image metadata or live peer
+execution.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path
