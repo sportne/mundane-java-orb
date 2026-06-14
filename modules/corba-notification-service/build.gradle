@@ -7,4 +7,12 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Notification Service implementation module, initially design-only.'
+description = 'Notification Service implementation module.'
+
+dependencies {
+    // Notification Service diagnostics use the repository-wide stable diagnostic-code value.
+    api project(':modules:corba-common')
+
+    // G8-310 exposes an explicit Event Service compatibility boundary for local proxy roles.
+    api project(':modules:corba-event-service')
+}

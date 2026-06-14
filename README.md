@@ -247,8 +247,9 @@ approved peers, mounts `interop/idl/event-service.idl`, enumerates JVM/native
 dry-run directions, and writes deterministic missing-prerequisite reports
 without live peer claims. G8-270 closes the local/IIOP/Native Image/dry-run
 Event Service conformance record for that subset. G8-300 splits Notification
-Service into narrow implementation slices covering the compatibility boundary,
-structured events, bounded filters, QoS/admin validation, local delivery,
-IIOP/Naming exposure, Native Image smoke, interop metadata, and conformance
-closure. The next ready roadmap task is G8-310, adding the Notification Service
-Event Service compatibility boundary.
+Service into narrow implementation slices. G8-310 adds the Notification Service
+local channel lifecycle and Event Service compatibility boundary, including
+bounded options, stable diagnostics, supplier/consumer admin handles, structured
+proxy lifecycle handles, and proxy-role mapping back to Event Service roles.
+The next ready roadmap task is G8-320, adding the bounded structured-event
+model.

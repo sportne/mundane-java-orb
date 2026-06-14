@@ -130,8 +130,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-260-event-service-interop-metadata.md` - complete
 - `tasks/g8-270-event-service-conformance-closure.md` - complete
 - `tasks/g8-300-notification-service-task-group.md` - complete
-- `tasks/g8-310-notification-service-event-compatibility-boundary.md` - ready-for-implementation
-- `tasks/g8-320-notification-service-structured-event-model.md` - blocked
+- `tasks/g8-310-notification-service-event-compatibility-boundary.md` - complete
+- `tasks/g8-320-notification-service-structured-event-model.md` - ready-for-implementation
 - `tasks/g8-330-notification-service-bounded-filter-model.md` - blocked
 - `tasks/g8-340-notification-service-qos-admin-policy-validation.md` - blocked
 - `tasks/g8-350-notification-service-local-delivery.md` - blocked
