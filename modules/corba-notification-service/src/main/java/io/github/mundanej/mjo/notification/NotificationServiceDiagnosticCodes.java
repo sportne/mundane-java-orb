@@ -41,5 +41,20 @@ public final class NotificationServiceDiagnosticCodes {
   /** A structured-event string value exceeded the supported length. */
   public static final DiagnosticCode VALUE_LIMIT_EXCEEDED = new DiagnosticCode("NOTF-0012");
 
+  /** A Notification Service filter expression was malformed. */
+  public static final DiagnosticCode MALFORMED_FILTER = new DiagnosticCode("NOTF-0013");
+
+  /** A Notification Service filter expression exceeded supported limits. */
+  public static final DiagnosticCode FILTER_LIMIT_EXCEEDED = new DiagnosticCode("NOTF-0014");
+
+  /** A Notification Service filter expression used an unsupported operator. */
+  public static final DiagnosticCode UNSUPPORTED_FILTER_OPERATOR = new DiagnosticCode("NOTF-0015");
+
+  /** A Notification Service filter referenced an unknown event field. */
+  public static final DiagnosticCode UNKNOWN_FILTER_FIELD = new DiagnosticCode("NOTF-0016");
+
+  /** A Notification Service filter compared incompatible primitive types. */
+  public static final DiagnosticCode FILTER_TYPE_MISMATCH = new DiagnosticCode("NOTF-0017");
+
   private NotificationServiceDiagnosticCodes() {}
 }

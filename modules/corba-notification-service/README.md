@@ -11,7 +11,9 @@ structured proxy handles, channel destruction behavior, and explicit proxy-role
 mapping back to Event Service roles. G8-320 adds immutable structured events
 with fixed identity fields, primitive named properties, bounded variable
 header/body sections, duplicate-field rejection, unsupported-value rejection,
-and oversized-data diagnostics. Filters, QoS/admin policy, delivery,
+and oversized-data diagnostics. G8-330 adds bounded filter parsing and
+evaluation for boolean constants, identity equality/inequality, primitive named
+filter properties, and boolean composition. QoS/admin policy, delivery,
 IIOP/Naming, Native Image, interop metadata, and conformance closure remain
 staged follow-on work.
 
@@ -34,6 +36,8 @@ staged follow-on work.
   `NotificationEventType`, `NotificationProperty`, and
   `NotificationPrimitiveValue` define the immutable local structured-event
   value model.
+- `NotificationFilter` parses and evaluates the supported local filter subset
+  with expression length, depth, and term limits.
 
 ## Documentation requirements
 
