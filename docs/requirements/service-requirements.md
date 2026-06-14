@@ -7,7 +7,7 @@ promoted.
 
 | ID | Title | Status | Primary modules | Specification references |
 |---|---|---|---|---|
-| REQ-SVC-010 | Stage Trading Service behind approved ADR-0020 and promoted G8-410 through G8-490 task slices. | design-approved-split | corba-trading-service, corba-services-core | TRADE-10 |
+| REQ-SVC-010 | Stage Trading Service behind approved ADR-0020 and promoted G8-410 through G8-490 task slices. | implementation-started | corba-trading-service, corba-services-core | TRADE-10 |
 | REQ-SVC-020 | Stage Event Service behind approved ADR-0018 and blocked G8-200 task slices. | design-approved | corba-event-service, corba-services-core | EVNT-12 |
 | REQ-SVC-030 | Stage Notification Service behind approved ADR-0019 and blocked G8-300 task slices. | design-approved | corba-notification-service, corba-services-core | NOT-11 |
 | REQ-SVC-040 | Stage Transaction Service / OTS behind approved ADR-0021 and blocked G8-500 task slices. | design-approved | corba-transaction-service, corba-services-core | TRANS-14 |

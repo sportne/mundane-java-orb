@@ -79,7 +79,7 @@ summary.
 | Time Service | REQ-SVC-060 | TIME-11 | `modules/corba-time-service` owns time and interval value models, caller-configured clock policy, local query behavior, Naming/IIOP exposure, and service-specific interop metadata. | G8-100 implements local TimeBase value/clock behavior; G8-110 implements descriptor-backed loopback IIOP and optional Naming registration; G8-120 adds approved-peer scenario metadata and dry-run prerequisite reporting; G8-140 records approved live peer evidence for peer clients invoking our JVM and Native Image Time Service servers across JacORB, GlassFish CORBA ORB, and JBoss OpenJDK ORB. |
 | Event Service | REQ-SVC-020 | EVNT-12 | `modules/corba-event-service` owns event channels, push/pull supplier and consumer surfaces, channel lifecycle, bounded fan-out/backpressure, loopback EventChannel IIOP/Naming exposure, Native Image smoke coverage, and interop metadata for the implemented subset. | G8-270 closes the implemented Event Service conformance record across local channel lifecycle, in-JVM push/pull delivery, bounded backpressure and stale-proxy diagnostics, descriptor-backed loopback IIOP/Naming exposure, Native Image smoke, approved-peer dry-run metadata, and structured missing-prerequisite reports. Live peer execution and pass/fail compatibility claims remain unapproved. |
 | Notification Service | REQ-SVC-030 | NOT-11 | `modules/corba-notification-service` owns notification channels, structured events, bounded filtering, QoS/admin models, local delivery, optional IIOP/Naming exposure, Native Image smoke, interop metadata, and Event Service compatibility boundaries. | G8-390 closes the implemented Notification Service conformance record across local channel lifecycle, Event Service compatibility, structured-event validation, bounded filters, QoS/admin policy validation, in-JVM structured delivery, descriptor-backed loopback IIOP/Naming exposure, Native Image smoke, approved-peer dry-run metadata, and structured missing-prerequisite reports. Live peer execution and pass/fail compatibility claims remain unapproved. |
-| Trading Service | REQ-SVC-010 | TRADE-10 | `modules/corba-trading-service` owns service type repositories, offer repositories, constraint parsing/evaluation, local query, and future import/export behavior. | G8-400 splits the accepted ADR-0020 design into staged slices. G8-410 is ready to add the bounded service type repository before offer, constraint, query, import/export, IIOP/Naming, Native Image, interop metadata, and closure tasks. |
+| Trading Service | REQ-SVC-010 | TRADE-10 | `modules/corba-trading-service` owns service type repositories, offer repositories, constraint parsing/evaluation, local query, and future import/export behavior. | G8-410 implements the bounded local service type repository with primitive property definitions and stable diagnostics. G8-420 is ready to add the offer repository before constraint, query, import/export, IIOP/Naming, Native Image, interop metadata, and closure tasks. |
 | Transaction Service / OTS | REQ-SVC-040 | TRANS-14 | `modules/corba-transaction-service` owns transaction coordinator, resource, propagation, timeout, and recovery design decisions. | Design accepted by ADR-0021; implementation blocked behind `G8-500-TRANSACTION-SERVICE-TASK-GROUP`. |
 | Security Service / CSIv2 | REQ-SVC-050 | SEC-18, CORBA-IOP-SECURITY | `modules/corba-security-service` owns credentials, trust, policy, CSIv2 metadata, local policy evaluation, and audit/failure disclosure. | Design accepted by ADR-0022; implementation blocked behind `G8-600-SECURITY-SERVICE-TASK-GROUP`. |
 
@@ -89,9 +89,9 @@ metadata, and scoped live peer-client evidence are the first implemented
 optional-service slices. Event Service and Notification Service local/IIOP
 behavior now have closed local conformance records with matching Native Image
 smoke evidence and dry-run peer metadata before any live peer claim. Trading
-Service is split into narrow implementation tasks with the type repository as
-the only ready slice; Transaction and Security/CSIv2 remain blocked behind
-their task groups.
+Service has started with the bounded type repository, and the offer repository
+is the only ready Trading slice; Transaction and Security/CSIv2 remain blocked
+behind their task groups.
 
 ## Native Image Policy
 
