@@ -79,6 +79,13 @@ public final class IiopServer implements AutoCloseable {
     } catch (IOException ignored) {
       // Close is best-effort and idempotent.
     }
+    if (Thread.currentThread() != acceptThread) {
+      try {
+        acceptThread.join(1000L);
+      } catch (InterruptedException exception) {
+        Thread.currentThread().interrupt();
+      }
+    }
     for (Socket socket : openSockets) {
       closeSocket(socket);
     }
