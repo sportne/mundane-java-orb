@@ -11,10 +11,14 @@ smoke, interop metadata, and conformance closure.
 
 `G8-410` adds the first local subset: an in-memory service type repository with
 bounded names, primitive property definitions, immutable snapshots, stable
-`TRAD-*` diagnostics, and caller-configured limits. It does not add offers,
-constraints, query behavior, import/export behavior, IIOP/Naming exposure,
-Native Image smoke, interop metadata, durable persistence, or live peer claims.
-`G8-420` is the next ready implementation slice.
+`TRAD-*` diagnostics, and caller-configured limits. `G8-420` adds bounded
+in-memory offer CRUD over registered service types, primitive property values,
+immutable offer snapshots, list-by-type ordering, and deterministic diagnostics
+for missing types, duplicate or missing offers, property mismatches, unsupported
+values, and configured limits. It does not add constraints, query behavior,
+import/export behavior, IIOP/Naming exposure, Native Image smoke, interop
+metadata, durable persistence, or live peer claims. `G8-430` is the next ready
+implementation slice.
 
 ## Documentation requirements
 

@@ -1,7 +1,7 @@
 # G8-420 Trading Service Offer Repository
 
 Task ID: G8-420-TRADING-SERVICE-OFFER-REPOSITORY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-010, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0020
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for offer registration, updates, withdrawal,
 Documentation to update: Trading Service and Services Core READMEs as needed, services design, optional services conformance/review, roadmap index, README, and G8-430 status.
 Commands to run: ./gradlew :modules:corba-trading-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Trading Service exposes bounded in-memory offer CRUD over registered service types with deterministic diagnostics and no query, import/export, persistence, IIOP/Naming, Native Image, interop, or live peer claim; G8-430 is promoted after completion.
+Completion evidence: Added `TradingOffer`, `TradingOfferRepositoryOptions`, and `LocalTradingOfferRepository` with bounded offer IDs, offer counts, property counts, string values, create/update/withdraw/lookup/list-by-type behavior, immutable offer snapshots, type compatibility validation against `LocalTradingTypeRepository`, and stable diagnostics for missing types, duplicate/missing offers, property mismatches, unsupported values, and configured limit violations. Unit tests cover registration, deterministic type listing, updates, withdrawal, lookup, type compatibility, limits, malformed identifiers, unsupported finite-floating-point values, and immutable snapshots. G8-430 is promoted as the only ready Trading Service implementation task.
 Rollback notes: Revert Trading Service offer repository sources, tests, docs, and roadmap status together.

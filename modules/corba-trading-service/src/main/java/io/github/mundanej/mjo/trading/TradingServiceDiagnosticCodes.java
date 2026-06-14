@@ -29,5 +29,26 @@ public final class TradingServiceDiagnosticCodes {
   /** A service type or property definition was null or internally inconsistent. */
   public static final DiagnosticCode MALFORMED_TYPE = new DiagnosticCode("TRAD-0008");
 
+  /** An offer registration used an ID that already exists. */
+  public static final DiagnosticCode OFFER_ALREADY_EXISTS = new DiagnosticCode("TRAD-0009");
+
+  /** An offer lookup, update, or withdrawal referenced an unknown offer. */
+  public static final DiagnosticCode OFFER_NOT_FOUND = new DiagnosticCode("TRAD-0010");
+
+  /** The configured offer count has been reached. */
+  public static final DiagnosticCode OFFER_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0011");
+
+  /** An offer property did not match its service type definition. */
+  public static final DiagnosticCode PROPERTY_MISMATCH = new DiagnosticCode("TRAD-0012");
+
+  /** An offer property value used an unsupported Java value type or state. */
+  public static final DiagnosticCode UNSUPPORTED_VALUE = new DiagnosticCode("TRAD-0013");
+
+  /** An offer was null or internally inconsistent. */
+  public static final DiagnosticCode MALFORMED_OFFER = new DiagnosticCode("TRAD-0014");
+
+  /** An offer property value exceeded a configured bound. */
+  public static final DiagnosticCode VALUE_LIMIT_EXCEEDED = new DiagnosticCode("TRAD-0015");
+
   private TradingServiceDiagnosticCodes() {}
 }
