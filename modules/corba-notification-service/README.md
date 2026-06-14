@@ -4,8 +4,12 @@ Notification Service implementation module.
 
 ## Current status
 
-Design accepted by ADR-0019. Implementation remains blocked behind
-`G8-300-NOTIFICATION-SERVICE-TASK-GROUP`.
+Design accepted by ADR-0019. G8-300 splits implementation into narrow promoted
+slices. The next ready slice is
+`G8-310-NOTIFICATION-SERVICE-EVENT-COMPATIBILITY-BOUNDARY`, which will add the
+local channel lifecycle and Event Service compatibility boundary before
+structured events, filters, QoS/admin policy, delivery, IIOP/Naming, Native
+Image, interop metadata, or conformance closure.
 
 ## Documentation requirements
 

@@ -430,6 +430,9 @@ Event Service local/IIOP/Native Image/dry-run conformance record for that
 subset. The `event-service` peer metadata, `interop/idl/event-service.idl`,
 JVM/native dry-run direction enumeration, and structured missing-prerequisite
 reports remain metadata-only; Event Service does not have live peer lanes or
-pass/fail peer evidence. The remaining G8 task groups must add
-service-specific metadata and missing-prerequisite reports before any peer
+pass/fail peer evidence. G8-300 splits Notification Service into staged local,
+Native Image, and metadata-only interop slices. The future G8-380
+`notification-service` scenario must remain dry-run/report-only until a later
+task explicitly approves live peer execution. The remaining G8 task groups must
+add service-specific metadata and missing-prerequisite reports before any peer
 execution is required.

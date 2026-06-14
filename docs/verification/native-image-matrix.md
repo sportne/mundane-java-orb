@@ -245,6 +245,15 @@ closes the Event Service conformance record using that smoke evidence together
 with the local unit, loopback IIOP/Naming, and dry-run interop metadata lanes;
 it adds no new Native Image metadata or live peer execution.
 
+## Planned G8-370 Notification Service Native Image evidence
+
+G8-300 splits Notification Service into staged implementation slices. The
+planned G8-370 Native Image smoke must cover channel creation, structured event
+validation, filter validation, QoS rejection, local delivery, loopback
+IIOP/Naming exposure, and clean shutdown for the supported local subset. The
+accepted metadata set remains empty unless that task records a reviewed source
+need for explicit metadata.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path
