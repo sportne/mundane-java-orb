@@ -63,6 +63,10 @@ final class InteropPeerGateTest {
       assertTrue(manifest.contains("event-service:"), manifest);
       assertTrue(manifest.contains("idl: interop/idl/event-service.idl"), manifest);
       assertTrue(manifest.contains("support: event-service-metadata-dry-run"), manifest);
+      assertTrue(manifest.contains("  - notification-service"), manifest);
+      assertTrue(manifest.contains("notification-service:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/notification-service.idl"), manifest);
+      assertTrue(manifest.contains("support: notification-service-metadata-dry-run"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -81,6 +85,12 @@ final class InteropPeerGateTest {
     assertTrue(
         Files.isRegularFile(repoRoot().resolve(eventService.idlPath())),
         "Event Service IDL fixture must be present for metadata dry runs");
+    InteropScenario notificationService = InteropScenario.notificationService();
+    assertEquals("notification-service", notificationService.name());
+    assertEquals("interop/idl/notification-service.idl", notificationService.idlPath());
+    assertTrue(
+        Files.isRegularFile(repoRoot().resolve(notificationService.idlPath())),
+        "Notification Service IDL fixture must be present for metadata dry runs");
   }
 
   @Test
@@ -183,6 +193,32 @@ final class InteropPeerGateTest {
         result
             .output()
             .contains("dry-run: would run scenario event-service role server for " + FIXTURE_PEER),
+        result.output());
+    assertFalse(result.output().contains("for other-peer"), result.output());
+  }
+
+  @Test
+  void runScenarioAllFiltersPeersByDeclaredNotificationServiceCapability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path otherPeer = fixture.root().resolve("interop/peers/other-peer");
+    Files.createDirectories(otherPeer);
+    Files.writeString(
+        otherPeer.resolve("peer.yaml"),
+        removeNotificationServiceCapability(
+            peerManifest(FixtureOptions.valid()).replace("fixture-peer", "other-peer")),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--dry-run", "notification-service", "all"),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run scenario notification-service role server for " + FIXTURE_PEER),
         result.output());
     assertFalse(result.output().contains("for other-peer"), result.output());
   }
@@ -425,6 +461,7 @@ final class InteropPeerGateTest {
                   - rmi-iiop
                   - time-service
                   - event-service
+                  - notification-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1123,6 +1160,52 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void notificationServiceDirectionMatrixDryRunEnumeratesBothDirectionsAndRuntimesWithoutMutating()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "notification-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains("dry-run: would start fixture-peer server for notification-service"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for "
+                    + "notification-service"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for "
+                    + "notification-service"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
   void durablePeerRestartDryRunEnumeratesOnlyLocalServerToPeerClientDirections() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
 
@@ -1588,6 +1671,227 @@ final class InteropPeerGateTest {
             StandardCharsets.UTF_8);
     assertTrue(report.contains("\"missingPrerequisite\": \"live-execution\""), report);
     assertTrue(report.contains("G8-260 records Event Service prerequisites only"), report);
+  }
+
+  @Test
+  void notificationServiceLiveRunRequiresExplicitApprovalReportsWithoutPeerOutputs()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-380 must not start peer-server live work");
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"peer-server-to-local-client\""), report);
+    assertTrue(report.contains("\"localRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"service\": \"notification-service\""), report);
+    assertTrue(
+        report.contains(
+            "\"operationSet\": \"structured-channel-admin,structured-push,pull,try_pull,"
+                + "filter,qos,disconnect\""));
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+  }
+
+  @Test
+  void notificationServiceRunScenarioRequireLiveReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-380 direct scenario execution must not start peer roles");
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"service\": \"notification-service\""), report);
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.root().resolve("interop/idl/notification-service.idl"));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of("INTEROP_NOTIFICATION_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"scenario-idl\""), report);
+    assertTrue(report.contains("Notification Service scenario IDL is missing"), report);
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportsNameMissingLocalLaneCommands() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(
+                Map.of("INTEROP_NOTIFICATION_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String jvmClient =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String nativeClient =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String jvmServer =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+    String nativeServer =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(jvmClient.contains("\"missingPrerequisite\": \"MJO_JVM_CLIENT_COMMAND\""));
+    assertTrue(nativeClient.contains("\"missingPrerequisite\": \"MJO_NATIVE_CLIENT_BINARY\""));
+    assertTrue(jvmServer.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""));
+    assertTrue(nativeServer.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""));
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(notificationServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(notificationServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+    Map<String, String> environment = notificationServiceApprovedCommandEnvironment();
+    environment.put("PATH", isolatedBin.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void notificationServicePrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("notification-service-missing-image", 1, 0);
+    Map<String, String> environment = notificationServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
+  void notificationServiceDoesNotExecuteLiveLanesEvenWhenPrerequisitesPass() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("notification-service-live-blocked", 0, 0);
+    Map<String, String> environment = notificationServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "notification-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+    String report =
+        Files.readString(
+            notificationServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-execution\""), report);
+    assertTrue(report.contains("G8-380 records Notification Service prerequisites only"), report);
   }
 
   @Test
@@ -2128,6 +2432,9 @@ final class InteropPeerGateTest {
     Files.copy(
         repoRoot().resolve("interop/idl/event-service.idl"),
         root.resolve("interop/idl/event-service.idl"));
+    Files.copy(
+        repoRoot().resolve("interop/idl/notification-service.idl"),
+        root.resolve("interop/idl/notification-service.idl"));
 
     Files.writeString(peers.resolve("peer.yaml"), peerManifest(options), StandardCharsets.UTF_8);
     Files.writeString(
@@ -2153,6 +2460,7 @@ final class InteropPeerGateTest {
                   - rmi-iiop
                   - time-service
                   - event-service
+                  - notification-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -2199,6 +2507,20 @@ final class InteropPeerGateTest {
                   event-service:
                     idl: interop/idl/event-service.idl
                     support: event-service-metadata-dry-run
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - expected-deferral
+                      - missing-prerequisite
+                      - unsupported-scenario
+                      - infrastructure-failure
+                  notification-service:
+                    idl: interop/idl/notification-service.idl
+                    support: notification-service-metadata-dry-run
                     directions:
                       - peer-server-to-local-client
                       - local-server-to-peer-client
@@ -2315,9 +2637,19 @@ final class InteropPeerGateTest {
   private static String removeEventServiceCapability(String manifest) {
     String withoutGroup = manifest.replace("  - event-service\n", "");
     int start = withoutGroup.indexOf("  event-service:\n");
-    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    int end = withoutGroup.indexOf("  notification-service:\n", start);
     if (start < 0 || end < 0) {
       throw new IllegalArgumentException("Event Service capability block not found");
+    }
+    return withoutGroup.substring(0, start) + withoutGroup.substring(end);
+  }
+
+  private static String removeNotificationServiceCapability(String manifest) {
+    String withoutGroup = manifest.replace("  - notification-service\n", "");
+    int start = withoutGroup.indexOf("  notification-service:\n");
+    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    if (start < 0 || end < 0) {
+      throw new IllegalArgumentException("Notification Service capability block not found");
     }
     return withoutGroup.substring(0, start) + withoutGroup.substring(end);
   }
@@ -2332,12 +2664,38 @@ final class InteropPeerGateTest {
     return environment;
   }
 
+  private static Map<String, String> notificationServiceApprovedCommandEnvironment() {
+    java.util.HashMap<String, String> environment = new java.util.HashMap<>();
+    environment.put("INTEROP_NOTIFICATION_SERVICE_LIVE_APPROVED", "true");
+    environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
+    environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
+    environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
+    environment.put("MJO_NATIVE_SERVER_BINARY", "/bin/true");
+    return environment;
+  }
+
   private static Path eventServicePrerequisiteReport(
       Fixture fixture, String peer, String runtime, String role, String direction) {
     return fixture
         .root()
         .resolve(
             "build/interop/local/reports/event-service-"
+                + peer
+                + "-"
+                + runtime
+                + "-"
+                + role
+                + "-"
+                + direction
+                + ".json");
+  }
+
+  private static Path notificationServicePrerequisiteReport(
+      Fixture fixture, String peer, String runtime, String role, String direction) {
+    return fixture
+        .root()
+        .resolve(
+            "build/interop/local/reports/notification-service-"
                 + peer
                 + "-"
                 + runtime

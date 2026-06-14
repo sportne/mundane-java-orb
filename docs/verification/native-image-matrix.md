@@ -262,6 +262,13 @@ remains empty: no reflection metadata, dynamic proxies, Java serialization
 metadata, service-loader discovery, runtime bytecode generation, process
 execution, internal JDK APIs, or `Unsafe` are introduced.
 
+G8-380 adds Notification Service interop metadata only. The `notification-service`
+dry-run and missing-prerequisite report paths reuse existing JVM/native lane
+inputs and do not add Native Image metadata files, class-initialization
+overrides, reflection, dynamic proxies, Java serialization metadata,
+service-loader discovery, runtime bytecode generation, internal JDK APIs, or
+`Unsafe`.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path

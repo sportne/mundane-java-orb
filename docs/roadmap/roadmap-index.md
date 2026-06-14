@@ -137,8 +137,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-350-notification-service-local-delivery.md` - complete
 - `tasks/g8-360-notification-service-iiop-naming-exposure.md` - complete
 - `tasks/g8-370-notification-service-native-smoke.md` - complete
-- `tasks/g8-380-notification-service-interop-metadata.md` - ready-for-implementation
-- `tasks/g8-390-notification-service-conformance-closure.md` - blocked
+- `tasks/g8-380-notification-service-interop-metadata.md` - complete
+- `tasks/g8-390-notification-service-conformance-closure.md` - ready-for-implementation
 - `tasks/g8-400-trading-service-task-group.md` - blocked
 - `tasks/g8-500-transaction-service-task-group.md` - blocked
 - `tasks/g8-600-security-service-task-group.md` - blocked

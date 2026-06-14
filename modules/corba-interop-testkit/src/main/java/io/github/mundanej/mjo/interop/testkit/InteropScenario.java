@@ -17,6 +17,11 @@ public record InteropScenario(String name, String idlPath) {
     return new InteropScenario("event-service", "interop/idl/event-service.idl");
   }
 
+  /** Returns the approved G8 Notification Service peer metadata scenario. */
+  public static InteropScenario notificationService() {
+    return new InteropScenario("notification-service", "interop/idl/notification-service.idl");
+  }
+
   private static String requireScenarioName(String value) {
     requireNotBlank(value, "name");
     if (!value.matches("[A-Za-z0-9._-]+")) {

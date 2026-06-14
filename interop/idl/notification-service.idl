@@ -1,0 +1,80 @@
+module CosNotification {
+  struct EventType {
+    string domain_name;
+    string type_name;
+  };
+
+  struct Property {
+    string name;
+    any value;
+  };
+
+  typedef sequence<Property> PropertySeq;
+
+  struct FixedEventHeader {
+    EventType event_type;
+    string event_name;
+  };
+
+  struct EventHeader {
+    FixedEventHeader fixed_header;
+    PropertySeq variable_header;
+  };
+
+  struct StructuredEvent {
+    EventHeader header;
+    PropertySeq filterable_data;
+    any remainder_of_body;
+  };
+};
+
+module CosNotifyComm {
+  interface StructuredPushConsumer {
+    void push_structured_event(in CosNotification::StructuredEvent notification);
+    void disconnect_structured_push_consumer();
+  };
+
+  interface StructuredPullSupplier {
+    CosNotification::StructuredEvent pull_structured_event();
+    CosNotification::StructuredEvent try_pull_structured_event(out boolean has_event);
+    void disconnect_structured_pull_supplier();
+  };
+
+  interface StructuredPullConsumer {
+    void disconnect_structured_pull_consumer();
+  };
+
+  interface StructuredPushSupplier {
+    void disconnect_structured_push_supplier();
+  };
+};
+
+module CosNotifyChannelAdmin {
+  interface StructuredProxyPushConsumer : CosNotifyComm::StructuredPushConsumer {
+  };
+
+  interface StructuredProxyPullConsumer : CosNotifyComm::StructuredPullConsumer {
+  };
+
+  interface StructuredProxyPushSupplier : CosNotifyComm::StructuredPushSupplier {
+  };
+
+  interface StructuredProxyPullSupplier : CosNotifyComm::StructuredPullSupplier {
+  };
+
+  interface SupplierAdmin {
+    StructuredProxyPushConsumer obtain_structured_push_consumer();
+    StructuredProxyPullConsumer obtain_structured_pull_consumer();
+  };
+
+  interface ConsumerAdmin {
+    StructuredProxyPushSupplier obtain_structured_push_supplier();
+    StructuredProxyPullSupplier obtain_structured_pull_supplier();
+  };
+
+  interface EventChannel {
+    SupplierAdmin for_suppliers();
+    ConsumerAdmin for_consumers();
+    void destroy();
+  };
+};

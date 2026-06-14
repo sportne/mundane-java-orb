@@ -262,5 +262,9 @@ filter/QoS rejection diagnostics, malformed request diagnostics, and
 Naming-resolved NotificationChannel IORs. G8-370 adds Native Image smoke
 coverage for channel creation, structured event validation, filter validation,
 QoS rejection, local delivery, loopback IIOP/Naming exposure, and clean
-shutdown. The next ready roadmap task is G8-380, adding metadata-only
-Notification Service interop discovery and deterministic dry-run reporting.
+shutdown. G8-380 adds the `notification-service` IDL fixture, approved-peer
+metadata, JVM/native dry-run direction enumeration,
+`InteropScenario.notificationService()`, and structured missing-prerequisite
+reports without starting peer containers or claiming live peer compatibility.
+The next ready roadmap task is G8-390, closing the Notification Service local
+conformance record.

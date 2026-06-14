@@ -435,8 +435,12 @@ Native Image, and metadata-only interop slices. G8-360 adds local loopback
 IIOP/Naming evidence for NotificationChannel admin lookup, structured proxy
 creation, structured push/pull/try-pull operations, filter/QoS rejection
 diagnostics, malformed request diagnostics, and Naming-resolved
-NotificationChannel IORs without peer execution. The future G8-380
-`notification-service` scenario must remain dry-run/report-only until a later
-task explicitly approves live peer execution. The remaining G8 task groups must
+NotificationChannel IORs without peer execution. G8-380 adds the metadata-only
+`notification-service` scenario, `interop/idl/notification-service.idl`,
+approved-peer manifest declarations, JVM/native dry-run direction enumeration,
+and structured missing-prerequisite reports for live approval, scenario IDL,
+local commands/binaries, artifact cache, digest-pinned base image, container
+runtime, peer image, and unapproved live execution. Notification Service has no
+live peer lanes or pass/fail peer evidence. The remaining G8 task groups must
 add service-specific metadata and missing-prerequisite reports before any peer
 execution is required.
