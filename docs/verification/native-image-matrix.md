@@ -317,6 +317,16 @@ dynamic proxies, Java serialization metadata, service-loader discovery, runtime
 bytecode generation, durable recovery logs, XA integration, distributed peer
 two-phase commit, or live peer execution claims.
 
+## G8-670 Security Service Native Image plan
+
+G8-600 splits Security Service / CSIv2 into staged implementation slices.
+G8-670 is reserved for the first Security Service Native Image smoke evidence,
+covering credential rejection, trust validation, policy rejection, CSIv2
+metadata encode/decode, local policy evaluation, audit redaction, IIOP boundary
+behavior, and clean shutdown. Until that slice is implemented, the accepted
+metadata set remains empty and no Security Service Native Image behavior is
+claimed.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path

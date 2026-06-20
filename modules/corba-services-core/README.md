@@ -8,6 +8,9 @@ Design accepted by ADR-0016. Shared service behavior remains limited to the
 exact contracts named by promoted optional-service tasks. `G8-510` did not need
 shared runtime source changes; Transaction Service currently owns its bounded
 local coordinator/resource model in `modules/corba-transaction-service`.
+Security Service has been split into staged `G8-610` through `G8-690` tasks;
+shared runtime changes remain allowed only when a promoted slice names an exact
+contract.
 
 ## Documentation requirements
 

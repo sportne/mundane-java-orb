@@ -81,7 +81,7 @@ summary.
 | Notification Service | REQ-SVC-030 | NOT-11 | `modules/corba-notification-service` owns notification channels, structured events, bounded filtering, QoS/admin models, local delivery, optional IIOP/Naming exposure, Native Image smoke, interop metadata, and Event Service compatibility boundaries. | G8-390 closes the implemented Notification Service conformance record across local channel lifecycle, Event Service compatibility, structured-event validation, bounded filters, QoS/admin policy validation, in-JVM structured delivery, descriptor-backed loopback IIOP/Naming exposure, Native Image smoke, approved-peer dry-run metadata, and structured missing-prerequisite reports. Live peer execution and pass/fail compatibility claims remain unapproved. |
 | Trading Service | REQ-SVC-010 | TRADE-10 | `modules/corba-trading-service` owns service type repositories, offer repositories, constraint parsing/evaluation, local query, import/export boundary metadata, loopback IIOP/Naming exposure, Native Image smoke coverage, and interop metadata for the implemented subset. | G8-490 closes the implemented Trading Service conformance record across bounded service type repository behavior, in-memory offer CRUD, closed-world constraint parsing/evaluation, local type-scoped query, import/export boundary metadata with disabled-federation diagnostics, descriptor-backed loopback IIOP/Naming exposure for the supported Trader facade, Native Image smoke coverage, and metadata-only `trading-service` dry-run reporting. Live peer execution, pass/fail compatibility claims, durable persistence, and remote federation remain unapproved. |
 | Transaction Service / OTS | REQ-SVC-040 | TRANS-14 | `modules/corba-transaction-service` owns transaction coordinator, resource, propagation, timeout, recovery-boundary, request-context design decisions, and interop metadata for the implemented local subset. | G8-590 closes the implemented Transaction Service conformance record across bounded local behavior, disabled durable-recovery diagnostics, descriptor-backed loopback request-context handling, Native Image smoke, and metadata-only `transaction-service` dry-run reporting. Live peer execution, pass/fail compatibility claims, durable logs, XA integration, Security Service integration, and distributed peer two-phase commit remain unapproved. |
-| Security Service / CSIv2 | REQ-SVC-050 | SEC-18, CORBA-IOP-SECURITY | `modules/corba-security-service` owns credentials, trust, policy, CSIv2 metadata, local policy evaluation, and audit/failure disclosure. | Design accepted by ADR-0022; `G8-600-SECURITY-SERVICE-TASK-GROUP` is ready to split implementation into bounded slices. |
+| Security Service / CSIv2 | REQ-SVC-050 | SEC-18, CORBA-IOP-SECURITY | `modules/corba-security-service` owns credentials, trust, policy, CSIv2 metadata, local policy evaluation, and audit/failure disclosure. | G8-600 splits Security Service into staged G8-610 through G8-690 slices. G8-610 is ready for the bounded credential/trust model; policy, CSIv2 metadata, local evaluation, audit disclosure, IIOP, Native Image, interop metadata, and closure remain blocked behind their predecessors. |
 
 Each optional service now has an accepted ADR and staged task group. Time
 Service local value/clock behavior, loopback IIOP/Naming exposure, peer
@@ -92,8 +92,8 @@ smoke evidence and dry-run peer metadata before any live peer claim. Trading
 Service now has a closed local/IIOP/Native Image/dry-run conformance record
 for the implemented subset. Transaction Service / OTS now has a closed
 local/IIOP request-context/Native Image/dry-run conformance record for the
-implemented subset. Security/CSIv2 is the next ready optional-service task
-group.
+implemented subset. Security/CSIv2 has been split into sequential G8-610
+through G8-690 slices, with only the credential/trust model ready first.
 
 ## Native Image Policy
 

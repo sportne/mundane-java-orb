@@ -1,0 +1,17 @@
+# G8-680 Security Service Interop Metadata
+
+Task ID: G8-680-SECURITY-SERVICE-INTEROP-METADATA
+Status: blocked
+Gate: Optional CORBA service implementation
+Requirement IDs: REQ-SVC-050, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
+ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
+Specification references: SEC-18, CORBA-IOP-SECURITY
+Target module: interop harness, modules/corba-interop-testkit, modules/corba-security-service
+Allowed files: interop/bin/**, interop/idl/**, interop/lib/**, interop/peers/**/peer.yaml, modules/corba-interop-testkit/src/**, modules/corba-security-service/README.md, docs/architecture/services-design.md, docs/conformance/optional-services-matrix.md, docs/requirements/service-requirements.md, docs/verification/optional-services-review.md, docs/verification/interop-matrix.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g8-680-security-service-interop-metadata.md, docs/roadmap/tasks/g8-690-security-service-conformance-closure.md, README.md
+Forbidden files: live peer execution approval, committed live reports, peer artifacts, Docker layers, prepared peer images, generated OMG APIs, broad secure peer compatibility claims, automatic TLS policy changes, global JVM security-manager integration, enterprise identity management, Native Image binary commits, Java serialization metadata, reflection metadata, dynamic proxies, runtime bytecode generation, `Unsafe`, `sun.*`, `jdk.internal.*`
+Expected behavior: Task type: implementation. Add Security Service interop metadata and reporting only: a `security-service` fixture for the implemented SEC-18/CSIv2 subset, approved-peer manifest scenario declarations, `InteropScenario.securityService()`, dry-run direction enumeration for JVM/native local runtimes, all-target filtering by declared capability, and structured missing-prerequisite reports. `--require-live` must never start peer containers or local live lanes for Security Service; it only writes deterministic prerequisite reports.
+Tests to add/update: Add interop testkit and harness tests for fixture presence, stable scenario identity, all approved peer manifests declaring `security-service`, manifest validation requiring capability metadata, `all` target filtering, dry-run matrix enumeration with no report/log/IOR path creation, missing live approval, scenario fixture, local JVM command, native binary, artifact cache, digest-pinned base image, container runtime, peer image reports, report fields, and ignored raw evidence paths under build output.
+Documentation to update: Security Service README, services design, optional services conformance/review, interop matrix, service requirements, roadmap index, README, and G8-690 status.
+Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-security-service:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run security-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
+Acceptance criteria: Security Service is discoverable as a metadata-only interop scenario with deterministic dry-run and missing-prerequisite reports and no live peer execution, prepared peer artifacts, committed reports, automatic TLS policy change, global JVM security-manager integration, broad secure peer compatibility claim, or live peer claim; G8-690 is promoted after completion.
+Rollback notes: Revert Security Service interop metadata, tests, docs, peer manifest declarations, and roadmap status together.

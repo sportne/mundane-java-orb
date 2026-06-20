@@ -139,7 +139,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming or request-context exposure, Native Image smoke, and
   approved dry-run peer metadata;
-  Security/CSIv2 is ready for its staged task-group split;
+  Security/CSIv2 has been split into staged implementation slices, with the
+  credential/trust model ready first;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -228,7 +229,10 @@ claims. Transaction Service / OTS covers bounded coordinator/resource behavior,
 timeout policy, local state transitions, propagation metadata, disabled
 durable-recovery diagnostics, descriptor-backed request-context handling,
 Native Image smoke, and dry-run interop metadata without live peer claims.
-Security/CSIv2 is ready for its staged task-group split.
+Security/CSIv2 has been split into staged implementation slices; G8-610 is the
+ready credential/trust model slice, while policy, CSIv2 metadata, local
+evaluation, audit disclosure, IIOP, Native Image, interop metadata, and
+conformance closure remain blocked behind their predecessors.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -332,5 +336,6 @@ shutdown, and source-level closed-world audits. G8-580 adds the
 direction enumeration, `InteropScenario.transactionService()`, and structured
 missing-prerequisite reports without starting peer containers or claiming live
 peer compatibility. G8-590 closes the Transaction Service conformance record
-for the implemented local/IIOP request-context/Native Image/dry-run subset. The
-next ready roadmap task is G8-600, the Security Service / CSIv2 task group.
+for the implemented local/IIOP request-context/Native Image/dry-run subset.
+G8-600 splits Security Service / CSIv2 into G8-610 through G8-690. The next
+ready roadmap task is G8-610, the Security Service credential/trust model.

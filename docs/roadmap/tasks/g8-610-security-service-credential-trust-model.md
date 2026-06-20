@@ -1,0 +1,17 @@
+# G8-610 Security Service Credential Trust Model
+
+Task ID: G8-610-SECURITY-SERVICE-CREDENTIAL-TRUST-MODEL
+Status: ready-for-implementation
+Gate: Optional CORBA service implementation
+Requirement IDs: REQ-SVC-050, REQ-SEC-006, REQ-DOC-006
+ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
+Specification references: SEC-18, CORBA-IOP-SECURITY
+Target module: modules/corba-security-service, modules/corba-services-core
+Allowed files: modules/corba-security-service/build.gradle, modules/corba-security-service/src/**, modules/corba-security-service/README.md, modules/corba-services-core/src/**, modules/corba-services-core/README.md, docs/architecture/services-design.md, docs/conformance/optional-services-matrix.md, docs/requirements/service-requirements.md, docs/verification/optional-services-review.md, docs/roadmap/roadmap-index.md, docs/roadmap/tasks/g8-610-security-service-credential-trust-model.md, docs/roadmap/tasks/g8-620-security-service-policy-model.md, README.md
+Forbidden files: policy evaluation, CSIv2 metadata, IIOP integration, Native Image smoke entrypoints, interop metadata, live peer execution, committed live interop reports, enterprise identity management, dynamic credential discovery, global JVM security-manager integration, automatic TLS policy changes, Java serialization metadata, reflection metadata, dynamic proxies, runtime bytecode generation, `Unsafe`, `sun.*`, `jdk.internal.*`
+Expected behavior: Task type: implementation. Add explicit bounded credential and trust primitives with principal IDs, credential IDs/kinds, credential lifetime metadata, trust anchors, immutable snapshots, trust evaluation inputs, and deterministic malformed, expired, untrusted, duplicate, missing, and limit diagnostics. Do not add policy evaluation, CSIv2 metadata, IIOP, Native Image, interop, secret discovery, or global JVM state.
+Tests to add/update: Add unit tests for credential creation, credential lifetime validation, trust anchor registration, duplicate/missing/malformed diagnostics, expired and untrusted credential diagnostics, configured limits, immutable snapshots, deterministic ordering, and package documentation.
+Documentation to update: Security Service and Services Core READMEs as needed, services design, optional services conformance/review, service requirements, roadmap index, README, and G8-620 status.
+Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
+Acceptance criteria: Security Service exposes bounded local credential/trust models with deterministic diagnostics and no policy evaluation, CSIv2 metadata, IIOP, Native Image, interop, secret discovery, global JVM security-manager integration, automatic TLS policy change, or live peer claim; G8-620 is promoted after completion.
+Rollback notes: Revert Security Service credential/trust sources, tests, docs, and roadmap status together.
