@@ -224,8 +224,8 @@ Image/dry-run conformance records are also closed. Trading Service covers
 bounded local type and offer repositories, constraint evaluation, local query,
 import/export boundary metadata, loopback IIOP/Naming exposure, Native Image
 smoke, and dry-run interop metadata without live peer claims. Transaction
-Service / OTS is the next ready optional-service task group; Security/CSIv2
-remains blocked.
+Service / OTS is split into staged implementation slices with only the
+coordinator/resource model ready; Security/CSIv2 remains blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -303,5 +303,9 @@ direction enumeration, `InteropScenario.tradingService()`, and structured
 missing-prerequisite reports without starting peer containers or claiming live
 peer compatibility. G8-490 closes the Trading Service conformance record for
 the implemented local/IIOP/Native Image/dry-run subset without live peer
-pass/fail claims. The next ready roadmap task is G8-500, the Transaction
-Service task group.
+pass/fail claims. G8-500 splits Transaction Service / OTS into bounded
+implementation slices covering coordinator/resource model, timeout policy,
+local state transitions, propagation metadata, recovery boundary, IIOP
+request-context boundary, Native Image smoke, interop metadata, and conformance
+closure. The next ready roadmap task is G8-510, the Transaction Service
+coordinator/resource model.

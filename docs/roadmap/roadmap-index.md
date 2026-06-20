@@ -149,7 +149,16 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-470-trading-service-native-smoke.md` - complete
 - `tasks/g8-480-trading-service-interop-metadata.md` - complete
 - `tasks/g8-490-trading-service-conformance-closure.md` - complete
-- `tasks/g8-500-transaction-service-task-group.md` - ready-for-implementation
+- `tasks/g8-500-transaction-service-task-group.md` - complete
+- `tasks/g8-510-transaction-service-coordinator-resource-model.md` - ready-for-implementation
+- `tasks/g8-520-transaction-service-timeout-policy.md` - blocked
+- `tasks/g8-530-transaction-service-local-state-transitions.md` - blocked
+- `tasks/g8-540-transaction-service-propagation-metadata.md` - blocked
+- `tasks/g8-550-transaction-service-recovery-boundary.md` - blocked
+- `tasks/g8-560-transaction-service-iiop-request-context-boundary.md` - blocked
+- `tasks/g8-570-transaction-service-native-smoke.md` - blocked
+- `tasks/g8-580-transaction-service-interop-metadata.md` - blocked
+- `tasks/g8-590-transaction-service-conformance-closure.md` - blocked
 - `tasks/g8-600-security-service-task-group.md` - blocked
 
 ## G9 Verification Hardening

@@ -147,6 +147,17 @@ live lanes, and it records no live peer pass/fail evidence. G8-490 closes that
 Trading Service dry-run interop posture as part of the local/IIOP/Native
 Image/dry-run conformance record.
 
+## G8 Transaction Service planned dry-run lane
+
+G8-500 splits Transaction Service / OTS into local-first implementation slices.
+G8-580 is reserved for a metadata-only `transaction-service` scenario after the
+coordinator/resource model, timeout policy, local state transitions,
+propagation metadata, recovery boundary, request-context boundary, and Native
+Image smoke are stable. The planned lane must mount a TRANS-14 IDL fixture,
+enumerate JVM/native dry-run directions, and write deterministic
+missing-prerequisite reports only. It must not start peer containers, run local
+live lanes, or claim live peer pass/fail compatibility.
+
 G10-080 records deterministic local Portable Interceptor evidence for the
 implemented ORB/IIOP loopback path: client/server request-flow ordering,
 service-context propagation, and callback failure diagnostics. Live peer

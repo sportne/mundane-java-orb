@@ -298,6 +298,19 @@ subset. The closure does not add reflection metadata, dynamic proxies, Java
 serialization metadata, service-loader discovery, runtime bytecode generation,
 or live peer execution claims.
 
+## G8-570 Transaction Service Native Image plan
+
+G8-500 splits Transaction Service / OTS so G8-570 can add the Native Image
+smoke only after the local coordinator/resource model, timeout policy, local
+state transitions, propagation metadata, recovery boundary, and IIOP
+request-context boundary are stable. The future smoke must cover
+coordinator/resource creation, hostile timeout rejection, local commit and
+rollback paths, propagation metadata validation, request-context boundary
+behavior, disabled recovery diagnostics, and clean shutdown. The accepted
+metadata set remains empty: no reflection metadata, dynamic proxies, Java
+serialization metadata, service-loader discovery, runtime bytecode generation,
+scripting engines, internal JDK APIs, or `Unsafe` may be introduced.
+
 ## G13-060 durable POA registry Native Image evidence
 
 G13-060 extends the `generatedServer` smoke entrypoint with durable POA path
