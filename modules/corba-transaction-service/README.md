@@ -40,10 +40,16 @@ validation, request-context boundary behavior, disabled recovery diagnostics,
 clean shutdown, and source-level closed-world audits over Transaction Service
 production sources.
 
-Interop, durable recovery logs, XA integration, Security Service integration,
+`G8-580` adds metadata-only interop reporting: the TRANS-14 IDL fixture,
+approved-peer `transaction-service` declarations, stable interop testkit
+scenario identity, JVM/native dry-run direction enumeration, and deterministic
+missing-prerequisite reports. `--require-live` remains prerequisite reporting
+only and does not start peer containers or local live lanes.
+
+Durable recovery logs, XA integration, Security Service integration,
 distributed peer two-phase commit, and live peer claims remain out of scope
-until later promoted slices. `G8-580` is the next promoted implementation slice
-for metadata-only interop reporting.
+until later promoted slices. `G8-590` is the next promoted implementation slice
+for conformance closure.
 
 ## Documentation requirements
 

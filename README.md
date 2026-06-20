@@ -138,8 +138,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
 - optional Time, Event, Notification, and Trading Service implementation
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming, Native Image smoke, and approved dry-run peer metadata;
-  Transaction Service / OTS has started with a bounded local
-  coordinator/resource model and explicit timeout policy, and Security/CSIv2
+  Transaction Service / OTS now has bounded local, IIOP request-context, Native
+  Image smoke, and metadata-only dry-run interop slices, and Security/CSIv2
   remains blocked behind its accepted G8 ADR design;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
@@ -325,5 +325,9 @@ rejection through the coordinator, and clean shutdown. G8-570 adds Transaction
 Service Native Image smoke coverage for coordinator/resource creation, timeout
 rejection, local commit/rollback paths, propagation metadata validation,
 request-context boundary behavior, disabled recovery diagnostics, clean
-shutdown, and source-level closed-world audits. The next ready roadmap task is
-G8-580, the metadata-only Transaction Service interop slice.
+shutdown, and source-level closed-world audits. G8-580 adds the
+`transaction-service` IDL fixture, approved-peer metadata, JVM/native dry-run
+direction enumeration, `InteropScenario.transactionService()`, and structured
+missing-prerequisite reports without starting peer containers or claiming live
+peer compatibility. The next ready roadmap task is G8-590, the Transaction
+Service conformance closure.

@@ -1,7 +1,7 @@
 # G8-580 Transaction Service Interop Metadata
 
 Task ID: G8-580-TRANSACTION-SERVICE-INTEROP-METADATA
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -15,3 +15,5 @@ Documentation to update: Transaction Service README, services design, optional s
 Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-transaction-service:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run transaction-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service is discoverable as a metadata-only interop scenario with deterministic dry-run and missing-prerequisite reports and no live peer execution, prepared peer artifacts, committed reports, distributed peer two-phase commit, or compatibility claim; G8-590 is promoted after completion.
 Rollback notes: Revert Transaction Service interop metadata, tests, docs, peer manifest declarations, and roadmap status together.
+
+Completion notes: Added the `transaction-service` TRANS-14 IDL fixture, approved-peer manifest declarations, stable `InteropScenario.transactionService()` identity, dry-run direction enumeration for JVM/native local runtimes, and deterministic structured missing-prerequisite reports. `--require-live` remains report-only and does not start peer containers, local live lanes, or claim live peer compatibility. G8-590 is promoted for conformance closure.

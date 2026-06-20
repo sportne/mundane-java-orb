@@ -147,16 +147,18 @@ live lanes, and it records no live peer pass/fail evidence. G8-490 closes that
 Trading Service dry-run interop posture as part of the local/IIOP/Native
 Image/dry-run conformance record.
 
-## G8 Transaction Service planned dry-run lane
+## G8 Transaction Service dry-run lane
 
-G8-500 splits Transaction Service / OTS into local-first implementation slices.
-G8-580 is reserved for a metadata-only `transaction-service` scenario after the
-coordinator/resource model, timeout policy, local state transitions,
-propagation metadata, recovery boundary, request-context boundary, and Native
-Image smoke are stable. The planned lane must mount a TRANS-14 IDL fixture,
-enumerate JVM/native dry-run directions, and write deterministic
-missing-prerequisite reports only. It must not start peer containers, run local
-live lanes, or claim live peer pass/fail compatibility.
+G8-580 adds the metadata-only `transaction-service` scenario for the
+implemented TRANS-14 subset. Approved peer manifests mount
+`interop/idl/transaction-service.idl`, dry runs enumerate both peer directions
+for JVM and Native Image local lanes, and `--require-live` writes structured
+missing-prerequisite reports for absent approval, IDL, local commands, native
+binaries, cache, digest-pinned base image, container runtime, prepared peer
+image, and unapproved live execution. It does not start peer containers or local
+live lanes, and it records no live peer pass/fail evidence. G8-590 is promoted
+to close that Transaction Service dry-run interop posture as part of the
+local/IIOP/Native Image/dry-run conformance record.
 
 G10-080 records deterministic local Portable Interceptor evidence for the
 implemented ORB/IIOP loopback path: client/server request-flow ordering,
@@ -471,6 +473,10 @@ execution. G8-480 adds the metadata-only `trading-service` scenario,
 `interop/idl/trading-service.idl`, approved peer manifest declarations,
 JVM/native dry-run direction enumeration, and deterministic
 missing-prerequisite reports before any peer execution is required. Trading
-Service has no live peer lanes or pass/fail peer evidence. Transaction Service
-/ OTS is ready for its task group, while Security/CSIv2 remains blocked behind
-its task group.
+Service has no live peer lanes or pass/fail peer evidence. G8-580 adds the
+metadata-only `transaction-service` scenario,
+`interop/idl/transaction-service.idl`, approved peer manifest declarations,
+JVM/native dry-run direction enumeration, and deterministic
+missing-prerequisite reports. Transaction Service has no live peer lanes or
+pass/fail peer evidence, and G8-590 is ready to close its conformance record.
+Security/CSIv2 remains blocked behind its task group.

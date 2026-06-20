@@ -1,0 +1,48 @@
+module CosTransactions {
+  enum Status {
+    StatusActive,
+    StatusMarkedRollback,
+    StatusCommitted,
+    StatusRolledBack,
+    StatusTimeoutRolledBack,
+    StatusHeuristicMixed,
+    StatusHeuristicHazard
+  };
+
+  enum Vote {
+    VoteCommit,
+    VoteRollback
+  };
+
+  struct TransactionId {
+    string value;
+    unsigned long long generation;
+  };
+
+  struct PropagationContext {
+    TransactionId transaction_id;
+    string began_at;
+    string expires_at;
+  };
+
+  interface Resource {
+    Vote prepare();
+    void commit();
+    void rollback();
+  };
+
+  interface Coordinator {
+    TransactionId get_transaction_id();
+    Status get_status();
+    void register_resource(in Resource resource, in string resource_id);
+    PropagationContext export_propagation_context();
+    void rollback_only();
+    void commit();
+    void rollback();
+  };
+
+  interface TransactionFactory {
+    Coordinator create(in string transaction_id, in unsigned long timeout_seconds);
+    Coordinator recreate_from_context(in PropagationContext context);
+  };
+};

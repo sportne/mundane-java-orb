@@ -27,6 +27,7 @@ scenarioGroups:
   - event-service
   - notification-service
   - trading-service
+  - transaction-service
   - g12-wide-core-types
   - g13-durable-ior-peer-client-restart
   - g13-durable-naming-peer-client-restart
@@ -156,6 +157,20 @@ scenarioCapabilities:
   trading-service:
     idl: interop/idl/trading-service.idl
     support: trading-service-metadata-dry-run
+    directions:
+      - peer-server-to-local-client
+      - local-server-to-peer-client
+    localRuntimes:
+      - jvm
+      - native
+    expectedClassifications:
+      - expected-deferral
+      - missing-prerequisite
+      - unsupported-scenario
+      - infrastructure-failure
+  transaction-service:
+    idl: interop/idl/transaction-service.idl
+    support: transaction-service-metadata-dry-run
     directions:
       - peer-server-to-local-client
       - local-server-to-peer-client

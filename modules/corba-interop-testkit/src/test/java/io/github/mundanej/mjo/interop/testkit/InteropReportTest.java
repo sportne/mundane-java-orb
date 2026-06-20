@@ -169,6 +169,9 @@ final class InteropReportTest {
         new InteropScenario("trading-service", "interop/idl/trading-service.idl"),
         InteropScenario.tradingService());
     assertEquals(
+        new InteropScenario("transaction-service", "interop/idl/transaction-service.idl"),
+        InteropScenario.transactionService());
+    assertEquals(
         List.of(
             new InteropScenario("g12-wide-core-types", "interop/idl/g12-wide/CoreTypes.idl"),
             new InteropScenario(
