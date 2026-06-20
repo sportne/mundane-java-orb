@@ -53,5 +53,14 @@ public final class SecurityServiceDiagnosticCodes {
   /** A policy requested delegation, which is outside the supported local subset. */
   public static final DiagnosticCode UNSUPPORTED_DELEGATION = new DiagnosticCode("SEC-0016");
 
+  /** CSIv2 metadata was malformed or outside the supported local subset. */
+  public static final DiagnosticCode MALFORMED_CSIV2_METADATA = new DiagnosticCode("SEC-0017");
+
+  /** CSIv2 metadata exceeded a configured size or count bound. */
+  public static final DiagnosticCode CSIV2_METADATA_LIMIT_EXCEEDED = new DiagnosticCode("SEC-0018");
+
+  /** CSIv2 mechanism identity is outside the supported local subset. */
+  public static final DiagnosticCode UNSUPPORTED_CSIV2_MECHANISM = new DiagnosticCode("SEC-0019");
+
   private SecurityServiceDiagnosticCodes() {}
 }

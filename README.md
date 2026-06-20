@@ -139,8 +139,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming or request-context exposure, Native Image smoke, and
   approved dry-run peer metadata;
-  Security/CSIv2 now has bounded local credential/trust and policy-validation
-  models, with the CSIv2 metadata model ready next;
+Security/CSIv2 now has bounded local credential/trust, policy-validation, and
+CSIv2 metadata models, with local policy evaluation ready next;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -229,8 +229,8 @@ claims. Transaction Service / OTS covers bounded coordinator/resource behavior,
 timeout policy, local state transitions, propagation metadata, disabled
 durable-recovery diagnostics, descriptor-backed request-context handling,
 Native Image smoke, and dry-run interop metadata without live peer claims.
-Security/CSIv2 now has bounded local credential/trust and policy-validation
-models; G8-630 is the ready CSIv2 metadata slice, while local evaluation, audit
+Security/CSIv2 now has bounded local credential/trust, policy-validation, and
+CSIv2 metadata models; G8-640 is the ready local evaluation slice, while audit
 disclosure, IIOP, Native Image, interop metadata, and conformance closure
 remain blocked behind their predecessors.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
@@ -338,5 +338,6 @@ missing-prerequisite reports without starting peer containers or claiming live
 peer compatibility. G8-590 closes the Transaction Service conformance record
 for the implemented local/IIOP request-context/Native Image/dry-run subset.
 G8-600 splits Security Service / CSIv2 into G8-610 through G8-690. G8-610 adds
-the bounded local credential/trust model, and G8-620 adds the bounded policy
-model. The next ready roadmap task is G8-630, the CSIv2 metadata model.
+the bounded local credential/trust model, G8-620 adds the bounded policy model,
+and G8-630 adds bounded CSIv2 metadata encode/decode. The next ready roadmap
+task is G8-640, the local policy evaluation slice.

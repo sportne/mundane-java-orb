@@ -1,7 +1,7 @@
 # G8-630 Security Service CSIv2 Metadata Model
 
 Task ID: G8-630-SECURITY-SERVICE-CSIV2-METADATA-MODEL
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-IIOP-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -15,3 +15,9 @@ Documentation to update: Security Service and Services Core READMEs as needed, C
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service exposes bounded CSIv2 metadata encode/decode with deterministic diagnostics and no policy enforcement, IIOP runtime integration, automatic TLS policy change, generated OMG API, or live peer claim; G8-640 is promoted after completion.
 Rollback notes: Revert Security Service CSIv2 metadata sources, tests, docs, and roadmap status together.
+
+Completion notes:
+- Added bounded CSIv2 metadata primitives for the supported local mechanism identity, transport-protection flags, identity-token policy, and target/client authentication metadata.
+- Added deterministic project-owned CSIv2 metadata text encode/decode with size/count limits, malformed metadata diagnostics, and unsupported mechanism diagnostics.
+- Confirmed the slice remains metadata-only: no policy enforcement, IIOP runtime integration, automatic TLS policy change, generated OMG API, Native Image smoke entrypoint, interop metadata, or live peer claim was added.
+- Promoted `G8-640-SECURITY-SERVICE-LOCAL-POLICY-EVALUATION` to `ready-for-implementation`.

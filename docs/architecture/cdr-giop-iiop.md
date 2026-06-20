@@ -121,10 +121,13 @@ Service enforcement, or hostname/SAN verification policy. G10-040 adds IOR TLS
 tagged component payload codecs and bounded fragment assembly in the frame
 reader; it does not interpret TLS policy or dispatch requests. G7-080 layers
 bounded local JVM RMI-IIOP wire calls above these client/server entrypoints;
-peer behavior remains outside the IIOP transport slice. G8-660 is reserved for
-the descriptor-backed loopback Security Service / CSIv2 boundary and may add
-bounded service-context/tagged-component handling without automatic TLS policy
-changes or live peer claims. The current boundary is:
+peer behavior remains outside the IIOP transport slice. G8-630 adds a
+project-owned Security Service / CSIv2 metadata text codec in
+`modules/corba-security-service`; it does not change GIOP service contexts,
+IIOP tagged components, transport TLS settings, or request dispatch. G8-660 is
+reserved for the descriptor-backed loopback Security Service / CSIv2 boundary
+and may add bounded service-context/tagged-component handling without automatic
+TLS policy changes or live peer claims. The current boundary is:
 
 ```text
 GiopRequest -> IiopClient -> TCP/TLS loopback -> IiopServer -> IiopRequestHandler -> GiopReply
