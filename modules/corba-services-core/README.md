@@ -5,9 +5,9 @@ Shared infrastructure for optional CORBA services.
 ## Current status
 
 Design accepted by ADR-0016. Shared service behavior remains limited to the
-exact contracts named by promoted optional-service tasks. `G8-510` may add only
-shared support needed by the Transaction Service bounded local
-coordinator/resource model.
+exact contracts named by promoted optional-service tasks. `G8-510` did not need
+shared runtime source changes; Transaction Service currently owns its bounded
+local coordinator/resource model in `modules/corba-transaction-service`.
 
 ## Documentation requirements
 

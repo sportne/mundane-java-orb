@@ -1,7 +1,7 @@
 # G8-510 Transaction Service Coordinator Resource Model
 
 Task ID: G8-510-TRANSACTION-SERVICE-COORDINATOR-RESOURCE-MODEL
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for transaction creation, lookup, snapshot i
 Documentation to update: Transaction Service and Services Core READMEs as needed, services design, optional services conformance/review, service requirements, roadmap index, README, and G8-520 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service exposes a bounded local coordinator/resource model with deterministic diagnostics and no timeout, completion, propagation, recovery, IIOP, Native Image, interop, durable log, XA, Security Service, distributed two-phase commit, or live peer claim; G8-520 is promoted after completion.
+Completion evidence: Added `LocalTransactionCoordinator` with bounded local transaction creation, lookup, deterministic listing, explicit forget/remove behavior, resource enlistment and delistment, immutable `TransactionSnapshot` and `TransactionResourceSnapshot` models, opaque transaction/resource handles, caller-configured limits, and stable `TXN-*` diagnostics for duplicate, missing, stale, malformed, and limit failures. Unit tests cover transaction and resource limits, deterministic ordering, duplicate and missing diagnostics, stale transaction/resource handles, malformed identifiers, caller limits above defaults, and immutable snapshots. G8-520 is promoted as the only ready Transaction Service implementation task.
 Rollback notes: Revert Transaction Service coordinator/resource model sources, tests, docs, and roadmap status together.

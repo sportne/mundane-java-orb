@@ -9,11 +9,18 @@ tasks covering the coordinator/resource model, timeout policy, local state
 transitions, propagation metadata, recovery boundary, IIOP request-context
 boundary, Native Image smoke, interop metadata, and conformance closure.
 
-`G8-510` is the first promoted implementation slice. It adds only the bounded
-local coordinator/resource model; timeout, completion, propagation, recovery,
-IIOP, Native Image, interop, durable recovery logs, XA integration, Security
-Service integration, distributed peer two-phase commit, and live peer claims
-remain out of scope until later promoted slices.
+`G8-510` adds the first local subset: a bounded in-memory coordinator/resource
+model with stable transaction and resource IDs, opaque local handles, immutable
+snapshots, deterministic insertion ordering, caller-configured transaction and
+resource limits, enlist/delist behavior, explicit forget/removal, and stable
+`TXN-*` diagnostics for duplicate, missing, stale, malformed, and limit
+failures. `G8-520` is the next promoted implementation slice for timeout
+policy.
+
+Completion, propagation, recovery, IIOP, Native Image, interop, durable
+recovery logs, XA integration, Security Service integration, distributed peer
+two-phase commit, and live peer claims remain out of scope until later promoted
+slices.
 
 ## Documentation requirements
 

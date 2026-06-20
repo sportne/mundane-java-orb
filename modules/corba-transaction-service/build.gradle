@@ -7,4 +7,9 @@ plugins {
 }
 
 // Human-readable module purpose shown in Gradle reports and generated Maven metadata.
-description = 'Transaction Service / OTS implementation module, initially design-only.'
+description = 'Transaction Service / OTS implementation module.'
+
+dependencies {
+    // Transaction Service diagnostics reuse the repository-wide stable diagnostic-code value.
+    api project(':modules:corba-common')
+}

@@ -138,8 +138,9 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
 - optional Time, Event, Notification, and Trading Service implementation
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming, Native Image smoke, and approved dry-run peer metadata;
-  Transaction Service / OTS is ready for its task group, and Security/CSIv2
-  remains blocked behind its accepted G8 ADR design;
+  Transaction Service / OTS has started with a bounded local
+  coordinator/resource model, and Security/CSIv2 remains blocked behind its
+  accepted G8 ADR design;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -224,8 +225,8 @@ Image/dry-run conformance records are also closed. Trading Service covers
 bounded local type and offer repositories, constraint evaluation, local query,
 import/export boundary metadata, loopback IIOP/Naming exposure, Native Image
 smoke, and dry-run interop metadata without live peer claims. Transaction
-Service / OTS is split into staged implementation slices with only the
-coordinator/resource model ready; Security/CSIv2 remains blocked.
+Service / OTS has started with a bounded local coordinator/resource model;
+Security/CSIv2 remains blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -307,5 +308,6 @@ pass/fail claims. G8-500 splits Transaction Service / OTS into bounded
 implementation slices covering coordinator/resource model, timeout policy,
 local state transitions, propagation metadata, recovery boundary, IIOP
 request-context boundary, Native Image smoke, interop metadata, and conformance
-closure. The next ready roadmap task is G8-510, the Transaction Service
-coordinator/resource model.
+closure. G8-510 adds the bounded local coordinator/resource model with
+immutable snapshots and stable diagnostics. The next ready roadmap task is
+G8-520, the Transaction Service timeout policy.
