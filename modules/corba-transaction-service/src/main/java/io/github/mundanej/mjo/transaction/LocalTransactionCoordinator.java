@@ -210,6 +210,49 @@ public final class LocalTransactionCoordinator {
     return entry.snapshot();
   }
 
+  /** Exports bounded local propagation metadata for an active transaction. */
+  public synchronized TransactionPropagationContext exportPropagationContext(
+      TransactionHandle handle) {
+    TransactionEntry entry = requireActiveTransaction(handle);
+    return entry.propagationContext();
+  }
+
+  /** Validates bounded local propagation metadata against this coordinator. */
+  public synchronized TransactionSnapshot validatePropagationContext(
+      TransactionPropagationContext context) {
+    Objects.requireNonNull(context, "context");
+    TransactionEntry entry = transactions.get(context.transactionId().value());
+    if (entry == null) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_NOT_FOUND,
+          "unknown transaction: " + context.transactionId().value());
+    }
+    if (entry.generation != context.transactionGeneration()) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.STALE_PROPAGATION_CONTEXT,
+          "stale propagation context: " + context.transactionId().value());
+    }
+    if (!entry.beganAt.equals(context.beganAt()) || !entry.expiresAt.equals(context.expiresAt())) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.STALE_PROPAGATION_CONTEXT,
+          "propagation context metadata no longer matches: " + context.transactionId().value());
+    }
+    if (contextExpired(context)) {
+      rollbackExpired(entry);
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.PROPAGATION_CONTEXT_EXPIRED,
+          "propagation context expired: " + context.transactionId().value());
+    }
+    requireActiveState(entry);
+    return entry.snapshot();
+  }
+
+  /** Decodes and validates bounded local propagation metadata against this coordinator. */
+  public synchronized TransactionSnapshot validatePropagationContext(
+      String encoded, TransactionPropagationCodec codec) {
+    return validatePropagationContext(Objects.requireNonNull(codec, "codec").decode(encoded));
+  }
+
   /** Lists local transactions in deterministic coordinator insertion order. */
   public synchronized List<TransactionSnapshot> list() {
     transactions.values().forEach(this::applyTimeoutRollback);
@@ -309,6 +352,10 @@ public final class LocalTransactionCoordinator {
     }
   }
 
+  private boolean contextExpired(TransactionPropagationContext context) {
+    return !clock.instant().isBefore(context.expiresAt());
+  }
+
   private void rollbackResources(TransactionEntry entry, TransactionState terminalState) {
     List<ResourceEntry> resources = List.copyOf(entry.resources.values());
     for (ResourceEntry resource : resources) {
@@ -354,6 +401,10 @@ public final class LocalTransactionCoordinator {
           beganAt,
           expiresAt,
           resources.values().stream().map(ResourceEntry::snapshot).toList());
+    }
+
+    private TransactionPropagationContext propagationContext() {
+      return new TransactionPropagationContext(id, generation, beganAt, expiresAt);
     }
 
     private boolean isActive() {

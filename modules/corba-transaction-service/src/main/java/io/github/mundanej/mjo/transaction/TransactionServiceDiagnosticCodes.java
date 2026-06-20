@@ -59,5 +59,14 @@ public final class TransactionServiceDiagnosticCodes {
   /** A local callback failure left the transaction in a bounded heuristic state. */
   public static final DiagnosticCode HEURISTIC_OUTCOME = new DiagnosticCode("TXN-0018");
 
+  /** A propagation context was malformed or outside supported bounds. */
+  public static final DiagnosticCode MALFORMED_PROPAGATION_CONTEXT = new DiagnosticCode("TXN-0019");
+
+  /** A propagation context no longer matches the current local transaction. */
+  public static final DiagnosticCode STALE_PROPAGATION_CONTEXT = new DiagnosticCode("TXN-0020");
+
+  /** A propagation context has reached its encoded deadline. */
+  public static final DiagnosticCode PROPAGATION_CONTEXT_EXPIRED = new DiagnosticCode("TXN-0021");
+
   private TransactionServiceDiagnosticCodes() {}
 }

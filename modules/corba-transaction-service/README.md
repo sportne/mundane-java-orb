@@ -22,11 +22,15 @@ logs. `G8-530` adds local state transitions for active, rollback-only,
 committed, rolled-back, timeout-rolled-back, and bounded heuristic states. It
 also adds deterministic local prepare/commit/rollback callbacks, resource
 failure diagnostics, terminal-state cleanup, and illegal transition rejection.
+`G8-540` adds bounded local propagation metadata: immutable local contexts,
+deterministic project-owned text encode/decode, coordinator validation for
+unknown, stale, expired, malformed, and oversized contexts, and explicit
+coverage that avoids Java serialization.
 
-Propagation, recovery, IIOP, Native Image, interop, durable recovery logs, XA
-integration, Security Service integration, distributed peer two-phase commit,
-and live peer claims remain out of scope until later promoted slices. `G8-540`
-is the next promoted implementation slice for propagation metadata.
+Recovery, IIOP, Native Image, interop, durable recovery logs, XA integration,
+Security Service integration, distributed peer two-phase commit, and live peer
+claims remain out of scope until later promoted slices. `G8-550` is the next
+promoted implementation slice for the recovery boundary.
 
 ## Documentation requirements
 

@@ -1,7 +1,7 @@
 # G8-540 Transaction Service Propagation Metadata
 
 Task ID: G8-540-TRANSACTION-SERVICE-PROPAGATION-METADATA
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for context creation, deterministic encode/d
 Documentation to update: Transaction Service README, services design, optional services conformance/review, roadmap index, README, and G8-550 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service exposes bounded local propagation metadata and deterministic diagnostics without IIOP request-context integration, recovery logs, Native Image, interop, distributed peer two-phase commit, or live peer claims; G8-550 is promoted after completion.
+Completion evidence: Added immutable local propagation contexts, deterministic bounded text encode/decode, coordinator export/validation, unknown/stale/expired/malformed/oversized diagnostics, and tests covering context immutability, codec field limits, stale generation checks, timeout-policy expiry, and absence of Java serialization. G8-550 is promoted to `ready-for-implementation`.
 Rollback notes: Revert Transaction Service propagation metadata sources, tests, docs, and roadmap status together.
