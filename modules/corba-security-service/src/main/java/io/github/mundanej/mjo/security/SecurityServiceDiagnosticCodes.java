@@ -62,5 +62,19 @@ public final class SecurityServiceDiagnosticCodes {
   /** CSIv2 mechanism identity is outside the supported local subset. */
   public static final DiagnosticCode UNSUPPORTED_CSIV2_MECHANISM = new DiagnosticCode("SEC-0019");
 
+  /** A policy requires credentials but the local evaluation input did not include one. */
+  public static final DiagnosticCode MISSING_CREDENTIAL = new DiagnosticCode("SEC-0020");
+
+  /** A policy requires stronger transport protection than the local metadata provides. */
+  public static final DiagnosticCode INSUFFICIENT_TRANSPORT_PROTECTION =
+      new DiagnosticCode("SEC-0021");
+
+  /** A local policy evaluation decision or reason was malformed. */
+  public static final DiagnosticCode MALFORMED_POLICY_EVALUATION = new DiagnosticCode("SEC-0022");
+
+  /** A local policy evaluation reason exceeded supported bounds. */
+  public static final DiagnosticCode POLICY_EVALUATION_LIMIT_EXCEEDED =
+      new DiagnosticCode("SEC-0023");
+
   private SecurityServiceDiagnosticCodes() {}
 }

@@ -1,7 +1,7 @@
 # G8-640 Security Service Local Policy Evaluation
 
 Task ID: G8-640-SECURITY-SERVICE-LOCAL-POLICY-EVALUATION
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -15,3 +15,8 @@ Documentation to update: Security Service and Services Core READMEs as needed, s
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service evaluates local policy deterministically with bounded diagnostics and no IIOP integration, automatic TLS policy change, global JVM security-manager integration, or live peer claim; G8-650 is promoted after completion.
 Rollback notes: Revert Security Service local policy evaluation sources, tests, docs, and roadmap status together.
+
+Completion notes:
+- Added local policy evaluation request, decision, reason, and status models plus a deterministic evaluator over the existing credential/trust, policy, and CSIv2 metadata primitives.
+- Covered allow, challenge, deny, missing credential, expired credential, untrusted credential, unsupported delegation, insufficient transport protection, malformed metadata, conflict, reason ordering, and immutable decision behavior.
+- Kept IIOP integration, audit event modeling, Native Image smoke, interop metadata, live peer behavior, TLS policy changes, and global JVM security-manager integration out of scope.

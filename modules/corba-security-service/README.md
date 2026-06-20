@@ -15,10 +15,15 @@ malformed, duplicate, conflicting, unsupported-delegation, and limit
 diagnostics. `G8-630-SECURITY-SERVICE-CSIV2-METADATA-MODEL` adds bounded CSIv2
 metadata primitives and deterministic project-owned encode/decode for the
 supported local mechanism identity, transport-protection flags, identity-token
-policy, and target/client authentication metadata. `G8-640` is the only ready
-successor and is reserved for local policy evaluation. Audit disclosure, IIOP
-integration, Native Image smoke, interop metadata, and conformance closure
-remain blocked behind their predecessors.
+policy, and target/client authentication metadata.
+`G8-640-SECURITY-SERVICE-LOCAL-POLICY-EVALUATION` adds deterministic local
+allow, challenge, and deny decisions over the credential/trust, policy, and
+CSIv2 metadata models with stable missing credential, expired credential,
+untrusted credential, unsupported delegation, transport protection, malformed
+metadata, and policy-conflict diagnostics. `G8-650` is the only ready successor
+and is reserved for redacted audit/failure disclosure. IIOP integration, Native
+Image smoke, interop metadata, and conformance closure remain blocked behind
+their predecessors.
 
 ## Documentation requirements
 

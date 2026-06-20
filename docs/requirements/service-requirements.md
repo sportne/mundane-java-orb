@@ -11,7 +11,7 @@ promoted.
 | REQ-SVC-020 | Stage Event Service behind approved ADR-0018 and blocked G8-200 task slices. | design-approved | corba-event-service, corba-services-core | EVNT-12 |
 | REQ-SVC-030 | Stage Notification Service behind approved ADR-0019 and blocked G8-300 task slices. | design-approved | corba-notification-service, corba-services-core | NOT-11 |
 | REQ-SVC-040 | Stage Transaction Service / OTS behind approved ADR-0021 and promoted G8-510 through G8-590 task slices. | implementation-started | corba-transaction-service, corba-services-core | TRANS-14 |
-| REQ-SVC-050 | Stage Security Service / CSIv2 behind approved ADR-0022 and promoted G8-610 through G8-690 task slices. | implementation-started; credential/trust, policy validation, and CSIv2 metadata slices complete | corba-security-service, corba-services-core | SEC-18, CORBA-IOP-SECURITY |
+| REQ-SVC-050 | Stage Security Service / CSIv2 behind approved ADR-0022 and promoted G8-610 through G8-690 task slices. | implementation-started; credential/trust, policy validation, CSIv2 metadata, and local policy evaluation slices complete | corba-security-service, corba-services-core | SEC-18, CORBA-IOP-SECURITY |
 | REQ-SVC-060 | Stage Time Service behind approved ADR-0017 and blocked G8-100 task slices. | design-approved | corba-time-service, corba-services-core | TIME-11 |
 
 ## Gate Rules

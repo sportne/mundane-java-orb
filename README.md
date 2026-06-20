@@ -229,10 +229,10 @@ claims. Transaction Service / OTS covers bounded coordinator/resource behavior,
 timeout policy, local state transitions, propagation metadata, disabled
 durable-recovery diagnostics, descriptor-backed request-context handling,
 Native Image smoke, and dry-run interop metadata without live peer claims.
-Security/CSIv2 now has bounded local credential/trust, policy-validation, and
-CSIv2 metadata models; G8-640 is the ready local evaluation slice, while audit
-disclosure, IIOP, Native Image, interop metadata, and conformance closure
-remain blocked behind their predecessors.
+Security/CSIv2 now has bounded local credential/trust, policy-validation,
+CSIv2 metadata, and local policy evaluation models; G8-650 is the ready
+redacted audit/failure disclosure slice, while IIOP, Native Image, interop
+metadata, and conformance closure remain blocked behind their predecessors.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -339,5 +339,6 @@ peer compatibility. G8-590 closes the Transaction Service conformance record
 for the implemented local/IIOP request-context/Native Image/dry-run subset.
 G8-600 splits Security Service / CSIv2 into G8-610 through G8-690. G8-610 adds
 the bounded local credential/trust model, G8-620 adds the bounded policy model,
-and G8-630 adds bounded CSIv2 metadata encode/decode. The next ready roadmap
-task is G8-640, the local policy evaluation slice.
+G8-630 adds bounded CSIv2 metadata encode/decode, and G8-640 adds deterministic
+local allow/challenge/deny policy evaluation. The next ready roadmap task is
+G8-650, the redacted audit/failure disclosure slice.
