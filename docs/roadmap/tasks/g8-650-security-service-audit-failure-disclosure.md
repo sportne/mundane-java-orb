@@ -1,7 +1,7 @@
 # G8-650 Security Service Audit Failure Disclosure
 
 Task ID: G8-650-SECURITY-SERVICE-AUDIT-FAILURE-DISCLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -15,3 +15,9 @@ Documentation to update: Security Service and Services Core READMEs as needed, s
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service exposes redacted audit/failure disclosure with deterministic diagnostics and no raw credential leakage, IIOP integration, or live peer claim; G8-660 is promoted after completion.
 Rollback notes: Revert Security Service audit/failure disclosure sources, tests, docs, and roadmap status together.
+
+Completion notes:
+- Added bounded redacted audit event, audit field, audit options, failure disclosure, and audit disclosure model types for local Security Service decisions.
+- Mapped policy evaluation reasons and Security Service exceptions to stable redacted failure disclosures without copying raw exception messages.
+- Covered event creation, denial reason mapping, bounded fields, secret redaction, redacted `toString` output, exception-message redaction, deterministic field/failure ordering, immutable collections, and package documentation.
+- Kept IIOP integration, Native Image smoke, interop metadata, live peer execution, and raw credential material in reports out of scope.

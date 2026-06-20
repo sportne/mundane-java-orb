@@ -76,5 +76,11 @@ public final class SecurityServiceDiagnosticCodes {
   public static final DiagnosticCode POLICY_EVALUATION_LIMIT_EXCEEDED =
       new DiagnosticCode("SEC-0023");
 
+  /** A redacted audit event or failure disclosure was malformed. */
+  public static final DiagnosticCode MALFORMED_AUDIT_EVENT = new DiagnosticCode("SEC-0024");
+
+  /** A redacted audit event exceeded supported field or disclosure bounds. */
+  public static final DiagnosticCode AUDIT_EVENT_LIMIT_EXCEEDED = new DiagnosticCode("SEC-0025");
+
   private SecurityServiceDiagnosticCodes() {}
 }

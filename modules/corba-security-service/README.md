@@ -20,10 +20,13 @@ policy, and target/client authentication metadata.
 allow, challenge, and deny decisions over the credential/trust, policy, and
 CSIv2 metadata models with stable missing credential, expired credential,
 untrusted credential, unsupported delegation, transport protection, malformed
-metadata, and policy-conflict diagnostics. `G8-650` is the only ready successor
-and is reserved for redacted audit/failure disclosure. IIOP integration, Native
-Image smoke, interop metadata, and conformance closure remain blocked behind
-their predecessors.
+metadata, and policy-conflict diagnostics.
+`G8-650-SECURITY-SERVICE-AUDIT-FAILURE-DISCLOSURE` adds bounded redacted audit
+events and stable failure disclosures for local decisions and Security Service
+exceptions without copying raw exception messages or credential material.
+`G8-660` is the only ready successor and is reserved for the descriptor-backed
+loopback IIOP boundary. Native Image smoke, interop metadata, and conformance
+closure remain blocked behind their predecessors.
 
 ## Documentation requirements
 
