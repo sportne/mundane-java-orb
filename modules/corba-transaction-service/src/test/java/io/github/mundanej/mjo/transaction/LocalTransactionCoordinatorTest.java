@@ -5,6 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -17,8 +22,8 @@ final class LocalTransactionCoordinatorTest {
     TransactionHandle handle = coordinator.begin("txn-1");
 
     assertEquals("txn-1", handle.transactionId().value());
-    assertEquals(
-        List.of(new TransactionSnapshot(handle.transactionId(), List.of())), coordinator.list());
+    assertEquals(handle.transactionId(), coordinator.list().get(0).transactionId());
+    assertTrue(coordinator.list().get(0).resources().isEmpty());
     assertTrue(coordinator.lookup("txn-1").isPresent());
   }
 
@@ -166,6 +171,101 @@ final class LocalTransactionCoordinatorTest {
   }
 
   @Test
+  void recordsDefaultTimeoutMetadataFromInjectedClock() {
+    Instant now = Instant.parse("2026-06-20T12:00:00Z");
+    LocalTransactionCoordinator coordinator =
+        new LocalTransactionCoordinator(
+            TransactionServiceOptions.defaults(),
+            TransactionTimeoutPolicy.defaults(),
+            Clock.fixed(now, ZoneOffset.UTC));
+
+    TransactionHandle handle = coordinator.begin("txn-1");
+    TransactionSnapshot snapshot = coordinator.snapshot(handle);
+
+    assertEquals(now, snapshot.beganAt());
+    assertEquals(now.plus(TransactionTimeoutPolicy.DEFAULT_TIMEOUT), snapshot.expiresAt());
+  }
+
+  @Test
+  void acceptsCallerRequestedTimeoutWithinPolicy() {
+    Instant now = Instant.parse("2026-06-20T12:00:00Z");
+    LocalTransactionCoordinator coordinator =
+        new LocalTransactionCoordinator(
+            TransactionServiceOptions.defaults(),
+            new TransactionTimeoutPolicy(Duration.ofSeconds(10), Duration.ofMinutes(10)),
+            Clock.fixed(now, ZoneOffset.UTC));
+
+    TransactionHandle handle = coordinator.begin("txn-1", Duration.ofMinutes(5));
+
+    assertEquals(now.plus(Duration.ofMinutes(5)), coordinator.snapshot(handle).expiresAt());
+  }
+
+  @Test
+  void rejectsInvalidTimeoutPolicyAndRequestedTimeouts() {
+    LocalTransactionCoordinator coordinator =
+        new LocalTransactionCoordinator(
+            TransactionServiceOptions.defaults(),
+            new TransactionTimeoutPolicy(Duration.ofSeconds(10), Duration.ofMinutes(10)),
+            Clock.systemUTC());
+
+    TransactionServiceException invalidDefault =
+        assertThrows(
+            TransactionServiceException.class,
+            () -> new TransactionTimeoutPolicy(Duration.ZERO, Duration.ofSeconds(1)));
+    TransactionServiceException defaultAboveMax =
+        assertThrows(
+            TransactionServiceException.class,
+            () -> new TransactionTimeoutPolicy(Duration.ofSeconds(2), Duration.ofSeconds(1)));
+    TransactionServiceException requestedAboveMax =
+        assertThrows(
+            TransactionServiceException.class,
+            () -> coordinator.begin("txn-1", Duration.ofMinutes(11)));
+    TransactionServiceException deadlineOverflow =
+        assertThrows(
+            TransactionServiceException.class,
+            () ->
+                new LocalTransactionCoordinator(
+                        TransactionServiceOptions.defaults(),
+                        new TransactionTimeoutPolicy(Duration.ofSeconds(10), Duration.ofDays(1)),
+                        Clock.fixed(Instant.MAX.minusSeconds(1), ZoneOffset.UTC))
+                    .begin("txn-overflow"));
+
+    assertEquals(TransactionServiceDiagnosticCodes.INVALID_TIMEOUT, invalidDefault.code());
+    assertEquals(TransactionServiceDiagnosticCodes.INVALID_TIMEOUT, defaultAboveMax.code());
+    assertEquals(TransactionServiceDiagnosticCodes.INVALID_TIMEOUT, requestedAboveMax.code());
+    assertEquals(TransactionServiceDiagnosticCodes.INVALID_TIMEOUT, deadlineOverflow.code());
+  }
+
+  @Test
+  void rejectsExpiredTransactionsWithoutAmbientScheduler() {
+    Instant now = Instant.parse("2026-06-20T12:00:00Z");
+    MutableClock clock = new MutableClock(now);
+    LocalTransactionCoordinator coordinator =
+        new LocalTransactionCoordinator(
+            TransactionServiceOptions.defaults(),
+            new TransactionTimeoutPolicy(Duration.ofSeconds(5), Duration.ofMinutes(1)),
+            clock);
+    TransactionHandle handle = coordinator.begin("txn-1");
+    coordinator.enlist(handle, "resource-1");
+
+    clock.now = now.plusSeconds(5);
+
+    TransactionServiceException snapshotExpired =
+        assertThrows(TransactionServiceException.class, () -> coordinator.snapshot(handle));
+    TransactionServiceException enlistExpired =
+        assertThrows(
+            TransactionServiceException.class, () -> coordinator.enlist(handle, "resource-2"));
+    TransactionServiceException delistExpired =
+        assertThrows(
+            TransactionServiceException.class, () -> coordinator.delist("txn-1", "resource-1"));
+
+    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, snapshotExpired.code());
+    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, enlistExpired.code());
+    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, delistExpired.code());
+    assertEquals("txn-1", coordinator.forget("txn-1").transactionId().value());
+  }
+
+  @Test
   void lookupMissingTransactionIsOptionalEmptyButValidatesNames() {
     LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
 
@@ -174,5 +274,28 @@ final class LocalTransactionCoordinatorTest {
         assertThrows(TransactionServiceException.class, () -> coordinator.lookup(" "));
 
     assertEquals(TransactionServiceDiagnosticCodes.MALFORMED_IDENTIFIER, malformed.code());
+  }
+
+  private static final class MutableClock extends Clock {
+    private Instant now;
+
+    private MutableClock(Instant now) {
+      this.now = now;
+    }
+
+    @Override
+    public ZoneId getZone() {
+      return ZoneOffset.UTC;
+    }
+
+    @Override
+    public Clock withZone(ZoneId zone) {
+      return Clock.fixed(now, zone);
+    }
+
+    @Override
+    public Instant instant() {
+      return now;
+    }
   }
 }

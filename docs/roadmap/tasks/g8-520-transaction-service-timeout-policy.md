@@ -1,7 +1,7 @@
 # G8-520 Transaction Service Timeout Policy
 
 Task ID: G8-520-TRANSACTION-SERVICE-TIMEOUT-POLICY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for default and caller-configured timeout po
 Documentation to update: Transaction Service README, services design, optional services conformance/review, roadmap index, README, and G8-530 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service exposes bounded caller-configured timeout policy and deterministic timeout diagnostics without ambient scheduling, durable logs, propagation, IIOP, Native Image, interop, or live peer claims; G8-530 is promoted after completion.
+Completion evidence: Added `TransactionTimeoutPolicy` with bounded default and maximum timeout validation, caller-requested timeout validation, injected `Clock` support in `LocalTransactionCoordinator`, deterministic begin-time/deadline metadata on `TransactionSnapshot`, and stable `TXN-*` diagnostics for invalid timeout policy and expired transactions. Unit tests cover default metadata through a fixed clock, caller-requested timeout deadlines, invalid timeout rejection, expired snapshot/enlist/delist diagnostics, cleanup through explicit forget/removal, and absence of ambient scheduler behavior. G8-530 is promoted as the only ready Transaction Service implementation task.
 Rollback notes: Revert Transaction Service timeout policy sources, tests, docs, and roadmap status together.

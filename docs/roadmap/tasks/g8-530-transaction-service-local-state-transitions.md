@@ -1,7 +1,7 @@
 # G8-530 Transaction Service Local State Transitions
 
 Task ID: G8-530-TRANSACTION-SERVICE-LOCAL-STATE-TRANSITIONS
-Status: blocked
+Status: ready-for-implementation
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021

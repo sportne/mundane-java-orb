@@ -14,13 +14,17 @@ model with stable transaction and resource IDs, opaque local handles, immutable
 snapshots, deterministic insertion ordering, caller-configured transaction and
 resource limits, enlist/delist behavior, explicit forget/removal, and stable
 `TXN-*` diagnostics for duplicate, missing, stale, malformed, and limit
-failures. `G8-520` is the next promoted implementation slice for timeout
-policy.
+failures. `G8-520` adds explicit timeout policy: bounded default and maximum
+timeouts, caller-requested timeout validation, caller-injected clock support,
+begin-time/deadline metadata on transaction snapshots, and deterministic
+expired transaction diagnostics without ambient scheduler threads or durable
+logs. `G8-530` is the next promoted implementation slice for local state
+transitions.
 
-Completion, propagation, recovery, IIOP, Native Image, interop, durable
-recovery logs, XA integration, Security Service integration, distributed peer
-two-phase commit, and live peer claims remain out of scope until later promoted
-slices.
+Completion callbacks/state transitions, propagation, recovery, IIOP, Native
+Image, interop, durable recovery logs, XA integration, Security Service
+integration, distributed peer two-phase commit, and live peer claims remain out
+of scope until later promoted slices.
 
 ## Documentation requirements
 

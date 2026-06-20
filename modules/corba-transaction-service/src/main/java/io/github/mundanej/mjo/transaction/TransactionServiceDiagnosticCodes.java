@@ -35,5 +35,11 @@ public final class TransactionServiceDiagnosticCodes {
   /** A resource handle no longer matches the current local enlistment. */
   public static final DiagnosticCode STALE_RESOURCE = new DiagnosticCode("TXN-0010");
 
+  /** A requested transaction timeout was outside the supported policy bounds. */
+  public static final DiagnosticCode INVALID_TIMEOUT = new DiagnosticCode("TXN-0011");
+
+  /** A local transaction has reached its configured deadline. */
+  public static final DiagnosticCode TRANSACTION_EXPIRED = new DiagnosticCode("TXN-0012");
+
   private TransactionServiceDiagnosticCodes() {}
 }

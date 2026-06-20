@@ -1,5 +1,8 @@
 package io.github.mundanej.mjo.transaction;
 
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +13,8 @@ import java.util.Optional;
 public final class LocalTransactionCoordinator {
 
   private final TransactionServiceOptions options;
+  private final TransactionTimeoutPolicy timeoutPolicy;
+  private final Clock clock;
   private final Map<String, TransactionEntry> transactions = new LinkedHashMap<>();
   private long nextTransactionGeneration = 1;
 
@@ -20,11 +25,24 @@ public final class LocalTransactionCoordinator {
 
   /** Creates a coordinator with caller-provided local Transaction Service limits. */
   public LocalTransactionCoordinator(TransactionServiceOptions options) {
+    this(options, TransactionTimeoutPolicy.defaults(), Clock.systemUTC());
+  }
+
+  /** Creates a coordinator with caller-provided limits, timeout policy, and clock. */
+  public LocalTransactionCoordinator(
+      TransactionServiceOptions options, TransactionTimeoutPolicy timeoutPolicy, Clock clock) {
     this.options = Objects.requireNonNull(options, "options");
+    this.timeoutPolicy = Objects.requireNonNull(timeoutPolicy, "timeoutPolicy");
+    this.clock = Objects.requireNonNull(clock, "clock");
   }
 
   /** Creates a new local transaction entry. */
   public synchronized TransactionHandle begin(String transactionId) {
+    return begin(transactionId, null);
+  }
+
+  /** Creates a new local transaction entry with a caller-requested timeout. */
+  public synchronized TransactionHandle begin(String transactionId, Duration timeout) {
     String id = TransactionNames.requireIdentifier(transactionId, "transaction ID", options);
     if (transactions.containsKey(id)) {
       throw new TransactionServiceException(
@@ -36,8 +54,13 @@ public final class LocalTransactionCoordinator {
           TransactionServiceDiagnosticCodes.TRANSACTION_LIMIT_EXCEEDED,
           "transaction coordinator has reached " + options.maxTransactions() + " transactions");
     }
+    Instant beganAt = clock.instant();
     TransactionEntry entry =
-        new TransactionEntry(new TransactionId(id), nextTransactionGeneration++);
+        new TransactionEntry(
+            new TransactionId(id),
+            nextTransactionGeneration++,
+            beganAt,
+            timeoutPolicy.deadlineFor(beganAt, timeout));
     transactions.put(id, entry);
     return entry.handle();
   }
@@ -97,6 +120,10 @@ public final class LocalTransactionCoordinator {
       throw new TransactionServiceException(
           TransactionServiceDiagnosticCodes.TRANSACTION_NOT_FOUND, "unknown transaction: " + txId);
     }
+    if (entry.isExpired(clock.instant())) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, "transaction expired: " + txId);
+    }
     ResourceEntry removed = entry.resources.remove(resId);
     if (removed == null) {
       throw new TransactionServiceException(
@@ -144,18 +171,28 @@ public final class LocalTransactionCoordinator {
           TransactionServiceDiagnosticCodes.STALE_TRANSACTION,
           "stale transaction handle: " + handle.transactionId().value());
     }
+    if (entry.isExpired(clock.instant())) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED,
+          "transaction expired: " + handle.transactionId().value());
+    }
     return entry;
   }
 
   private static final class TransactionEntry {
     private final TransactionId id;
     private final long generation;
+    private final Instant beganAt;
+    private final Instant expiresAt;
     private final Map<String, ResourceEntry> resources = new LinkedHashMap<>();
     private long nextResourceGeneration = 1;
 
-    private TransactionEntry(TransactionId id, long generation) {
+    private TransactionEntry(
+        TransactionId id, long generation, Instant beganAt, Instant expiresAt) {
       this.id = id;
       this.generation = generation;
+      this.beganAt = beganAt;
+      this.expiresAt = expiresAt;
     }
 
     private TransactionHandle handle() {
@@ -164,7 +201,14 @@ public final class LocalTransactionCoordinator {
 
     private TransactionSnapshot snapshot() {
       return new TransactionSnapshot(
-          id, resources.values().stream().map(ResourceEntry::snapshot).toList());
+          id,
+          beganAt,
+          expiresAt,
+          resources.values().stream().map(ResourceEntry::snapshot).toList());
+    }
+
+    private boolean isExpired(Instant now) {
+      return !now.isBefore(expiresAt);
     }
   }
 

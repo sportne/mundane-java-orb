@@ -139,8 +139,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming, Native Image smoke, and approved dry-run peer metadata;
   Transaction Service / OTS has started with a bounded local
-  coordinator/resource model, and Security/CSIv2 remains blocked behind its
-  accepted G8 ADR design;
+  coordinator/resource model and explicit timeout policy, and Security/CSIv2
+  remains blocked behind its accepted G8 ADR design;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -225,8 +225,8 @@ Image/dry-run conformance records are also closed. Trading Service covers
 bounded local type and offer repositories, constraint evaluation, local query,
 import/export boundary metadata, loopback IIOP/Naming exposure, Native Image
 smoke, and dry-run interop metadata without live peer claims. Transaction
-Service / OTS has started with a bounded local coordinator/resource model;
-Security/CSIv2 remains blocked.
+Service / OTS has started with a bounded local coordinator/resource model and
+explicit timeout policy; Security/CSIv2 remains blocked.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -309,5 +309,7 @@ implementation slices covering coordinator/resource model, timeout policy,
 local state transitions, propagation metadata, recovery boundary, IIOP
 request-context boundary, Native Image smoke, interop metadata, and conformance
 closure. G8-510 adds the bounded local coordinator/resource model with
-immutable snapshots and stable diagnostics. The next ready roadmap task is
-G8-520, the Transaction Service timeout policy.
+immutable snapshots and stable diagnostics. G8-520 adds explicit bounded
+timeout policy with injected-clock metadata and deterministic expired
+diagnostics. The next ready roadmap task is G8-530, the Transaction Service
+local state transitions.
