@@ -1,7 +1,7 @@
 # G8-670 Security Service Native Image Smoke
 
 Task ID: G8-670-SECURITY-SERVICE-NATIVE-SMOKE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-NATIVE-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -14,4 +14,5 @@ Tests to add/update: Add native smoke entrypoint and JVM parity test coverage, u
 Documentation to update: Security Service README, services design, optional services conformance/review, Native Image matrix, service requirements, roadmap index, README, and G8-680 status.
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-native-image:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service has deterministic Native Image smoke coverage and source audits with no reflection metadata, dynamic proxies, Java serialization metadata, service-loader discovery, scripting, bytecode generation, `Unsafe`, `sun.*`, `jdk.internal.*`, automatic TLS policy change, or live peer claim; G8-680 is promoted after completion.
+Completion evidence: Added `SecurityServiceNativeSmoke`, wired the native smoke target list and JVM parity test, and extended the Native Image source-level audit over Security Service production sources. The smoke covers credential rejection, trust validation, unsupported policy rejection, CSIv2 metadata encode/decode and malformed metadata diagnostics, local allow/challenge policy evaluation, audit redaction/failure disclosure, descriptor-backed IIOP service-context evaluation, malformed IIOP context diagnostics, and clean shutdown. No Native Image metadata files, reflection metadata, dynamic proxies, Java serialization metadata, service-loader discovery, scripting, bytecode generation, automatic TLS policy change, global JVM security-manager integration, live peer execution, or live peer claim was added. G8-680 is promoted as the only ready successor.
 Rollback notes: Revert Security Service Native Image smoke sources, tests, docs, and roadmap status together.

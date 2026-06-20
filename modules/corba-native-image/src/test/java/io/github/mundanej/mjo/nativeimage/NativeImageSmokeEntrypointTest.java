@@ -12,6 +12,7 @@ import io.github.mundanej.mjo.nativeimage.smoke.LiveInteropLane;
 import io.github.mundanej.mjo.nativeimage.smoke.NamingServerNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.NotificationServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.SecurityServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TradingServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TransactionServiceNativeSmoke;
@@ -38,6 +39,7 @@ final class NativeImageSmokeEntrypointTest {
     NotificationServiceNativeSmoke.main(new String[0]);
     TradingServiceNativeSmoke.main(new String[0]);
     TransactionServiceNativeSmoke.main(new String[0]);
+    SecurityServiceNativeSmoke.main(new String[0]);
     InteropClientNativeSmoke.main(new String[0]);
     InteropServerNativeSmoke.main(new String[0]);
   }

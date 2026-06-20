@@ -27,9 +27,14 @@ exceptions without copying raw exception messages or credential material.
 `G8-660-SECURITY-SERVICE-IIOP-BOUNDARY` adds a descriptor-backed loopback IIOP
 boundary for bounded CSIv2 service-context and tagged-component handling, local
 policy allow/challenge/deny evaluation, redacted audit events, malformed
-context diagnostics, and clean shutdown. `G8-670` is the only ready successor
-and is reserved for Native Image smoke coverage. Interop metadata and
-conformance closure remain blocked behind their predecessors.
+context diagnostics, and clean shutdown.
+`G8-670-SECURITY-SERVICE-NATIVE-SMOKE` adds deterministic Native Image smoke
+coverage for credential rejection, trust validation, policy rejection, CSIv2
+metadata encode/decode, local policy evaluation, audit redaction, IIOP boundary
+behavior, clean shutdown, and source-level closed-world audits over Security
+Service production sources. `G8-680` is the only ready successor and is reserved
+for metadata-only interop reporting. Conformance closure remains blocked behind
+its predecessor.
 
 ## Documentation requirements
 
