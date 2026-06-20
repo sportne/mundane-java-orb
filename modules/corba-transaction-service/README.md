@@ -26,11 +26,14 @@ failure diagnostics, terminal-state cleanup, and illegal transition rejection.
 deterministic project-owned text encode/decode, coordinator validation for
 unknown, stale, expired, malformed, and oversized contexts, and explicit
 coverage that avoids Java serialization.
+`G8-550` adds the recovery boundary: durable recovery is explicitly disabled,
+requests for durable logs or replay fail with stable diagnostics, and terminal
+local states remain deterministic without durable replay.
 
-Recovery, IIOP, Native Image, interop, durable recovery logs, XA integration,
-Security Service integration, distributed peer two-phase commit, and live peer
-claims remain out of scope until later promoted slices. `G8-550` is the next
-promoted implementation slice for the recovery boundary.
+IIOP, Native Image, interop, durable recovery logs, XA integration, Security
+Service integration, distributed peer two-phase commit, and live peer claims
+remain out of scope until later promoted slices. `G8-560` is the next promoted
+implementation slice for the IIOP request-context boundary.
 
 ## Documentation requirements
 

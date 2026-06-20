@@ -1,7 +1,7 @@
 # G8-550 Transaction Service Recovery Boundary
 
 Task ID: G8-550-TRANSACTION-SERVICE-RECOVERY-BOUNDARY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for disabled durable-recovery diagnostics, r
 Documentation to update: Transaction Service README, services design, optional services conformance/review, roadmap index, README, and G8-560 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service records an explicit recovery boundary and deterministic disabled-recovery diagnostics without durable logs, IIOP, Native Image, interop, distributed peer two-phase commit, or live peer claims; G8-560 is promoted after completion.
+Completion evidence: Added explicit disabled durable-recovery policy and boundary objects, stable `TXN-*` diagnostics for unapproved durable recovery and replay, package-level recovery assumptions, and unit tests for defaults, rejected durable recovery requests, replay rejection, and terminal local states not requiring durable replay. G8-560 is promoted to `ready-for-implementation`.
 Rollback notes: Revert Transaction Service recovery boundary sources, tests, docs, and roadmap status together.

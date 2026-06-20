@@ -316,5 +316,7 @@ deterministic prepare/commit/rollback callbacks, timeout rollback cleanup,
 bounded heuristic state reporting, and terminal-state diagnostics. G8-540 adds
 bounded local propagation metadata with deterministic text encode/decode,
 unknown/stale/expired/malformed context diagnostics, and no IIOP request-context
-integration. The next ready roadmap task is G8-550, the Transaction Service
-recovery boundary.
+integration. G8-550 adds an explicit disabled durable-recovery boundary with
+stable diagnostics and no logs, replay, retention, or migration behavior. The
+next ready roadmap task is G8-560, the Transaction Service IIOP request-context
+boundary.

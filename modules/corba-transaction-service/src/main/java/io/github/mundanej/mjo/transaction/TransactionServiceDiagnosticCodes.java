@@ -68,5 +68,8 @@ public final class TransactionServiceDiagnosticCodes {
   /** A propagation context has reached its encoded deadline. */
   public static final DiagnosticCode PROPAGATION_CONTEXT_EXPIRED = new DiagnosticCode("TXN-0021");
 
+  /** Durable transaction recovery is outside the supported local subset. */
+  public static final DiagnosticCode DURABLE_RECOVERY_DISABLED = new DiagnosticCode("TXN-0022");
+
   private TransactionServiceDiagnosticCodes() {}
 }
