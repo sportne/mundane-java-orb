@@ -311,5 +311,7 @@ request-context boundary, Native Image smoke, interop metadata, and conformance
 closure. G8-510 adds the bounded local coordinator/resource model with
 immutable snapshots and stable diagnostics. G8-520 adds explicit bounded
 timeout policy with injected-clock metadata and deterministic expired
-diagnostics. The next ready roadmap task is G8-530, the Transaction Service
-local state transitions.
+diagnostics. G8-530 adds local state transitions, rollback-only marking,
+deterministic prepare/commit/rollback callbacks, timeout rollback cleanup,
+bounded heuristic state reporting, and terminal-state diagnostics. The next
+ready roadmap task is G8-540, the Transaction Service propagation metadata.

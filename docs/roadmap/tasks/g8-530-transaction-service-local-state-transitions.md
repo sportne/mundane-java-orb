@@ -1,7 +1,7 @@
 # G8-530 Transaction Service Local State Transitions
 
 Task ID: G8-530-TRANSACTION-SERVICE-LOCAL-STATE-TRANSITIONS
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for successful local commit and rollback, ro
 Documentation to update: Transaction Service README, services design, optional services conformance/review, roadmap index, README, and G8-540 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service exposes deterministic local coordinator/resource state transitions and diagnostics without propagation, IIOP, recovery logs, Native Image, interop, distributed peer two-phase commit, or live peer claims; G8-540 is promoted after completion.
+Completion evidence: Added local transaction states, rollback-only marking, deterministic prepare/commit/rollback callbacks, timeout rollback cleanup, resource failure diagnostics, bounded heuristic state reporting, terminal-state cleanup, and unit coverage for callback ordering and illegal transitions. G8-540 is promoted to `ready-for-implementation`.
 Rollback notes: Revert Transaction Service local state transition sources, tests, docs, and roadmap status together.

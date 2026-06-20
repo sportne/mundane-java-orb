@@ -18,13 +18,15 @@ failures. `G8-520` adds explicit timeout policy: bounded default and maximum
 timeouts, caller-requested timeout validation, caller-injected clock support,
 begin-time/deadline metadata on transaction snapshots, and deterministic
 expired transaction diagnostics without ambient scheduler threads or durable
-logs. `G8-530` is the next promoted implementation slice for local state
-transitions.
+logs. `G8-530` adds local state transitions for active, rollback-only,
+committed, rolled-back, timeout-rolled-back, and bounded heuristic states. It
+also adds deterministic local prepare/commit/rollback callbacks, resource
+failure diagnostics, terminal-state cleanup, and illegal transition rejection.
 
-Completion callbacks/state transitions, propagation, recovery, IIOP, Native
-Image, interop, durable recovery logs, XA integration, Security Service
-integration, distributed peer two-phase commit, and live peer claims remain out
-of scope until later promoted slices.
+Propagation, recovery, IIOP, Native Image, interop, durable recovery logs, XA
+integration, Security Service integration, distributed peer two-phase commit,
+and live peer claims remain out of scope until later promoted slices. `G8-540`
+is the next promoted implementation slice for propagation metadata.
 
 ## Documentation requirements
 

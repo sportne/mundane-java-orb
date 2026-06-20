@@ -69,12 +69,23 @@ public final class LocalTransactionCoordinator {
   public synchronized Optional<TransactionSnapshot> lookup(String transactionId) {
     String id = TransactionNames.requireIdentifier(transactionId, "transaction ID", options);
     TransactionEntry entry = transactions.get(id);
-    return entry == null ? Optional.empty() : Optional.of(entry.snapshot());
+    if (entry == null) {
+      return Optional.empty();
+    }
+    applyTimeoutRollback(entry);
+    return Optional.of(entry.snapshot());
   }
 
   /** Returns a snapshot through a current local transaction handle. */
   public synchronized TransactionSnapshot snapshot(TransactionHandle handle) {
-    return requireCurrentTransaction(handle).snapshot();
+    TransactionEntry entry = requireCurrentTransaction(handle);
+    if (entry.isActive() && entry.isExpired(clock.instant())) {
+      rollbackExpired(entry);
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED,
+          "transaction expired: " + handle.transactionId().value());
+    }
+    return entry.snapshot();
   }
 
   /** Removes a local transaction entry without adding completion semantics. */
@@ -91,7 +102,13 @@ public final class LocalTransactionCoordinator {
   /** Enlists a resource with a local transaction. */
   public synchronized TransactionResourceHandle enlist(
       TransactionHandle handle, String resourceId) {
-    TransactionEntry entry = requireCurrentTransaction(handle);
+    return enlist(handle, resourceId, TransactionResourceParticipant.noOp());
+  }
+
+  /** Enlists a resource participant with a local transaction. */
+  public synchronized TransactionResourceHandle enlist(
+      TransactionHandle handle, String resourceId, TransactionResourceParticipant participant) {
+    TransactionEntry entry = requireActiveTransaction(handle);
     String id = TransactionNames.requireIdentifier(resourceId, "resource ID", options);
     if (entry.resources.containsKey(id)) {
       throw new TransactionServiceException(
@@ -106,7 +123,10 @@ public final class LocalTransactionCoordinator {
               + " enlisted resources");
     }
     ResourceEntry resource =
-        new ResourceEntry(new TransactionResourceId(id), entry.nextResourceGeneration++);
+        new ResourceEntry(
+            new TransactionResourceId(id),
+            entry.nextResourceGeneration++,
+            Objects.requireNonNull(participant, "participant"));
     entry.resources.put(id, resource);
     return resource.handle(entry);
   }
@@ -120,10 +140,8 @@ public final class LocalTransactionCoordinator {
       throw new TransactionServiceException(
           TransactionServiceDiagnosticCodes.TRANSACTION_NOT_FOUND, "unknown transaction: " + txId);
     }
-    if (entry.isExpired(clock.instant())) {
-      throw new TransactionServiceException(
-          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, "transaction expired: " + txId);
-    }
+    requireActiveState(entry);
+    requireNotExpired(entry);
     ResourceEntry removed = entry.resources.remove(resId);
     if (removed == null) {
       throw new TransactionServiceException(
@@ -136,7 +154,7 @@ public final class LocalTransactionCoordinator {
   public synchronized TransactionResourceSnapshot delist(TransactionResourceHandle handle) {
     Objects.requireNonNull(handle, "handle");
     TransactionEntry entry =
-        requireCurrentTransaction(
+        requireActiveTransaction(
             new TransactionHandle(handle.transactionId(), handle.transactionGeneration()));
     ResourceEntry resource = entry.resources.get(handle.resourceId().value());
     if (resource == null || resource.generation != handle.resourceGeneration()) {
@@ -148,8 +166,53 @@ public final class LocalTransactionCoordinator {
     return resource.snapshot();
   }
 
+  /** Marks an active local transaction for rollback. */
+  public synchronized TransactionSnapshot markRollbackOnly(TransactionHandle handle) {
+    TransactionEntry entry = requireActiveTransaction(handle);
+    entry.state = TransactionState.ROLLBACK_ONLY;
+    return entry.snapshot();
+  }
+
+  /** Completes an active local transaction through deterministic local commit callbacks. */
+  public synchronized TransactionSnapshot commit(TransactionHandle handle) {
+    TransactionEntry entry = requireCurrentTransaction(handle);
+    requireActiveState(entry);
+    if (entry.isExpired(clock.instant())) {
+      rollbackExpired(entry);
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED,
+          "transaction expired: " + handle.transactionId().value());
+    }
+    if (entry.state == TransactionState.ROLLBACK_ONLY) {
+      rollbackResources(entry, TransactionState.ROLLED_BACK);
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.ROLLBACK_ONLY,
+          "transaction marked rollback-only: " + handle.transactionId().value());
+    }
+    prepareResources(entry);
+    commitResources(entry);
+    entry.state = TransactionState.COMMITTED;
+    entry.resources.clear();
+    return entry.snapshot();
+  }
+
+  /** Completes an active local transaction through deterministic local rollback callbacks. */
+  public synchronized TransactionSnapshot rollback(TransactionHandle handle) {
+    TransactionEntry entry = requireCurrentTransaction(handle);
+    requireActiveState(entry);
+    if (entry.isExpired(clock.instant())) {
+      rollbackExpired(entry);
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED,
+          "transaction expired: " + handle.transactionId().value());
+    }
+    rollbackResources(entry, TransactionState.ROLLED_BACK);
+    return entry.snapshot();
+  }
+
   /** Lists local transactions in deterministic coordinator insertion order. */
   public synchronized List<TransactionSnapshot> list() {
+    transactions.values().forEach(this::applyTimeoutRollback);
     return transactions.values().stream().map(TransactionEntry::snapshot).toList();
   }
 
@@ -171,12 +234,96 @@ public final class LocalTransactionCoordinator {
           TransactionServiceDiagnosticCodes.STALE_TRANSACTION,
           "stale transaction handle: " + handle.transactionId().value());
     }
+    return entry;
+  }
+
+  private TransactionEntry requireActiveTransaction(TransactionHandle handle) {
+    TransactionEntry entry = requireCurrentTransaction(handle);
+    requireActiveState(entry);
+    requireNotExpired(entry);
+    return entry;
+  }
+
+  private void requireActiveState(TransactionEntry entry) {
+    if (!entry.isActive()) {
+      throw new TransactionServiceException(
+          TransactionServiceDiagnosticCodes.ILLEGAL_TRANSACTION_STATE,
+          "transaction is no longer active: " + entry.id.value());
+    }
+  }
+
+  private void requireNotExpired(TransactionEntry entry) {
     if (entry.isExpired(clock.instant())) {
+      rollbackExpired(entry);
       throw new TransactionServiceException(
           TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED,
-          "transaction expired: " + handle.transactionId().value());
+          "transaction expired: " + entry.id.value());
     }
-    return entry;
+  }
+
+  private void prepareResources(TransactionEntry entry) {
+    List<ResourceEntry> resources = List.copyOf(entry.resources.values());
+    for (ResourceEntry resource : resources) {
+      TransactionResourceVote vote;
+      try {
+        vote = Objects.requireNonNull(resource.participant.prepare(), "prepare vote");
+      } catch (RuntimeException exception) {
+        rollbackResources(entry, TransactionState.ROLLED_BACK);
+        throw new TransactionServiceException(
+            TransactionServiceDiagnosticCodes.RESOURCE_PREPARE_FAILED,
+            "resource prepare failed: " + resource.id.value());
+      }
+      if (vote == TransactionResourceVote.ROLLBACK) {
+        rollbackResources(entry, TransactionState.ROLLED_BACK);
+        throw new TransactionServiceException(
+            TransactionServiceDiagnosticCodes.RESOURCE_PREPARE_FAILED,
+            "resource voted rollback: " + resource.id.value());
+      }
+    }
+  }
+
+  private void commitResources(TransactionEntry entry) {
+    List<ResourceEntry> resources = List.copyOf(entry.resources.values());
+    for (ResourceEntry resource : resources) {
+      try {
+        resource.participant.commit();
+      } catch (RuntimeException exception) {
+        entry.state = TransactionState.HEURISTIC_MIXED;
+        entry.resources.clear();
+        throw new TransactionServiceException(
+            TransactionServiceDiagnosticCodes.RESOURCE_COMMIT_FAILED,
+            "resource commit failed: " + resource.id.value());
+      }
+    }
+  }
+
+  private void rollbackExpired(TransactionEntry entry) {
+    if (entry.isActive()) {
+      rollbackResources(entry, TransactionState.TIMEOUT_ROLLED_BACK);
+    }
+  }
+
+  private void applyTimeoutRollback(TransactionEntry entry) {
+    if (entry.isActive() && entry.isExpired(clock.instant())) {
+      rollbackExpired(entry);
+    }
+  }
+
+  private void rollbackResources(TransactionEntry entry, TransactionState terminalState) {
+    List<ResourceEntry> resources = List.copyOf(entry.resources.values());
+    for (ResourceEntry resource : resources) {
+      try {
+        resource.participant.rollback();
+      } catch (RuntimeException exception) {
+        entry.state = TransactionState.HEURISTIC_MIXED;
+        entry.resources.clear();
+        throw new TransactionServiceException(
+            TransactionServiceDiagnosticCodes.RESOURCE_ROLLBACK_FAILED,
+            "resource rollback failed: " + resource.id.value());
+      }
+    }
+    entry.state = terminalState;
+    entry.resources.clear();
   }
 
   private static final class TransactionEntry {
@@ -185,6 +332,7 @@ public final class LocalTransactionCoordinator {
     private final Instant beganAt;
     private final Instant expiresAt;
     private final Map<String, ResourceEntry> resources = new LinkedHashMap<>();
+    private TransactionState state = TransactionState.ACTIVE;
     private long nextResourceGeneration = 1;
 
     private TransactionEntry(
@@ -202,9 +350,14 @@ public final class LocalTransactionCoordinator {
     private TransactionSnapshot snapshot() {
       return new TransactionSnapshot(
           id,
+          state,
           beganAt,
           expiresAt,
           resources.values().stream().map(ResourceEntry::snapshot).toList());
+    }
+
+    private boolean isActive() {
+      return state == TransactionState.ACTIVE || state == TransactionState.ROLLBACK_ONLY;
     }
 
     private boolean isExpired(Instant now) {
@@ -215,10 +368,13 @@ public final class LocalTransactionCoordinator {
   private static final class ResourceEntry {
     private final TransactionResourceId id;
     private final long generation;
+    private final TransactionResourceParticipant participant;
 
-    private ResourceEntry(TransactionResourceId id, long generation) {
+    private ResourceEntry(
+        TransactionResourceId id, long generation, TransactionResourceParticipant participant) {
       this.id = id;
       this.generation = generation;
+      this.participant = participant;
     }
 
     private TransactionResourceHandle handle(TransactionEntry transaction) {

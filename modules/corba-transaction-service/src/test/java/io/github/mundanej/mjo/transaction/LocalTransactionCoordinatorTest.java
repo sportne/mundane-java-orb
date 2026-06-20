@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -201,6 +202,116 @@ final class LocalTransactionCoordinatorTest {
   }
 
   @Test
+  void commitsResourcesInDeterministicCallbackOrderAndCleansUp() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls));
+    coordinator.enlist(handle, "resource-b", new RecordingParticipant("b", calls));
+
+    TransactionSnapshot snapshot = coordinator.commit(handle);
+
+    assertEquals(TransactionState.COMMITTED, snapshot.state());
+    assertTrue(snapshot.resources().isEmpty());
+    assertEquals(List.of("a:prepare", "b:prepare", "a:commit", "b:commit"), calls);
+    assertEquals(TransactionState.COMMITTED, coordinator.snapshot(handle).state());
+    TransactionServiceException committedAgain =
+        assertThrows(TransactionServiceException.class, () -> coordinator.commit(handle));
+    assertEquals(
+        TransactionServiceDiagnosticCodes.ILLEGAL_TRANSACTION_STATE, committedAgain.code());
+  }
+
+  @Test
+  void rollsBackResourcesInDeterministicCallbackOrderAndCleansUp() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls));
+    coordinator.enlist(handle, "resource-b", new RecordingParticipant("b", calls));
+
+    TransactionSnapshot snapshot = coordinator.rollback(handle);
+
+    assertEquals(TransactionState.ROLLED_BACK, snapshot.state());
+    assertTrue(snapshot.resources().isEmpty());
+    assertEquals(List.of("a:rollback", "b:rollback"), calls);
+    TransactionServiceException enlistAfterRollback =
+        assertThrows(
+            TransactionServiceException.class, () -> coordinator.enlist(handle, "resource-c"));
+    assertEquals(
+        TransactionServiceDiagnosticCodes.ILLEGAL_TRANSACTION_STATE, enlistAfterRollback.code());
+  }
+
+  @Test
+  void rollbackOnlyCommitRollsBackAndReportsDeterministicDiagnostic() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls));
+
+    TransactionSnapshot marked = coordinator.markRollbackOnly(handle);
+    TransactionServiceException rollbackOnly =
+        assertThrows(TransactionServiceException.class, () -> coordinator.commit(handle));
+
+    assertEquals(TransactionState.ROLLBACK_ONLY, marked.state());
+    assertEquals(TransactionServiceDiagnosticCodes.ROLLBACK_ONLY, rollbackOnly.code());
+    assertEquals(TransactionState.ROLLED_BACK, coordinator.snapshot(handle).state());
+    assertEquals(List.of("a:rollback"), calls);
+  }
+
+  @Test
+  void prepareRollbackVoteRollsBackResources() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls));
+    coordinator.enlist(
+        handle,
+        "resource-b",
+        new RecordingParticipant("b", calls).withVote(TransactionResourceVote.ROLLBACK));
+
+    TransactionServiceException prepareFailure =
+        assertThrows(TransactionServiceException.class, () -> coordinator.commit(handle));
+
+    assertEquals(TransactionServiceDiagnosticCodes.RESOURCE_PREPARE_FAILED, prepareFailure.code());
+    assertEquals(TransactionState.ROLLED_BACK, coordinator.snapshot(handle).state());
+    assertEquals(List.of("a:prepare", "b:prepare", "a:rollback", "b:rollback"), calls);
+  }
+
+  @Test
+  void commitFailureReportsResourceFailureAndHeuristicState() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls));
+    coordinator.enlist(handle, "resource-b", new RecordingParticipant("b", calls).failCommit());
+
+    TransactionServiceException commitFailure =
+        assertThrows(TransactionServiceException.class, () -> coordinator.commit(handle));
+
+    assertEquals(TransactionServiceDiagnosticCodes.RESOURCE_COMMIT_FAILED, commitFailure.code());
+    assertEquals(TransactionState.HEURISTIC_MIXED, coordinator.snapshot(handle).state());
+    assertTrue(coordinator.snapshot(handle).resources().isEmpty());
+    assertEquals(List.of("a:prepare", "b:prepare", "a:commit", "b:commit"), calls);
+  }
+
+  @Test
+  void rollbackFailureReportsResourceFailureAndHeuristicState() {
+    LocalTransactionCoordinator coordinator = new LocalTransactionCoordinator();
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-a", new RecordingParticipant("a", calls).failRollback());
+
+    TransactionServiceException rollbackFailure =
+        assertThrows(TransactionServiceException.class, () -> coordinator.rollback(handle));
+
+    assertEquals(
+        TransactionServiceDiagnosticCodes.RESOURCE_ROLLBACK_FAILED, rollbackFailure.code());
+    assertEquals(TransactionState.HEURISTIC_MIXED, coordinator.snapshot(handle).state());
+    assertTrue(coordinator.snapshot(handle).resources().isEmpty());
+    assertEquals(List.of("a:rollback"), calls);
+  }
+
+  @Test
   void rejectsInvalidTimeoutPolicyAndRequestedTimeouts() {
     LocalTransactionCoordinator coordinator =
         new LocalTransactionCoordinator(
@@ -237,7 +348,7 @@ final class LocalTransactionCoordinatorTest {
   }
 
   @Test
-  void rejectsExpiredTransactionsWithoutAmbientScheduler() {
+  void rollsBackExpiredTransactionsWithoutAmbientScheduler() {
     Instant now = Instant.parse("2026-06-20T12:00:00Z");
     MutableClock clock = new MutableClock(now);
     LocalTransactionCoordinator coordinator =
@@ -246,23 +357,48 @@ final class LocalTransactionCoordinatorTest {
             new TransactionTimeoutPolicy(Duration.ofSeconds(5), Duration.ofMinutes(1)),
             clock);
     TransactionHandle handle = coordinator.begin("txn-1");
-    coordinator.enlist(handle, "resource-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-1", new RecordingParticipant("resource-1", calls));
 
     clock.now = now.plusSeconds(5);
 
-    TransactionServiceException snapshotExpired =
+    TransactionServiceException expired =
         assertThrows(TransactionServiceException.class, () -> coordinator.snapshot(handle));
-    TransactionServiceException enlistExpired =
+    TransactionServiceException terminalMutation =
         assertThrows(
             TransactionServiceException.class, () -> coordinator.enlist(handle, "resource-2"));
-    TransactionServiceException delistExpired =
-        assertThrows(
-            TransactionServiceException.class, () -> coordinator.delist("txn-1", "resource-1"));
 
-    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, snapshotExpired.code());
-    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, enlistExpired.code());
-    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, delistExpired.code());
+    assertEquals(TransactionServiceDiagnosticCodes.TRANSACTION_EXPIRED, expired.code());
+    assertEquals(
+        TransactionServiceDiagnosticCodes.ILLEGAL_TRANSACTION_STATE, terminalMutation.code());
+    assertEquals(TransactionState.TIMEOUT_ROLLED_BACK, coordinator.snapshot(handle).state());
+    assertTrue(coordinator.snapshot(handle).resources().isEmpty());
+    assertEquals(List.of("resource-1:rollback"), calls);
     assertEquals("txn-1", coordinator.forget("txn-1").transactionId().value());
+  }
+
+  @Test
+  void lookupAndListApplyTimeoutRollbackBeforeSnapshotting() {
+    Instant now = Instant.parse("2026-06-20T12:00:00Z");
+    MutableClock clock = new MutableClock(now);
+    LocalTransactionCoordinator coordinator =
+        new LocalTransactionCoordinator(
+            TransactionServiceOptions.defaults(),
+            new TransactionTimeoutPolicy(Duration.ofSeconds(5), Duration.ofMinutes(1)),
+            clock);
+    TransactionHandle handle = coordinator.begin("txn-1");
+    List<String> calls = new ArrayList<>();
+    coordinator.enlist(handle, "resource-1", new RecordingParticipant("resource-1", calls));
+    clock.now = now.plusSeconds(5);
+
+    TransactionSnapshot lookup = coordinator.lookup("txn-1").orElseThrow();
+    TransactionSnapshot listed = coordinator.list().get(0);
+
+    assertEquals(TransactionState.TIMEOUT_ROLLED_BACK, lookup.state());
+    assertEquals(TransactionState.TIMEOUT_ROLLED_BACK, listed.state());
+    assertTrue(lookup.resources().isEmpty());
+    assertTrue(listed.resources().isEmpty());
+    assertEquals(List.of("resource-1:rollback"), calls);
   }
 
   @Test
@@ -274,6 +410,56 @@ final class LocalTransactionCoordinatorTest {
         assertThrows(TransactionServiceException.class, () -> coordinator.lookup(" "));
 
     assertEquals(TransactionServiceDiagnosticCodes.MALFORMED_IDENTIFIER, malformed.code());
+  }
+
+  private static final class RecordingParticipant implements TransactionResourceParticipant {
+    private final String name;
+    private final List<String> calls;
+    private TransactionResourceVote vote = TransactionResourceVote.COMMIT;
+    private boolean failCommit;
+    private boolean failRollback;
+
+    private RecordingParticipant(String name, List<String> calls) {
+      this.name = name;
+      this.calls = calls;
+    }
+
+    private RecordingParticipant withVote(TransactionResourceVote vote) {
+      this.vote = vote;
+      return this;
+    }
+
+    private RecordingParticipant failCommit() {
+      failCommit = true;
+      return this;
+    }
+
+    private RecordingParticipant failRollback() {
+      failRollback = true;
+      return this;
+    }
+
+    @Override
+    public TransactionResourceVote prepare() {
+      calls.add(name + ":prepare");
+      return vote;
+    }
+
+    @Override
+    public void commit() {
+      calls.add(name + ":commit");
+      if (failCommit) {
+        throw new IllegalStateException("commit failed");
+      }
+    }
+
+    @Override
+    public void rollback() {
+      calls.add(name + ":rollback");
+      if (failRollback) {
+        throw new IllegalStateException("rollback failed");
+      }
+    }
   }
 
   private static final class MutableClock extends Clock {

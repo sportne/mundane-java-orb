@@ -7,6 +7,7 @@ import java.util.Objects;
 /** Immutable snapshot of one local transaction coordinator entry. */
 public record TransactionSnapshot(
     TransactionId transactionId,
+    TransactionState state,
     Instant beganAt,
     Instant expiresAt,
     List<TransactionResourceSnapshot> resources) {
@@ -16,6 +17,7 @@ public record TransactionSnapshot(
       TransactionId transactionId, List<TransactionResourceSnapshot> resources) {
     this(
         transactionId,
+        TransactionState.ACTIVE,
         Instant.EPOCH,
         Instant.EPOCH.plus(TransactionTimeoutPolicy.DEFAULT_TIMEOUT),
         resources);
@@ -24,6 +26,7 @@ public record TransactionSnapshot(
   /** Creates a transaction snapshot with an immutable resource list. */
   public TransactionSnapshot {
     Objects.requireNonNull(transactionId, "transactionId");
+    Objects.requireNonNull(state, "state");
     Objects.requireNonNull(beganAt, "beganAt");
     Objects.requireNonNull(expiresAt, "expiresAt");
     if (resources == null) {
