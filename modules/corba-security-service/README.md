@@ -24,9 +24,12 @@ metadata, and policy-conflict diagnostics.
 `G8-650-SECURITY-SERVICE-AUDIT-FAILURE-DISCLOSURE` adds bounded redacted audit
 events and stable failure disclosures for local decisions and Security Service
 exceptions without copying raw exception messages or credential material.
-`G8-660` is the only ready successor and is reserved for the descriptor-backed
-loopback IIOP boundary. Native Image smoke, interop metadata, and conformance
-closure remain blocked behind their predecessors.
+`G8-660-SECURITY-SERVICE-IIOP-BOUNDARY` adds a descriptor-backed loopback IIOP
+boundary for bounded CSIv2 service-context and tagged-component handling, local
+policy allow/challenge/deny evaluation, redacted audit events, malformed
+context diagnostics, and clean shutdown. `G8-670` is the only ready successor
+and is reserved for Native Image smoke coverage. Interop metadata and
+conformance closure remain blocked behind their predecessors.
 
 ## Documentation requirements
 

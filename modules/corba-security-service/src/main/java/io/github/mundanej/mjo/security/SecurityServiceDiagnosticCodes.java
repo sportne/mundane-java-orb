@@ -82,5 +82,12 @@ public final class SecurityServiceDiagnosticCodes {
   /** A redacted audit event exceeded supported field or disclosure bounds. */
   public static final DiagnosticCode AUDIT_EVENT_LIMIT_EXCEEDED = new DiagnosticCode("SEC-0025");
 
+  /** A CSIv2 IIOP service context or tagged component was malformed. */
+  public static final DiagnosticCode MALFORMED_IIOP_SECURITY_CONTEXT =
+      new DiagnosticCode("SEC-0026");
+
+  /** A local Security Service IIOP boundary was used after close. */
+  public static final DiagnosticCode IIOP_SECURITY_BOUNDARY_CLOSED = new DiagnosticCode("SEC-0027");
+
   private SecurityServiceDiagnosticCodes() {}
 }

@@ -480,6 +480,7 @@ JVM/native dry-run direction enumeration, and deterministic
 missing-prerequisite reports. Transaction Service has no live peer lanes or
 pass/fail peer evidence, and G8-590 closes its local/IIOP request
 context/Native Image/dry-run conformance record. G8-600 splits Security/CSIv2
-into staged implementation slices; `security-service` interop metadata remains
-blocked until G8-680 and no live secure peer lanes or pass/fail peer evidence
-are approved.
+into staged implementation slices. G8-660 adds the local descriptor-backed
+CSIv2 service-context/tagged-component boundary, but `security-service`
+interop metadata remains blocked until G8-680 and no live secure peer lanes or
+pass/fail peer evidence are approved.

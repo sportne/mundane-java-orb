@@ -10,6 +10,9 @@ request/reply messages, including timeouts, request-id correlation, basic
 connection backpressure, idempotent shutdown, and explicit per-endpoint TLS
 configuration. G10-040 adds bounded GIOP fragment-sequence assembly in the
 frame reader before messages are returned to the existing request/reply paths.
+G8-660 adds Security Service / CSIv2 descriptor-backed service-context and
+tagged-component handling in `modules/corba-security-service`; it does not
+change this module's transport TLS policy or start live secure peer execution.
 
 This slice is intentionally local and transport-only. It does not implement
 connection pooling, ORB dispatch, POA lookup, Naming Service behavior,

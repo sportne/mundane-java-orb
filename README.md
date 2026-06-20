@@ -139,8 +139,9 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   subsets now have closed G8 conformance records covering local behavior,
   loopback IIOP/Naming or request-context exposure, Native Image smoke, and
   approved dry-run peer metadata;
-Security/CSIv2 now has bounded local credential/trust, policy-validation, and
-CSIv2 metadata models, with local policy evaluation ready next;
+Security/CSIv2 now has bounded local credential/trust, policy-validation,
+CSIv2 metadata, local policy evaluation, redacted audit/failure disclosure, and
+loopback IIOP boundary models, with Native Image smoke ready next;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -231,9 +232,10 @@ durable-recovery diagnostics, descriptor-backed request-context handling,
 Native Image smoke, and dry-run interop metadata without live peer claims.
 Security/CSIv2 now has bounded local credential/trust, policy-validation,
 CSIv2 metadata, local policy evaluation, and redacted audit/failure disclosure
-models; G8-660 is the ready loopback IIOP boundary slice, while Native Image,
-interop metadata, and conformance closure remain blocked behind their
-predecessors.
+models plus a descriptor-backed loopback IIOP boundary for bounded CSIv2
+service contexts and tagged components; G8-670 is the ready Native Image smoke
+slice, while interop metadata and conformance closure remain blocked behind
+their predecessors.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -342,5 +344,7 @@ G8-600 splits Security Service / CSIv2 into G8-610 through G8-690. G8-610 adds
 the bounded local credential/trust model, G8-620 adds the bounded policy model,
 G8-630 adds bounded CSIv2 metadata encode/decode, G8-640 adds deterministic
 local allow/challenge/deny policy evaluation, and G8-650 adds bounded redacted
-audit/failure disclosure. The next ready roadmap task is G8-660, the loopback
-IIOP boundary slice.
+audit/failure disclosure. G8-660 adds descriptor-backed loopback IIOP
+service-context and tagged-component handling with local policy evaluation and
+clean shutdown. The next ready roadmap task is G8-670, the Native Image smoke
+slice.

@@ -1,7 +1,7 @@
 # G8-660 Security Service IIOP Boundary
 
 Task ID: G8-660-SECURITY-SERVICE-IIOP-BOUNDARY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-IIOP-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for loopback security context handling, tagg
 Documentation to update: Security Service, Services Core, and IIOP docs as needed, CDR/GIOP/IIOP architecture, services design, optional services conformance/review, interop matrix, service requirements, roadmap index, README, and G8-670 status.
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test :modules:corba-iiop:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service exposes local loopback IIOP boundary behavior with deterministic diagnostics and no automatic TLS policy changes, global JVM security-manager integration, generated OMG APIs, or live peer claim; G8-670 is promoted after completion.
+Completion evidence: Implemented descriptor-backed loopback IIOP boundary sources for bounded CSIv2 service-context and tagged-component descriptors, deterministic encode/decode, bounded context-list discovery, local policy allow/challenge/deny evaluation, redacted audit event creation, malformed-context diagnostics, and idempotent close behavior. Unit coverage verifies service-context and tagged-component round trips, defensive descriptor copies, bounded list handling, local allow/deny/challenge decisions through the boundary, trusted tagged-component evaluation, malformed/duplicate/wrong/oversized context diagnostics, audit redaction, clean shutdown, and no Java serialization marker on the boundary classes. No automatic TLS policy changes, global JVM security-manager integration, generated OMG APIs, Native Image smoke entrypoint, interop metadata, live peer execution, or live peer claim was added. G8-670 is promoted as the only ready successor.
 Rollback notes: Revert Security Service IIOP boundary sources, tests, docs, and roadmap status together.
