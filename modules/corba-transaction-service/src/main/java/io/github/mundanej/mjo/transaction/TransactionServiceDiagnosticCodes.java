@@ -71,5 +71,12 @@ public final class TransactionServiceDiagnosticCodes {
   /** Durable transaction recovery is outside the supported local subset. */
   public static final DiagnosticCode DURABLE_RECOVERY_DISABLED = new DiagnosticCode("TXN-0022");
 
+  /** An IIOP request context carrying Transaction Service metadata was malformed. */
+  public static final DiagnosticCode MALFORMED_REQUEST_CONTEXT = new DiagnosticCode("TXN-0023");
+
+  /** The Transaction Service IIOP request-context boundary has been closed. */
+  public static final DiagnosticCode REQUEST_CONTEXT_BOUNDARY_CLOSED =
+      new DiagnosticCode("TXN-0024");
+
   private TransactionServiceDiagnosticCodes() {}
 }

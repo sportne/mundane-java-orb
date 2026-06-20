@@ -1,7 +1,7 @@
 # G8-560 Transaction Service IIOP Request Context Boundary
 
 Task ID: G8-560-TRANSACTION-SERVICE-IIOP-REQUEST-CONTEXT-BOUNDARY
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-040, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0021
@@ -14,4 +14,5 @@ Tests to add/update: Add unit tests for request-context encode/decode, loopback 
 Documentation to update: Transaction Service README, services design, optional services conformance/review, roadmap index, README, and G8-570 status.
 Commands to run: ./gradlew :modules:corba-transaction-service:test :modules:corba-services-core:test :modules:corba-iiop:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Transaction Service exposes a bounded loopback IIOP request-context boundary for local propagation metadata without distributed peer two-phase commit, broad ORB refactors, generated OMG APIs, recovery logs, Native Image, interop, or live peer claims; G8-570 is promoted after completion.
+Completion evidence: Added transaction-owned request-context descriptors, codec, boundary validation, and unit coverage for deterministic encode/decode, loopback context-list handling, malformed/duplicate/wrong context diagnostics, unknown/stale/expired coordinator validation, and clean shutdown. Kept distributed peer two-phase commit, broad ORB refactors, generated OMG APIs, recovery logs, Native Image smoke, interop metadata, XA, Security Service, and live peer claims out of scope.
 Rollback notes: Revert Transaction Service request-context boundary sources, tests, docs, and roadmap status together.

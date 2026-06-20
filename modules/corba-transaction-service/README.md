@@ -29,11 +29,16 @@ coverage that avoids Java serialization.
 `G8-550` adds the recovery boundary: durable recovery is explicitly disabled,
 requests for durable logs or replay fail with stable diagnostics, and terminal
 local states remain deterministic without durable replay.
+`G8-560` adds a descriptor-backed loopback IIOP request-context boundary for
+the supported local propagation subset: stable transaction service-context IDs
+and bytes, malformed and duplicate request-context diagnostics, stale, unknown,
+and expired context rejection through the local coordinator, and deterministic
+clean shutdown.
 
-IIOP, Native Image, interop, durable recovery logs, XA integration, Security
-Service integration, distributed peer two-phase commit, and live peer claims
-remain out of scope until later promoted slices. `G8-560` is the next promoted
-implementation slice for the IIOP request-context boundary.
+Native Image, interop, durable recovery logs, XA integration, Security Service
+integration, distributed peer two-phase commit, and live peer claims remain out
+of scope until later promoted slices. `G8-570` is the next promoted
+implementation slice for Native Image smoke coverage.
 
 ## Documentation requirements
 
