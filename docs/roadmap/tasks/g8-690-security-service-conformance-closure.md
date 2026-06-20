@@ -1,7 +1,7 @@
 # G8-690 Security Service Conformance Closure
 
 Task ID: G8-690-SECURITY-SERVICE-CONFORMANCE-CLOSURE
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-IIOP-002, REQ-NATIVE-002, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -14,4 +14,5 @@ Tests to add/update: No new runtime tests unless documentation verification reve
 Documentation to update: Security Service README, services design, CDR/GIOP/IIOP architecture, optional services conformance/review, interop matrix, Native Image matrix, roadmap index, README, and next ready roadmap task if required by design-control gates.
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test :modules:corba-iiop:test :modules:corba-native-image:test :modules:corba-interop-testkit:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run security-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service conformance documentation matches implemented local/IIOP/Native Image/dry-run behavior; live secure peer claims, enterprise identity management, automatic TLS policy, and global JVM security integration remain unapproved; the next existing roadmap task is promoted only if design-control rules require a ready successor.
+Completion evidence: Closed the Security Service / CSIv2 conformance record for the implemented SEC-18 and CORBA-IOP-SECURITY subset across bounded credential/trust behavior, policy validation, CSIv2 metadata encode/decode, local policy evaluation, audit/failure disclosure, descriptor-backed loopback IIOP service-context and tagged-component handling, Native Image smoke, source-level closed-world audits, and metadata-only `security-service` dry-run interop reporting. Live secure peer execution, pass/fail peer compatibility claims, enterprise identity management, automatic TLS policy changes, global JVM security-manager integration, prepared peer artifacts, committed live reports, generated OMG APIs, Java serialization metadata, reflection metadata, dynamic proxies, and runtime bytecode generation remain unapproved. No next ready roadmap task is promoted because the existing roadmap successors are already complete.
 Rollback notes: Revert Security Service conformance documentation and roadmap status updates together.

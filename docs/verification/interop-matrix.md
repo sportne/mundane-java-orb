@@ -486,3 +486,5 @@ CSIv2 service-context/tagged-component boundary. G8-680 adds the metadata-only
 manifest declarations, `InteropScenario.securityService()`, JVM/native dry-run
 direction enumeration, and deterministic missing-prerequisite reports. Security
 Service has no live secure peer lanes or pass/fail peer evidence.
+G8-690 closes the Security Service local/IIOP/Native Image/dry-run conformance
+record without adding live secure peer execution or peer compatibility claims.

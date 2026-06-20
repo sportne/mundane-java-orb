@@ -168,7 +168,7 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-660-security-service-iiop-boundary.md` - complete
 - `tasks/g8-670-security-service-native-smoke.md` - complete
 - `tasks/g8-680-security-service-interop-metadata.md` - complete
-- `tasks/g8-690-security-service-conformance-closure.md` - ready-for-implementation
+- `tasks/g8-690-security-service-conformance-closure.md` - complete
 
 ## G9 Verification Hardening
 

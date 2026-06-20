@@ -333,6 +333,12 @@ proxies, Java serialization metadata, service-loader discovery, scripting,
 runtime bytecode generation, automatic TLS policy changes, global JVM security
 manager integration, enterprise identity management, live peer execution, or
 live peer compatibility claim.
+G8-690 closes the Security Service conformance record using this smoke coverage
+and the source-level closed-world audit; it adds no new Native Image metadata,
+reflection metadata, dynamic proxies, Java serialization metadata, runtime
+bytecode generation, automatic TLS policy changes, global JVM security-manager
+integration, enterprise identity management, live peer execution, or live peer
+compatibility claim.
 
 ## G13-060 durable POA registry Native Image evidence
 

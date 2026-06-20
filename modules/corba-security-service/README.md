@@ -36,8 +36,14 @@ Service production sources. `G8-680-SECURITY-SERVICE-INTEROP-METADATA`
 adds the `security-service` IDL fixture, approved peer manifest declarations,
 `InteropScenario.securityService()`, deterministic JVM/native dry-run direction
 enumeration, and structured missing-prerequisite reports without starting peer
-containers or local live lanes. `G8-690` is the only ready successor and is
-reserved for conformance closure.
+containers or local live lanes. `G8-690-SECURITY-SERVICE-CONFORMANCE-CLOSURE`
+closes the implemented Security Service / CSIv2 conformance record for the
+credential/trust model, policy validation, CSIv2 metadata, local policy
+evaluation, audit/failure disclosure, descriptor-backed loopback IIOP boundary,
+Native Image smoke, and metadata-only interop dry-run subset. Live secure peer
+execution, pass/fail peer compatibility claims, enterprise identity management,
+automatic TLS policy changes, and global JVM security-manager integration remain
+unapproved. No next ready Security Service task is promoted by the closure.
 
 ## Documentation requirements
 

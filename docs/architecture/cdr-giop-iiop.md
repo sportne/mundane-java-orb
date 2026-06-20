@@ -128,6 +128,10 @@ request dispatch. G8-660 adds the descriptor-backed loopback Security Service /
 CSIv2 boundary for bounded service-context and tagged-component handling,
 local policy evaluation, malformed-context diagnostics, redacted audit events,
 and clean shutdown without automatic TLS policy changes or live peer claims.
+G8-690 closes the Security Service conformance record for that descriptor-backed
+loopback boundary without broadening IIOP transport TLS policy, automatic
+TLS/mTLS configuration, enterprise identity integration, or live secure peer
+execution.
 The current transport boundary is:
 
 ```text
