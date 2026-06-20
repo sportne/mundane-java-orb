@@ -141,7 +141,8 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
   approved dry-run peer metadata;
 - Security/CSIv2 now has bounded local credential/trust, policy-validation,
   CSIv2 metadata, local policy evaluation, redacted audit/failure disclosure,
-  loopback IIOP boundary models, and Native Image smoke coverage;
+  loopback IIOP boundary models, Native Image smoke coverage, and metadata-only
+  dry-run interop reporting;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -234,8 +235,11 @@ Security/CSIv2 now has bounded local credential/trust, policy-validation,
 CSIv2 metadata, local policy evaluation, and redacted audit/failure disclosure
 models plus a descriptor-backed loopback IIOP boundary for bounded CSIv2
 service contexts and tagged components. G8-670 adds Native Image smoke coverage
-and source-level closed-world audits; G8-680 is the ready metadata-only interop
-slice, while conformance closure remains blocked behind its predecessor.
+and source-level closed-world audits. G8-680 adds the metadata-only
+`security-service` IDL fixture, approved-peer metadata, JVM/native dry-run
+direction enumeration, `InteropScenario.securityService()`, and structured
+missing-prerequisite reports without starting peer containers or claiming live
+secure peer compatibility. G8-690 is the ready conformance closure slice.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -349,5 +353,7 @@ service-context and tagged-component handling with local policy evaluation and
 clean shutdown. G8-670 adds Native Image smoke coverage for credential
 rejection, trust validation, policy rejection, CSIv2 metadata encode/decode,
 local policy evaluation, audit redaction, IIOP boundary behavior, clean
-shutdown, and source-level closed-world audits. The next ready roadmap task is
-G8-680, the metadata-only Security Service interop slice.
+shutdown, and source-level closed-world audits. G8-680 adds metadata-only
+Security Service interop discoverability and deterministic prerequisite
+reporting. The next ready roadmap task is G8-690, the Security Service
+conformance closure slice.

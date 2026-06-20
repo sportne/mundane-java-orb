@@ -75,6 +75,10 @@ final class InteropPeerGateTest {
       assertTrue(manifest.contains("transaction-service:"), manifest);
       assertTrue(manifest.contains("idl: interop/idl/transaction-service.idl"), manifest);
       assertTrue(manifest.contains("support: transaction-service-metadata-dry-run"), manifest);
+      assertTrue(manifest.contains("  - security-service"), manifest);
+      assertTrue(manifest.contains("security-service:"), manifest);
+      assertTrue(manifest.contains("idl: interop/idl/security-service.idl"), manifest);
+      assertTrue(manifest.contains("support: security-service-metadata-dry-run"), manifest);
     }
     assertTrue(
         Files.exists(repoRoot().resolve("interop/idl/rmi-iiop/Calculator.idl")),
@@ -111,6 +115,12 @@ final class InteropPeerGateTest {
     assertTrue(
         Files.isRegularFile(repoRoot().resolve(transactionService.idlPath())),
         "Transaction Service IDL fixture must be present for metadata dry runs");
+    InteropScenario securityService = InteropScenario.securityService();
+    assertEquals("security-service", securityService.name());
+    assertEquals("interop/idl/security-service.idl", securityService.idlPath());
+    assertTrue(
+        Files.isRegularFile(repoRoot().resolve(securityService.idlPath())),
+        "Security Service IDL fixture must be present for metadata dry runs");
   }
 
   @Test
@@ -289,6 +299,30 @@ final class InteropPeerGateTest {
             .output()
             .contains(
                 "dry-run: would run scenario transaction-service role server for " + FIXTURE_PEER),
+        result.output());
+    assertFalse(result.output().contains("for other-peer"), result.output());
+  }
+
+  @Test
+  void runScenarioAllFiltersPeersByDeclaredSecurityServiceCapability() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path otherPeer = fixture.root().resolve("interop/peers/other-peer");
+    Files.createDirectories(otherPeer);
+    Files.writeString(
+        otherPeer.resolve("peer.yaml"),
+        removeSecurityServiceCapability(
+            peerManifest(FixtureOptions.valid()).replace("fixture-peer", "other-peer")),
+        StandardCharsets.UTF_8);
+
+    CommandResult result =
+        run(command("run-scenario", "--dry-run", "security-service", "all"), fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run scenario security-service role server for " + FIXTURE_PEER),
         result.output());
     assertFalse(result.output().contains("for other-peer"), result.output());
   }
@@ -534,6 +568,7 @@ final class InteropPeerGateTest {
                   - notification-service
                   - trading-service
                   - transaction-service
+                  - security-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -1415,6 +1450,76 @@ final class InteropPeerGateTest {
         run(command("run-scenario", "transaction-service", FIXTURE_PEER), fixture.environment());
 
     assertFailure(result, "transaction-service live execution requires --require-live");
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void securityServiceDirectionMatrixDryRunEnumeratesBothDirectionsAndRuntimesWithoutMutating()
+      throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--dry-run", "security-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertSuccess(result);
+    assertTrue(
+        result.output().contains("dry-run: would start fixture-peer server for security-service"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_CLIENT_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_CLIENT_BINARY"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_JVM_SERVER_COMMAND"),
+        result.output());
+    assertTrue(
+        result.output().contains("dry-run: would validate MJO_NATIVE_SERVER_BINARY"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our jvm server for "
+                    + "security-service"),
+        result.output());
+    assertTrue(
+        result
+            .output()
+            .contains(
+                "dry-run: would run fixture-peer client against our native server for "
+                    + "security-service"),
+        result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void securityServiceDirectionMatrixRequiresRequireLiveBeforeWritingReports() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "security-service", FIXTURE_PEER),
+            fixture.environment());
+
+    assertFailure(result, "security-service live execution requires --require-live");
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+  }
+
+  @Test
+  void securityServiceRunScenarioRequiresRequireLiveBeforeWritingReports() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(command("run-scenario", "security-service", FIXTURE_PEER), fixture.environment());
+
+    assertFailure(result, "security-service live execution requires --require-live");
     assertFalse(Files.exists(fixture.root().resolve("build/interop/local/reports")));
     assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
   }
@@ -2549,6 +2654,240 @@ final class InteropPeerGateTest {
   }
 
   @Test
+  void securityServiceLiveRunRequiresExplicitApprovalReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-680 must not start peer-server live work");
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"liveApprovalState\": \"missing\""), report);
+    assertTrue(report.contains("\"direction\": \"peer-server-to-local-client\""), report);
+    assertTrue(report.contains("\"localRuntime\": \"our-jvm-jdk21\""), report);
+    assertTrue(report.contains("\"peerRuntime\": \"peer-jvm\""), report);
+    assertTrue(report.contains("\"service\": \"security-service\""), report);
+    assertTrue(
+        report.contains(
+            "\"operationSet\": \"credentials,trust,policy,csiv2-metadata,"
+                + "policy-evaluation,audit,iiop-boundary\""),
+        report);
+    assertTrue(report.contains("\"evidencePolicy\": \"clean-room-summary-only\""), report);
+    assertTrue(
+        report.contains(
+            "\"stdoutPath\": \"build/interop/local/logs/"
+                + "security-service-fixture-peer-jvm-client-peer-server-to-local-client.stdout.log\""),
+        report);
+    assertTrue(
+        report.contains(
+            "\"stderrPath\": \"build/interop/local/logs/"
+                + "security-service-fixture-peer-jvm-client-peer-server-to-local-client.stderr.log\""),
+        report);
+    assertTrue(
+        report.contains(
+            "\"reportPath\": \"build/interop/local/reports/"
+                + "security-service-fixture-peer-jvm-client-peer-server-to-local-client.json\""),
+        report);
+  }
+
+  @Test
+  void securityServiceRunScenarioRequireLiveReportsWithoutPeerOutputs() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-scenario", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache());
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(
+        Files.exists(fixture.root().resolve("build/interop/fixture/reports")),
+        "G8-680 direct scenario execution must not start peer roles");
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"classification\": \"missing-prerequisite\""), report);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-approval\""), report);
+    assertTrue(report.contains("\"service\": \"security-service\""), report);
+  }
+
+  @Test
+  void securityServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.root().resolve("interop/idl/security-service.idl"));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_SECURITY_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"scenario-idl\""), report);
+    assertTrue(report.contains("Security Service scenario IDL is missing"), report);
+  }
+
+  @Test
+  void securityServicePrerequisiteReportsNameMissingLocalLaneCommands() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(Map.of("INTEROP_SECURITY_SERVICE_LIVE_APPROVED", "true")));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String jvmClient =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String nativeClient =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    String jvmServer =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+    String nativeServer =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "native", "server", "local-server-to-peer-client"),
+            StandardCharsets.UTF_8);
+
+    assertTrue(jvmClient.contains("\"missingPrerequisite\": \"MJO_JVM_CLIENT_COMMAND\""));
+    assertTrue(nativeClient.contains("\"missingPrerequisite\": \"MJO_NATIVE_CLIENT_BINARY\""));
+    assertTrue(jvmServer.contains("\"missingPrerequisite\": \"MJO_JVM_SERVER_COMMAND\""));
+    assertTrue(nativeServer.contains("\"missingPrerequisite\": \"MJO_NATIVE_SERVER_BINARY\""));
+  }
+
+  @Test
+  void securityServicePrerequisiteReportNamesMissingArtifactCache() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Files.delete(fixture.cacheRoot().resolve(FIXTURE_CACHE_ENTRY));
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(securityServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"artifact-cache\""), report);
+    assertTrue(report.contains("cache entry is missing"), report);
+  }
+
+  @Test
+  void securityServicePrerequisiteReportNamesMissingDigestPinnedBaseImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(securityServiceApprovedCommandEnvironment()));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"INTEROP_JAVA_BASE_IMAGE\""), report);
+  }
+
+  @Test
+  void securityServicePrerequisiteReportNamesMissingContainerRuntime() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path isolatedBin = isolatedPathWithoutContainerRuntime();
+    Map<String, String> environment = securityServiceApprovedCommandEnvironment();
+    environment.put("PATH", isolatedBin.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"container-runtime\""), report);
+  }
+
+  @Test
+  void securityServicePrerequisiteReportNamesMissingPeerImage() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("security-service-missing-image", 1, 0);
+    Map<String, String> environment = securityServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"peer-image\""), report);
+  }
+
+  @Test
+  void securityServiceDoesNotExecuteLiveLanesEvenWhenPrerequisitesPass() throws Exception {
+    Fixture fixture = createFixture(FixtureOptions.valid());
+    Path runtime = fakeContainerRuntime("security-service-live-blocked", 0, 0);
+    Map<String, String> environment = securityServiceApprovedCommandEnvironment();
+    environment.put("CONTAINER_RUNTIME", runtime.toString());
+    environment.put("INTEROP_JAVA_BASE_IMAGE", DIGEST_PINNED_BASE_IMAGE);
+
+    CommandResult result =
+        run(
+            command("run-direction-matrix", "--require-live", "security-service", FIXTURE_PEER),
+            fixture.environmentWithCache(environment));
+
+    assertEquals(1, result.exitCode(), result.output());
+    assertFalse(Files.exists(fixture.root().resolve("build/interop/fixture/reports")));
+    String report =
+        Files.readString(
+            securityServicePrerequisiteReport(
+                fixture, FIXTURE_PEER, "jvm", "client", "peer-server-to-local-client"),
+            StandardCharsets.UTF_8);
+    assertTrue(report.contains("\"missingPrerequisite\": \"live-execution\""), report);
+    assertTrue(report.contains("G8-680 records Security Service prerequisites only"), report);
+  }
+
+  @Test
   void timeServicePrerequisiteReportNamesMissingScenarioIdl() throws Exception {
     Fixture fixture = createFixture(FixtureOptions.valid());
     Files.delete(fixture.root().resolve("interop/idl/time-service.idl"));
@@ -3095,6 +3434,9 @@ final class InteropPeerGateTest {
     Files.copy(
         repoRoot().resolve("interop/idl/transaction-service.idl"),
         root.resolve("interop/idl/transaction-service.idl"));
+    Files.copy(
+        repoRoot().resolve("interop/idl/security-service.idl"),
+        root.resolve("interop/idl/security-service.idl"));
 
     Files.writeString(peers.resolve("peer.yaml"), peerManifest(options), StandardCharsets.UTF_8);
     Files.writeString(
@@ -3123,6 +3465,7 @@ final class InteropPeerGateTest {
                   - notification-service
                   - trading-service
                   - transaction-service
+                  - security-service
                   - g12-wide-core-types
                   - g13-durable-ior-peer-client-restart
                   - g13-durable-naming-peer-client-restart
@@ -3211,6 +3554,20 @@ final class InteropPeerGateTest {
                   transaction-service:
                     idl: interop/idl/transaction-service.idl
                     support: transaction-service-metadata-dry-run
+                    directions:
+                      - peer-server-to-local-client
+                      - local-server-to-peer-client
+                    localRuntimes:
+                      - jvm
+                      - native
+                    expectedClassifications:
+                      - expected-deferral
+                      - missing-prerequisite
+                      - unsupported-scenario
+                      - infrastructure-failure
+                  security-service:
+                    idl: interop/idl/security-service.idl
+                    support: security-service-metadata-dry-run
                     directions:
                       - peer-server-to-local-client
                       - local-server-to-peer-client
@@ -3357,9 +3714,19 @@ final class InteropPeerGateTest {
   private static String removeTransactionServiceCapability(String manifest) {
     String withoutGroup = manifest.replace("  - transaction-service\n", "");
     int start = withoutGroup.indexOf("  transaction-service:\n");
-    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    int end = withoutGroup.indexOf("  security-service:\n", start);
     if (start < 0 || end < 0) {
       throw new IllegalArgumentException("Transaction Service capability block not found");
+    }
+    return withoutGroup.substring(0, start) + withoutGroup.substring(end);
+  }
+
+  private static String removeSecurityServiceCapability(String manifest) {
+    String withoutGroup = manifest.replace("  - security-service\n", "");
+    int start = withoutGroup.indexOf("  security-service:\n");
+    int end = withoutGroup.indexOf("  g12-wide-core-types:\n", start);
+    if (start < 0 || end < 0) {
+      throw new IllegalArgumentException("Security Service capability block not found");
     }
     return withoutGroup.substring(0, start) + withoutGroup.substring(end);
   }
@@ -3397,6 +3764,16 @@ final class InteropPeerGateTest {
   private static Map<String, String> transactionServiceApprovedCommandEnvironment() {
     java.util.HashMap<String, String> environment = new java.util.HashMap<>();
     environment.put("INTEROP_TRANSACTION_SERVICE_LIVE_APPROVED", "true");
+    environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
+    environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
+    environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
+    environment.put("MJO_NATIVE_SERVER_BINARY", "/bin/true");
+    return environment;
+  }
+
+  private static Map<String, String> securityServiceApprovedCommandEnvironment() {
+    java.util.HashMap<String, String> environment = new java.util.HashMap<>();
+    environment.put("INTEROP_SECURITY_SERVICE_LIVE_APPROVED", "true");
     environment.put("MJO_JVM_CLIENT_COMMAND", "/bin/true");
     environment.put("MJO_JVM_SERVER_COMMAND", "/bin/true");
     environment.put("MJO_NATIVE_CLIENT_BINARY", "/bin/true");
@@ -3458,6 +3835,22 @@ final class InteropPeerGateTest {
         .root()
         .resolve(
             "build/interop/local/reports/transaction-service-"
+                + peer
+                + "-"
+                + runtime
+                + "-"
+                + role
+                + "-"
+                + direction
+                + ".json");
+  }
+
+  private static Path securityServicePrerequisiteReport(
+      Fixture fixture, String peer, String runtime, String role, String direction) {
+    return fixture
+        .root()
+        .resolve(
+            "build/interop/local/reports/security-service-"
                 + peer
                 + "-"
                 + runtime

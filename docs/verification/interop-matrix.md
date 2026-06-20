@@ -481,6 +481,8 @@ missing-prerequisite reports. Transaction Service has no live peer lanes or
 pass/fail peer evidence, and G8-590 closes its local/IIOP request
 context/Native Image/dry-run conformance record. G8-600 splits Security/CSIv2
 into staged implementation slices. G8-660 adds the local descriptor-backed
-CSIv2 service-context/tagged-component boundary, but `security-service`
-interop metadata remains blocked until G8-680 and no live secure peer lanes or
-pass/fail peer evidence are approved.
+CSIv2 service-context/tagged-component boundary. G8-680 adds the metadata-only
+`security-service` scenario, `interop/idl/security-service.idl`, approved peer
+manifest declarations, `InteropScenario.securityService()`, JVM/native dry-run
+direction enumeration, and deterministic missing-prerequisite reports. Security
+Service has no live secure peer lanes or pass/fail peer evidence.

@@ -1,7 +1,7 @@
 # G8-680 Security Service Interop Metadata
 
 Task ID: G8-680-SECURITY-SERVICE-INTEROP-METADATA
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-INTEROP-009, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -14,4 +14,5 @@ Tests to add/update: Add interop testkit and harness tests for fixture presence,
 Documentation to update: Security Service README, services design, optional services conformance/review, interop matrix, service requirements, roadmap index, README, and G8-690 status.
 Commands to run: ./gradlew :modules:corba-interop-testkit:test :modules:corba-security-service:test; ./interop/bin/interop-peer validate-manifests; ./interop/bin/interop-peer run-direction-matrix --dry-run security-service all; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service is discoverable as a metadata-only interop scenario with deterministic dry-run and missing-prerequisite reports and no live peer execution, prepared peer artifacts, committed reports, automatic TLS policy change, global JVM security-manager integration, broad secure peer compatibility claim, or live peer claim; G8-690 is promoted after completion.
+Completion evidence: Added `interop/idl/security-service.idl` for the supported SEC-18/CSIv2 metadata subset, declared `security-service` in the approved peer manifests, and added `InteropScenario.securityService()` for stable testkit identity. The interop harness now enumerates JVM/native dry-run direction matrices, filters `all` targets by declared capability, refuses live execution without `--require-live`, and writes deterministic missing-prerequisite reports under build output for `--require-live` without starting peer containers or local live lanes. Tests cover fixture presence, manifest declarations, dry-run non-mutation, missing live approval, missing fixture, local JVM/native lane inputs, artifact cache, digest-pinned peer base image, container runtime, peer image, final live-execution deferral, report fields, and ignored raw evidence paths. No live secure peer execution, prepared peer image, committed report, automatic TLS policy change, global JVM security-manager integration, broad peer compatibility claim, Java serialization metadata, reflection metadata, dynamic proxy, or runtime bytecode generation was added. G8-690 is promoted as the only ready successor.
 Rollback notes: Revert Security Service interop metadata, tests, docs, peer manifest declarations, and roadmap status together.

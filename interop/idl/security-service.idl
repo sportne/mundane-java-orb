@@ -1,0 +1,69 @@
+module MjoSecurityService {
+  enum AuthenticationRequirement {
+    AUTHENTICATION_OPTIONAL,
+    AUTHENTICATION_REQUIRED
+  };
+
+  enum TransportProtection {
+    TRANSPORT_NONE,
+    TRANSPORT_INTEGRITY,
+    TRANSPORT_CONFIDENTIALITY
+  };
+
+  enum IdentityTokenPolicy {
+    IDENTITY_TOKEN_ABSENT,
+    IDENTITY_TOKEN_PRINCIPAL_NAME
+  };
+
+  enum PolicyDecisionStatus {
+    SECURITY_ALLOW,
+    SECURITY_CHALLENGE,
+    SECURITY_DENY
+  };
+
+  struct Credential {
+    string credential_id;
+    string principal_id;
+    string credential_kind;
+    string trust_anchor_id;
+    string issued_at;
+    string expires_at;
+  };
+
+  struct TrustAnchor {
+    string trust_anchor_id;
+    string issuer_principal_id;
+    string credential_kind;
+  };
+
+  struct Csiv2Mechanism {
+    string mechanism_id;
+    TransportProtection transport_protection;
+    IdentityTokenPolicy identity_token_policy;
+    AuthenticationRequirement target_authentication;
+    AuthenticationRequirement client_authentication;
+  };
+
+  struct PolicySnapshot {
+    AuthenticationRequirement authentication;
+    boolean trust_required;
+    TransportProtection transport_protection;
+    boolean identity_assertion_required;
+    boolean delegation_enabled;
+    string audit_level;
+  };
+
+  struct PolicyDecision {
+    PolicyDecisionStatus status;
+    string diagnostic_code;
+    string failure_reason;
+  };
+
+  interface SecurityPolicyEvaluator {
+    PolicyDecision evaluate(
+        in PolicySnapshot policy,
+        in Csiv2Mechanism mechanism,
+        in Credential credential,
+        in TrustAnchor trust_anchor);
+  };
+};

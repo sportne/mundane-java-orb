@@ -32,9 +32,12 @@ context diagnostics, and clean shutdown.
 coverage for credential rejection, trust validation, policy rejection, CSIv2
 metadata encode/decode, local policy evaluation, audit redaction, IIOP boundary
 behavior, clean shutdown, and source-level closed-world audits over Security
-Service production sources. `G8-680` is the only ready successor and is reserved
-for metadata-only interop reporting. Conformance closure remains blocked behind
-its predecessor.
+Service production sources. `G8-680-SECURITY-SERVICE-INTEROP-METADATA`
+adds the `security-service` IDL fixture, approved peer manifest declarations,
+`InteropScenario.securityService()`, deterministic JVM/native dry-run direction
+enumeration, and structured missing-prerequisite reports without starting peer
+containers or local live lanes. `G8-690` is the only ready successor and is
+reserved for conformance closure.
 
 ## Documentation requirements
 
