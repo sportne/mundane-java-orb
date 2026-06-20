@@ -135,12 +135,11 @@ This repository is in **post-1.0.0 durable peer persistence evidence state**:
 - RMI-IIOP Native Image smoke coverage, source-level Native Image metadata
   audits, hostile-input closure, and structured interop-report closure have
   started under approved roadmap tasks;
-- optional Time, Event, Notification, and Trading Service implementation
+- optional Time, Event, Notification, Trading Service, and Transaction Service
   subsets now have closed G8 conformance records covering local behavior,
-  loopback IIOP/Naming, Native Image smoke, and approved dry-run peer metadata;
-  Transaction Service / OTS now has bounded local, IIOP request-context, Native
-  Image smoke, and metadata-only dry-run interop slices, and Security/CSIv2
-  remains blocked behind its accepted G8 ADR design;
+  loopback IIOP/Naming or request-context exposure, Native Image smoke, and
+  approved dry-run peer metadata;
+  Security/CSIv2 is ready for its staged task-group split;
 - the G10 pre-1.0 interoperability roadmap has closed non-optional IDL,
   mapping, wire, runtime, Native Image, harness, and live peer execution gaps
   needed before `1.0.0` release publication;
@@ -220,13 +219,16 @@ Build conventions live in `build-logic/` as composable Gradle convention plugins
 G8 optional-service design gates are complete, and the Time Service local
 value/clock, loopback IIOP/Naming exposure, structured interop metadata, and
 approved live peer conformance closure slices are implemented.
-Event Service, Notification Service, and Trading Service local/IIOP/Native
-Image/dry-run conformance records are also closed. Trading Service covers
-bounded local type and offer repositories, constraint evaluation, local query,
-import/export boundary metadata, loopback IIOP/Naming exposure, Native Image
-smoke, and dry-run interop metadata without live peer claims. Transaction
-Service / OTS has started with a bounded local coordinator/resource model and
-explicit timeout policy; Security/CSIv2 remains blocked.
+Event Service, Notification Service, Trading Service, and Transaction Service
+local/IIOP-adjacent/Native Image/dry-run conformance records are also closed.
+Trading Service covers bounded local type and offer repositories, constraint
+evaluation, local query, import/export boundary metadata, loopback IIOP/Naming
+exposure, Native Image smoke, and dry-run interop metadata without live peer
+claims. Transaction Service / OTS covers bounded coordinator/resource behavior,
+timeout policy, local state transitions, propagation metadata, disabled
+durable-recovery diagnostics, descriptor-backed request-context handling,
+Native Image smoke, and dry-run interop metadata without live peer claims.
+Security/CSIv2 is ready for its staged task-group split.
 G13-000 through G13-090 and G14-000 through G14-040 are complete. G14 live
 durable peer evidence covers old durable IOR invocation across JacORB,
 GlassFish CORBA ORB, JBoss OpenJDK ORB, and ACE/TAO for JVM and Native Image
@@ -329,5 +331,6 @@ shutdown, and source-level closed-world audits. G8-580 adds the
 `transaction-service` IDL fixture, approved-peer metadata, JVM/native dry-run
 direction enumeration, `InteropScenario.transactionService()`, and structured
 missing-prerequisite reports without starting peer containers or claiming live
-peer compatibility. The next ready roadmap task is G8-590, the Transaction
-Service conformance closure.
+peer compatibility. G8-590 closes the Transaction Service conformance record
+for the implemented local/IIOP request-context/Native Image/dry-run subset. The
+next ready roadmap task is G8-600, the Security Service / CSIv2 task group.

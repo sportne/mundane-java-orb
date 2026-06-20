@@ -158,8 +158,8 @@ values, task-type markers, and the rule that at least one task is active as
 - `tasks/g8-560-transaction-service-iiop-request-context-boundary.md` - complete
 - `tasks/g8-570-transaction-service-native-smoke.md` - complete
 - `tasks/g8-580-transaction-service-interop-metadata.md` - complete
-- `tasks/g8-590-transaction-service-conformance-closure.md` - ready-for-implementation
-- `tasks/g8-600-security-service-task-group.md` - blocked
+- `tasks/g8-590-transaction-service-conformance-closure.md` - complete
+- `tasks/g8-600-security-service-task-group.md` - ready-for-implementation
 
 ## G9 Verification Hardening
 

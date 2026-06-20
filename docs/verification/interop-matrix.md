@@ -156,9 +156,9 @@ for JVM and Native Image local lanes, and `--require-live` writes structured
 missing-prerequisite reports for absent approval, IDL, local commands, native
 binaries, cache, digest-pinned base image, container runtime, prepared peer
 image, and unapproved live execution. It does not start peer containers or local
-live lanes, and it records no live peer pass/fail evidence. G8-590 is promoted
-to close that Transaction Service dry-run interop posture as part of the
-local/IIOP/Native Image/dry-run conformance record.
+live lanes, and it records no live peer pass/fail evidence. G8-590 closes that
+Transaction Service dry-run interop posture as part of the local/IIOP request
+context/Native Image/dry-run conformance record.
 
 G10-080 records deterministic local Portable Interceptor evidence for the
 implemented ORB/IIOP loopback path: client/server request-flow ordering,
@@ -478,5 +478,6 @@ metadata-only `transaction-service` scenario,
 `interop/idl/transaction-service.idl`, approved peer manifest declarations,
 JVM/native dry-run direction enumeration, and deterministic
 missing-prerequisite reports. Transaction Service has no live peer lanes or
-pass/fail peer evidence, and G8-590 is ready to close its conformance record.
-Security/CSIv2 remains blocked behind its task group.
+pass/fail peer evidence, and G8-590 closes its local/IIOP request
+context/Native Image/dry-run conformance record. Security/CSIv2 is ready for
+its task-group split.
