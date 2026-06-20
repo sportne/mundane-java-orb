@@ -38,5 +38,20 @@ public final class SecurityServiceDiagnosticCodes {
   /** A credential does not chain to an accepted local trust anchor. */
   public static final DiagnosticCode CREDENTIAL_UNTRUSTED = new DiagnosticCode("SEC-0011");
 
+  /** A configured Security Service policy setting count exceeded supported bounds. */
+  public static final DiagnosticCode POLICY_LIMIT_EXCEEDED = new DiagnosticCode("SEC-0012");
+
+  /** A policy key or value was malformed or outside the supported local subset. */
+  public static final DiagnosticCode MALFORMED_POLICY = new DiagnosticCode("SEC-0013");
+
+  /** A policy list declared the same policy key more than once. */
+  public static final DiagnosticCode DUPLICATE_POLICY = new DiagnosticCode("SEC-0014");
+
+  /** A policy list combined settings that the supported local subset cannot satisfy. */
+  public static final DiagnosticCode CONFLICTING_POLICY = new DiagnosticCode("SEC-0015");
+
+  /** A policy requested delegation, which is outside the supported local subset. */
+  public static final DiagnosticCode UNSUPPORTED_DELEGATION = new DiagnosticCode("SEC-0016");
+
   private SecurityServiceDiagnosticCodes() {}
 }

@@ -1,7 +1,7 @@
 # G8-620 Security Service Policy Model
 
 Task ID: G8-620-SECURITY-SERVICE-POLICY-MODEL
-Status: ready-for-implementation
+Status: complete
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
@@ -15,3 +15,9 @@ Documentation to update: Security Service and Services Core READMEs as needed, s
 Commands to run: ./gradlew :modules:corba-security-service:test :modules:corba-services-core:test; ./gradlew test; ./gradlew validateDesignControlPack qualityGate; git diff --check
 Acceptance criteria: Security Service exposes bounded policy validation with deterministic diagnostics and no enforcement, CSIv2 encoding, IIOP integration, TLS reconfiguration, or live peer claim; G8-630 is promoted after completion.
 Rollback notes: Revert Security Service policy sources, tests, docs, and roadmap status together.
+
+Completion notes:
+- Added bounded Security Service policy objects for authentication, trust, transport protection, identity assertion, delegation, and audit settings with deterministic immutable snapshots.
+- Added validation diagnostics for malformed values, oversize policy values, duplicate keys, conflicting policy combinations, unsupported delegation, and caller-configured policy limits.
+- Confirmed the slice remains validation-only: no policy enforcement, CSIv2 encoding, IIOP integration, TLS reconfiguration, Native Image smoke entrypoint, interop metadata, or live peer claim was added.
+- Promoted `G8-630-SECURITY-SERVICE-CSIV2-METADATA-MODEL` to `ready-for-implementation`.

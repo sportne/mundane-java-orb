@@ -1,7 +1,7 @@
 # G8-630 Security Service CSIv2 Metadata Model
 
 Task ID: G8-630-SECURITY-SERVICE-CSIV2-METADATA-MODEL
-Status: blocked
+Status: ready-for-implementation
 Gate: Optional CORBA service implementation
 Requirement IDs: REQ-SVC-050, REQ-IIOP-002, REQ-SEC-006, REQ-DOC-006
 ADR IDs: ADR-0001, ADR-0002, ADR-0004, ADR-0005, ADR-0010, ADR-0016, ADR-0022
