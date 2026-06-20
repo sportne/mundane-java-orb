@@ -34,11 +34,16 @@ the supported local propagation subset: stable transaction service-context IDs
 and bytes, malformed and duplicate request-context diagnostics, stale, unknown,
 and expired context rejection through the local coordinator, and deterministic
 clean shutdown.
+`G8-570` adds Native Image smoke coverage for coordinator/resource creation,
+timeout rejection, local commit/rollback paths, propagation metadata
+validation, request-context boundary behavior, disabled recovery diagnostics,
+clean shutdown, and source-level closed-world audits over Transaction Service
+production sources.
 
-Native Image, interop, durable recovery logs, XA integration, Security Service
-integration, distributed peer two-phase commit, and live peer claims remain out
-of scope until later promoted slices. `G8-570` is the next promoted
-implementation slice for Native Image smoke coverage.
+Interop, durable recovery logs, XA integration, Security Service integration,
+distributed peer two-phase commit, and live peer claims remain out of scope
+until later promoted slices. `G8-580` is the next promoted implementation slice
+for metadata-only interop reporting.
 
 ## Documentation requirements
 

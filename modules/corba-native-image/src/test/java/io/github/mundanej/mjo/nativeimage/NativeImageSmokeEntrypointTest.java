@@ -14,6 +14,7 @@ import io.github.mundanej.mjo.nativeimage.smoke.NotificationServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.RmiIiopNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TimeServiceNativeSmoke;
 import io.github.mundanej.mjo.nativeimage.smoke.TradingServiceNativeSmoke;
+import io.github.mundanej.mjo.nativeimage.smoke.TransactionServiceNativeSmoke;
 import java.nio.file.Path;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ final class NativeImageSmokeEntrypointTest {
     EventServiceNativeSmoke.main(new String[0]);
     NotificationServiceNativeSmoke.main(new String[0]);
     TradingServiceNativeSmoke.main(new String[0]);
+    TransactionServiceNativeSmoke.main(new String[0]);
     InteropClientNativeSmoke.main(new String[0]);
     InteropServerNativeSmoke.main(new String[0]);
   }

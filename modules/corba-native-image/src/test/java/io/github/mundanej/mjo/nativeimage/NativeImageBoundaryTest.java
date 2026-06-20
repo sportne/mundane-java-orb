@@ -22,7 +22,8 @@ final class NativeImageBoundaryTest {
             module.resolve("src/nativeSmoke"),
             repository.resolve("modules/corba-rmi-iiop/src/main"),
             repository.resolve("modules/corba-notification-service/src/main"),
-            repository.resolve("modules/corba-trading-service/src/main"));
+            repository.resolve("modules/corba-trading-service/src/main"),
+            repository.resolve("modules/corba-transaction-service/src/main"));
     List<String> forbiddenTokens =
         List.of(
             "reflect-config.json",

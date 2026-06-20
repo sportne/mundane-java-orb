@@ -321,5 +321,9 @@ stable diagnostics and no logs, replay, retention, or migration behavior.
 G8-560 adds a descriptor-backed loopback IIOP request-context boundary for the
 local propagation subset, with stable request-context IDs and bytes,
 malformed/duplicate context diagnostics, stale/unknown/expired context
-rejection through the coordinator, and clean shutdown. The next ready roadmap
-task is G8-570, the Transaction Service Native Image smoke slice.
+rejection through the coordinator, and clean shutdown. G8-570 adds Transaction
+Service Native Image smoke coverage for coordinator/resource creation, timeout
+rejection, local commit/rollback paths, propagation metadata validation,
+request-context boundary behavior, disabled recovery diagnostics, clean
+shutdown, and source-level closed-world audits. The next ready roadmap task is
+G8-580, the metadata-only Transaction Service interop slice.

@@ -39,6 +39,8 @@ dependencies {
     nativeSmokeImplementation project(':modules:corba-notification-service')
     // G8-470 adds the local and loopback Trading Service smoke surface.
     nativeSmokeImplementation project(':modules:corba-trading-service')
+    // G8-570 adds the local Transaction Service / OTS smoke surface.
+    nativeSmokeImplementation project(':modules:corba-transaction-service')
     nativeSmokeImplementation project(':modules:corba-typecode')
 
     // Unit tests execute the smoke entry points on the JVM before native compilation.
@@ -136,6 +138,11 @@ def nativeSmokeTargets = [
         name: 'tradingService',
         mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.TradingServiceNativeSmoke',
         binaryName: 'trading-service-native-smoke'
+    ],
+    [
+        name: 'transactionService',
+        mainClass: 'io.github.mundanej.mjo.nativeimage.smoke.TransactionServiceNativeSmoke',
+        binaryName: 'transaction-service-native-smoke'
     ],
     [
         name: 'interopClient',
