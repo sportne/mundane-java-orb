@@ -33,6 +33,10 @@ candidate is used, run Gradle with `JAVA_HOME` set to that candidate and
 
 ## Current native checks
 
+The `native-image` pull-request workflow executes the aggregate binary smoke lane
+on GraalVM 21 and 25. It checks tool availability first, so a missing native
+compiler cannot turn that verification into a successful skip.
+
 - `:modules:corba-native-image:nativeImageBinariesSmoke` builds and executes
   the aggregate Native Image smoke suite:
   - `idljValidate` validates compact valid and invalid IDL through `IdljCli`;

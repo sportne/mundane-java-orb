@@ -16,12 +16,15 @@ jobs:
       matrix:
         java: [ '21', '25' ]
     steps:
-      - uses: actions/checkout@v4
-      - uses: graalvm/setup-graalvm@v1
+      - uses: actions/checkout@v6.0.2
+      - uses: graalvm/setup-graalvm@v1.6.7
         with:
           java-version: ${{ matrix.java }}
           distribution: graalvm
           native-image-job-reports: true
-      - uses: gradle/actions/setup-gradle@v4
-      - name: Native wiring check
-        run: ./gradlew validateDesignControlPack
+      - uses: gradle/actions/setup-gradle@v5.0.2
+      - name: Verify Native Image is available
+        run: native-image --version
+      - name: Build and execute representative native binaries
+        # REQ-BUILD-005, REQ-NATIVE-001 and REQ-NATIVE-005: execute the existing lane.
+        run: ./gradlew validateDesignControlPack :modules:corba-native-image:nativeImageBinariesSmoke --console=plain
